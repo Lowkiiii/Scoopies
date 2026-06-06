@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Scoopies — Costing Calculator</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{
+    --brown:#5b3a29; --brown2:#7a4f37; --cream:#fdf6ec; --card:#ffffff;
+    --line:#e9ddcf; --accent:#c9852b; --good:#2e7d32; --bad:#c0392b; --muted:#8a7a6a;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+    background:var(--cream);color:#2b2018;line-height:1.45}
+  header{background:var(--brown);color:#fff;padding:16px 18px}
+  .hwrap{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  header h1{margin:0;font-size:20px;letter-spacing:.3px}
+  header p{margin:4px 0 0;font-size:13px;opacity:.85}
+  .wrap{max-width:1000px;margin:0 auto;padding:0 14px 60px}
+  nav{display:flex;flex-wrap:wrap;gap:6px;position:sticky;top:0;background:var(--cream);
+    padding:10px 0;z-index:5;border-bottom:1px solid var(--line)}
+  nav button{flex:1 1 auto;min-width:110px;padding:10px 8px;border:1px solid var(--line);
+    background:#fff;border-radius:10px;font-size:14px;cursor:pointer;color:var(--brown);font-weight:600}
+  nav button.active{background:var(--brown);color:#fff;border-color:var(--brown)}
+  section{display:none;margin-top:16px}
+  section.active{display:block}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;
+    padding:14px;margin-bottom:14px;box-shadow:0 1px 2px rgba(0,0,0,.03)}
+  h2{font-size:18px;margin:6px 0 2px;color:var(--brown)}
+  .hint{font-size:13px;color:var(--muted);margin:0 0 12px}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  .scroll{overflow-x:auto}
+  th,td{padding:8px 6px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle}
+  th{font-size:12px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted)}
+  input,select{font:inherit;padding:8px;border:1px solid var(--line);border-radius:8px;
+    background:#fff;width:100%}
+  input[type=number]{width:100px}
+  td .calc{font-weight:600}
+  .btn{display:inline-block;padding:9px 14px;border:none;border-radius:9px;background:var(--accent);
+    color:#fff;font-weight:600;cursor:pointer;font-size:14px}
+  .btn.secondary{background:#fff;color:var(--brown);border:1px solid var(--line)}
+  .btn.danger{background:#fff;color:var(--bad);border:1px solid #e7c7c2;padding:6px 10px;font-size:13px}
+  .btn.small{padding:6px 10px;font-size:13px}
+  .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  .spacer{flex:1}
+  .metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-top:10px}
+  .metric{background:var(--cream);border:1px solid var(--line);border-radius:10px;padding:10px}
+  .metric .lbl{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.3px}
+  .metric .val{font-size:20px;font-weight:700;margin-top:2px}
+  .val.good{color:var(--good)} .val.bad{color:var(--bad)}
+  .pill{display:inline-block;font-size:12px;background:var(--cream);border:1px solid var(--line);
+    border-radius:999px;padding:3px 9px;color:var(--brown2)}
+  .lines td{border-bottom:1px dashed var(--line)}
+  .note{font-size:13px;background:#fff7e8;border:1px solid #f0dcae;border-radius:10px;padding:10px 12px;color:#7a5a14}
+  .empty{color:var(--muted);font-style:italic;padding:10px 0}
+  label.fld{font-size:12px;color:var(--muted);display:block;margin-bottom:3px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  @media(max-width:560px){.grid2{grid-template-columns:1fr}}
+  code{background:#f1e7d8;padding:1px 5px;border-radius:5px;font-size:13px}
+  .status{font-size:12px;padding:4px 11px;border-radius:999px;background:#fff;color:var(--brown);
+    border:1px solid var(--line);white-space:nowrap}
+  .status.good{background:#e9f6ea;color:var(--good);border-color:#bfe3c1}
+  .status.bad{background:#fdecea;color:var(--bad);border-color:#f0c8c2}
+  pre.sql{background:#2b2018;color:#f3e9d8;padding:12px;border-radius:10px;overflow-x:auto;
+    font-size:12px;line-height:1.55;white-space:pre;margin:10px 0}
+  .steps{font-size:14px;padding-left:20px;margin:8px 0}
+  .steps li{margin:7px 0}
+  summary{cursor:pointer;font-weight:600;color:var(--brown)}
+  #authGate{display:flex;position:fixed;inset:0;z-index:50;background:linear-gradient(160deg,#5b3a29,#7a4f37);
+    align-items:center;justify-content:center;padding:18px}
+  .gatecard{background:#fff;border:1px solid var(--line);border-radius:16px;max-width:380px;width:100%;
+    padding:24px;box-shadow:0 12px 40px rgba(0,0,0,.28)}
+  .gatecard h2{margin:6px 0 2px;text-align:center}
+  .gatelogo{font-size:38px;text-align:center;line-height:1}
+  .authmsg{font-size:13px;color:var(--muted);min-height:18px;margin-top:8px}
+  .authmsg.bad{color:var(--bad)}
+  .offlink{font-size:12px;color:var(--muted);text-decoration:underline}
+</style>
+</head>
+<body>
+<div id="authGate">
+  <div class="gatecard">
+    <div class="gatelogo">🍪</div>
+    <h2 id="authTitle">Log in to Scoopies</h2>
+    <p class="hint" id="authSub" style="text-align:center">Only you and your partner should have an account.</p>
+    <label class="fld">Email</label>
+    <input id="authEmail" type="email" autocomplete="username" placeholder="you@example.com">
+    <label class="fld" style="margin-top:8px">Password</label>
+    <input id="authPass" type="password" autocomplete="current-password" placeholder="your password">
+    <div id="authMsg" class="authmsg"></div>
+    <button class="btn" id="authSubmit" data-act="doLogin" style="width:100%;margin-top:6px">Log in</button>
+    <p class="hint" style="text-align:center;margin-top:14px;font-size:12px">🔒 Private — only your shared account can open the costing data.</p>
+  </div>
+</div>
+<header>
+  <div class="hwrap">
+    <div style="flex:1">
+      <h1>🍪 Scoopies — Costing Calculator</h1>
+      <p>Ingredients → Recipes → Packaging → Price.</p>
+    </div>
+    <span id="syncStatus" class="status">Local only</span>
+  </div>
+</header>
+
+<div class="wrap">
+  <nav>
+    <button data-tab="ingredients" class="active">1. Ingredients</button>
+    <button data-tab="packaging">2. Packaging</button>
+    <button data-tab="recipes">3. Recipes</button>
+    <button data-tab="products">4. Pricing</button>
+    <button data-tab="cloud">☁ Cloud</button>
+    <button data-tab="backup">💾 Backup</button>
+  </nav>
+
+  <!-- INGREDIENTS -->
+  <section id="ingredients" class="active">
+    <div class="card">
+      <h2>Ingredients</h2>
+      <p class="hint">Enter what you buy and the price you pay. The app works out the cost of one gram / mL / piece for you.</p>
+      <div class="scroll"><table id="ingTable"></table></div>
+      <div class="row" style="margin-top:12px">
+        <button class="btn" data-act="addIngredient">+ Add ingredient</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- PACKAGING -->
+  <section id="packaging">
+    <div class="card">
+      <h2>Packaging</h2>
+      <p class="hint">Cups, lids, spoons, stickers. Enter how many come in a pack and the pack price — we find the cost per piece.</p>
+      <div class="scroll"><table id="pkgTable"></table></div>
+      <div class="row" style="margin-top:12px">
+        <button class="btn" data-act="addPackaging">+ Add packaging item</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- RECIPES -->
+  <section id="recipes">
+    <div id="recipeList"></div>
+    <button class="btn" data-act="addRecipe">+ Add recipe</button>
+  </section>
+
+  <!-- PRODUCTS / PRICING -->
+  <section id="products">
+    <div class="note" style="margin-bottom:14px">
+      <strong>Reality check:</strong> the profit below is <em>gross</em> profit (price minus ingredients &amp; packaging only).
+      It does <strong>not</strong> include rent, electricity, gas, your time, or delivery-app fees.
+      Use it to set a floor, not your final take-home.
+    </div>
+    <div id="productList"></div>
+    <button class="btn" data-act="addProduct">+ Add product</button>
+  </section>
+
+  <!-- CLOUD / ACCOUNT -->
+  <section id="cloud">
+    <div class="card">
+      <h2>☁ Account &amp; cloud sync</h2>
+      <p class="hint">Your data is protected by a login — only you and your partner can see or change it. It saves online automatically and updates live across your devices.</p>
+      <div id="cloudState"></div>
+      <details style="margin-top:16px">
+        <summary>⚙ Advanced / one-time setup</summary>
+        <div class="grid2" style="margin-top:10px">
+          <div><label class="fld">Project URL</label><input id="cfgUrl" placeholder="https://xxxxx.supabase.co"></div>
+          <div><label class="fld">Publishable key</label><input id="cfgKey" placeholder="sb_publishable_..."></div>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <button class="btn secondary" data-act="doReconnect">Save settings &amp; reload</button>
+        </div>
+        <p class="hint" style="margin-top:16px"><strong>Database lock</strong> — run this once in Supabase → SQL Editor so ONLY logged-in users can read or change your data:</p>
+        <button class="btn small secondary" data-act="copySql">Copy SQL</button>
+<pre class="sql" id="sqlText">-- 1) Table + realtime (safe to re-run; skips if it already exists)
+create table if not exists scoopies_state (
+  id text primary key default 'main',
+  data jsonb not null default '{}'::jsonb,
+  updated_at timestamptz not null default now()
+);
+insert into scoopies_state (id, data) values ('main','{}'::jsonb) on conflict (id) do nothing;
+alter table scoopies_state enable row level security;
+do $$ begin
+  alter publication supabase_realtime add table scoopies_state;
+exception when duplicate_object then null; end $$;
+
+-- 2) Lock it down: remove the old "anyone" rules, allow ONLY logged-in users
+drop policy if exists "scoopies read"   on scoopies_state;
+drop policy if exists "scoopies insert" on scoopies_state;
+drop policy if exists "scoopies update" on scoopies_state;
+create policy "auth read"   on scoopies_state for select to authenticated using (true);
+create policy "auth insert" on scoopies_state for insert to authenticated with check (true);
+create policy "auth update" on scoopies_state for update to authenticated using (true) with check (true);</pre>
+        <p class="hint">Setup order: in Supabase → <strong>Authentication</strong> turn <strong>OFF "Confirm email"</strong> → create your accounts on the login screen → run the SQL above → turn <strong>OFF new signups</strong> so no one else can register.</p>
+      </details>
+    </div>
+  </section>
+
+  <!-- BACKUP -->
+  <section id="backup">
+    <div class="card">
+      <h2>Backup &amp; data</h2>
+      <p class="hint">Even with cloud sync on, an occasional exported file is a good extra safety net.</p>
+      <div class="row">
+        <button class="btn" data-act="export">⬇ Export backup (.json)</button>
+        <button class="btn secondary" data-act="importTrigger">⬆ Import backup</button>
+        <input type="file" id="importFile" accept="application/json" style="display:none">
+      </div>
+      <hr style="border:none;border-top:1px solid var(--line);margin:16px 0">
+      <div class="row">
+        <button class="btn secondary" data-act="loadExample">Load example data (Chocolate Cookie)</button>
+        <button class="btn danger" data-act="clearAll">Clear everything</button>
+      </div>
+      <p class="hint" style="margin-top:12px">New here? Click <strong>Load example data</strong> to see a full worked Scoopie, then change the numbers to yours.</p>
+    </div>
+  </section>
+</div>
+
+<script>
+/* ---------- units & money ---------- */
+var UNIT_FACTOR = {g:1, kg:1000, ml:1, l:1000, piece:1};
+var UNIT_TYPE   = {g:'weight', kg:'weight', ml:'volume', l:'volume', piece:'count'};
+var TYPE_UNITS  = {weight:['g','kg'], volume:['ml','l'], count:['piece']};
+var TYPE_BASE   = {weight:'g', volume:'ml', count:'piece'};
+
+function toBase(qty, unit){ return (parseFloat(qty)||0) * (UNIT_FACTOR[unit]||1); }
+function peso(n){ if(!isFinite(n)) return '—'; return '₱' + (Math.round(n*100)/100).toLocaleString('en-PH',{minimumFractionDigits:2, maximumFractionDigits:2}); }
+function pct(n){ if(!isFinite(n)) return '—'; return (Math.round(n*10)/10) + '%'; }
+function num(v){ var n=parseFloat(v); return isNaN(n)?0:n; }
+function uid(){ return 'id'+(uid._c=(uid._c||0)+1)+'_'+Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+function getById(list,id){ for(var i=0;i<list.length;i++){ if(list[i].id===id) return list[i]; } return null; }
+function ceilTo(n,step){ return Math.ceil(n/step)*step; }
+
+/* ---------- state + persistence ---------- */
+var KEY = 'scoopies_costing_v1';
+var CFG_KEY = 'scoopies_cloud_cfg';
+/* Embedded so the app auto-connects everywhere. The publishable key is SAFE to expose —
+   protection comes from the login + database rules, not from hiding the key. */
+var DEFAULT_URL = 'https://zdhybtctoxosjddzbfzp.supabase.co';
+var DEFAULT_KEY = 'sb_publishable_0doOTYpX9SKPHNHSSHLYRg_g2lJCsAj';
+var state = loadLocal();
+var cloud = { url:'', key:'', client:null, connected:false, channel:null };
+var session = null, currentUserId = null, offlineMode = false, authMode = 'login';
+var pendingSave = false, saveTimer = null, pendingRemote = null;
+
+function blank(){ return {ingredients:[], packaging:[], recipes:[], products:[]}; }
+function loadLocal(){
+  try{ var s = JSON.parse(localStorage.getItem(KEY)); return s && s.ingredients ? s : blank(); }
+  catch(e){ return blank(); }
+}
+function setStatus(text, kind){ var el=document.getElementById('syncStatus'); if(el){ el.textContent=text; el.className='status '+(kind||''); } }
+
+/* save: always cache locally; if cloud connected, also push (debounced) */
+function save(){
+  try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){}
+  if(cloud.connected && session){
+    setStatus('Saving…','');
+    pendingSave = true;
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(function(){
+      cloudSave(state).then(function(){ pendingSave=false; setStatus('Saved to cloud ✓','good'); })
+        .catch(function(e){ pendingSave=false; setStatus('Saved on device — cloud error','bad'); });
+    }, 600);
+  } else {
+    setStatus('Saved on device','');
+  }
+}
+
+/* ---------- Supabase config + client ---------- */
+function loadCfg(){ try{ return JSON.parse(localStorage.getItem(CFG_KEY))||{}; }catch(e){ return {}; } }
+function saveCfg(c){ localStorage.setItem(CFG_KEY, JSON.stringify(c)); }
+function activeUrl(){ var c=loadCfg(); return ((c.url||DEFAULT_URL)||'').trim(); }
+function activeKey(){ var c=loadCfg(); return ((c.key||DEFAULT_KEY)||'').trim(); }
+
+/* create the Supabase client and start listening for login/logout */
+function initClient(url, key){
+  if(!window.supabase){ setStatus('No internet','bad'); return false; }
+  if(!url || !key){ return false; }
+  cloud.client = window.supabase.createClient(url, key, { auth:{ persistSession:true, autoRefreshToken:true } });
+  cloud.url = url; cloud.key = key;
+  cloud.client.auth.onAuthStateChange(function(_event, sess){ handleAuth(sess); });
+  return true;
+}
+async function cloudLoad(){
+  var res = await cloud.client.from('scoopies_state').select('data').eq('id','main').maybeSingle();
+  if(res.error) throw res.error;
+  return res.data ? res.data.data : null;
+}
+async function cloudSave(s){
+  var res = await cloud.client.from('scoopies_state')
+    .upsert({ id:'main', data:s, updated_at:new Date().toISOString() }, { onConflict:'id' });
+  if(res.error) throw res.error;
+}
+function hasData(s){ return s && s.ingredients && (s.ingredients.length||s.packaging.length||s.recipes.length||s.products.length); }
+function appIsEditing(){
+  var ae=document.activeElement;
+  return !!(ae && (ae.tagName==='INPUT'||ae.tagName==='SELECT') && ae.closest && ae.closest('.wrap'));
+}
+/* apply a fresh copy from the cloud, unless it's our own echo or we're mid-typing */
+function maybeApplyRemote(remote){
+  if(!remote) return;
+  if(JSON.stringify(remote)===JSON.stringify(state)) return;   /* same data / our own change echoing back */
+  if(appIsEditing()){ pendingRemote=remote; return; }          /* wait until they finish the field they're in */
+  state=remote; pendingRemote=null;
+  try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){}
+  renderAll();
+  setStatus('Updated from partner ✓','good');
+}
+/* live updates: listen for any change to our row and apply it */
+function subscribeRealtime(){
+  if(!cloud.client) return;
+  try{
+    if(cloud.channel){ cloud.client.removeChannel(cloud.channel); cloud.channel=null; }
+    cloud.channel = cloud.client.channel('scoopies-rt')
+      .on('postgres_changes', { event:'*', schema:'public', table:'scoopies_state' }, function(payload){
+        maybeApplyRemote(payload && payload.new ? payload.new.data : null);
+      })
+      .subscribe();
+  }catch(e){}
+}
+/* ---------- auth / login gate ---------- */
+function showGate(show){ var g=document.getElementById('authGate'); if(g) g.style.display = show ? 'flex' : 'none'; }
+function authMsg(text, bad){ var el=document.getElementById('authMsg'); if(el){ el.textContent=text||''; el.className='authmsg'+(bad?' bad':''); } }
+function renderGate(){
+  var t=document.getElementById('authTitle'), sub=document.getElementById('authSub');
+  var btn=document.getElementById('authSubmit'), tog=document.getElementById('authToggle');
+  if(!btn) return;
+  if(authMode==='signup'){
+    if(t) t.textContent='Create your account';
+    if(sub) sub.textContent='Use your email and pick a password (at least 6 characters).';
+    btn.textContent='Create account';
+    if(tog) tog.textContent='Already have an account? Log in';
+  } else {
+    if(t) t.textContent='Log in to Scoopies';
+    if(sub) sub.textContent='Only you and your partner should have an account.';
+    btn.textContent='Log in';
+    if(tog) tog.textContent='First time? Create an account';
+  }
+  authMsg('');
+}
+/* called whenever the user logs in or out */
+async function handleAuth(sess){
+  session = sess || null;
+  if(session){
+    offlineMode = false; showGate(false); cloud.connected = true;
+    if(session.user && session.user.id !== currentUserId){   /* first sign-in for this user → load data once */
+      currentUserId = session.user.id;
+      setStatus('Connecting…','');
+      try{
+        try{ cloud.client.realtime.setAuth(session.access_token); }catch(e){}
+        var remote = await cloudLoad();
+        if(hasData(remote)){ state = remote; } else { await cloudSave(state); }
+        save(); renderAll(); setStatus('Saved to cloud ✓','good');
+      }catch(e){ setStatus('Signed in — cloud read failed','bad'); }
+      subscribeRealtime();
+    }
+  } else {
+    cloud.connected = false; currentUserId = null;
+    if(cloud.client && !offlineMode){ showGate(true); setStatus('Sign in to sync','bad'); }
+    else { setStatus('Saved on device',''); }
+  }
+  renderAccount();
+}
+async function doLogin(){
+  if(!cloud.client){ authMsg('Cloud not ready — please refresh the page.', true); return; }
+  var email=(document.getElementById('authEmail').value||'').trim();
+  var pass=(document.getElementById('authPass').value||'');
+  if(!email||!pass){ authMsg('Enter your email and password.', true); return; }
+  authMsg('Please wait…');
+  try{
+    if(authMode==='signup'){
+      var r=await cloud.client.auth.signUp({ email:email, password:pass });
+      if(r.error) throw r.error;
+      if(!r.data.session){ authMsg('Account made, but "Confirm email" is ON in Supabase. Turn it OFF (Authentication settings), then log in.', true); return; }
+    } else {
+      var r2=await cloud.client.auth.signInWithPassword({ email:email, password:pass });
+      if(r2.error) throw r2.error;
+    }
+    /* onAuthStateChange takes over from here */
+  }catch(e){ authMsg((e && e.message) ? e.message : String(e), true); }
+}
+function toggleAuthMode(){ authMode = (authMode==='login') ? 'signup' : 'login'; renderGate(); }
+function openLogin(){ offlineMode=false; authMode='login'; renderGate(); showGate(true); }
+function goOffline(){ offlineMode=true; showGate(false); setStatus('Saved on device',''); renderAll(); renderAccount(); }
+async function doLogout(){
+  try{ if(cloud.channel){ cloud.client.removeChannel(cloud.channel); cloud.channel=null; } }catch(e){}
+  try{ await cloud.client.auth.signOut(); }catch(e){}
+  /* onAuthStateChange(null) shows the login gate again */
+}
+async function doReconnect(){
+  var url=(document.getElementById('cfgUrl').value||'').trim();
+  var key=(document.getElementById('cfgKey').value||'').trim();
+  if(!url||!key){ alert('Enter both the Project URL and the key.'); return; }
+  saveCfg({ url:url, key:key });
+  alert('Saved. The page will reload to apply the new settings.');
+  location.reload();
+}
+function renderAccount(){
+  var el=document.getElementById('cloudState'); if(!el) return;
+  if(session){
+    var email = session.user ? session.user.email : '';
+    el.innerHTML='<div class="note" style="background:#e9f6ea;border-color:#bfe3c1;color:#22622a">✅ Signed in as <strong>'+escapeHtml(email)+'</strong> — live sync on. Changes save automatically; your partner\'s edits appear by themselves.</div>'+
+      '<div class="row" style="margin-top:10px"><button class="btn danger" data-act="logout">Log out</button></div>';
+  } else if(offlineMode){
+    el.innerHTML='<div class="note">Working on this device only (not signed in). Saved locally, not synced.</div>'+
+      '<div class="row" style="margin-top:10px"><button class="btn" data-act="openLogin">Log in to sync</button></div>';
+  } else {
+    el.innerHTML='<div class="note">Not signed in.</div>'+
+      '<div class="row" style="margin-top:10px"><button class="btn" data-act="openLogin">Log in</button></div>';
+  }
+  var u=document.getElementById('cfgUrl'), k=document.getElementById('cfgKey');
+  if(u && !u.value) u.value=cloud.url||activeUrl();
+  if(k && !k.value) k.value=cloud.key||activeKey();
+}
+
+/* ---------- cost calculations ---------- */
+function ingCostPerBase(ing){ var base = toBase(ing.qty, ing.unit); return base>0 ? num(ing.price)/base : 0; }
+function pkgCostPerPiece(p){ var q = num(p.qty); return q>0 ? num(p.price)/q : 0; }
+function lineCost(line){ var ing = getById(state.ingredients, line.ingredientId); if(!ing) return 0; return toBase(line.qty, line.unit) * ingCostPerBase(ing); }
+function recipeTotal(r){ var t=0; (r.lines||[]).forEach(function(l){ t+=lineCost(l); }); return t; }
+function recipePerServing(r){ var y=num(r.yield); return y>0 ? recipeTotal(r)/y : 0; }
+function productPackagingCost(p){ var t=0; (p.packLines||[]).forEach(function(l){ var pk=getById(state.packaging,l.packagingId); if(pk) t+=num(l.qty)*pkgCostPerPiece(pk); }); return t; }
+function productCost(p){ var r=getById(state.recipes,p.recipeId); var food=r?recipePerServing(r):0; return food + productPackagingCost(p); }
+function suggestedPrice(cost, marginPct){ var m=num(marginPct)/100; if(m>=1) return Infinity; return cost/(1-m); }
+
+/* ---------- rendering ---------- */
+var unitOptions = ['g','kg','ml','l','piece'];
+function optionList(arr, selected, useObj){
+  return arr.map(function(o){ var v=useObj?o.id:o; var label=useObj?o.name:o;
+    return '<option value="'+v+'"'+(v===selected?' selected':'')+'>'+escapeHtml(label||'(unnamed)')+'</option>'; }).join('');
+}
+function escapeHtml(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+
+function renderIngredients(){
+  var t=document.getElementById('ingTable');
+  var rows=state.ingredients.map(function(ing){
+    var cpb=ingCostPerBase(ing); var baseUnit=TYPE_BASE[UNIT_TYPE[ing.unit]||'weight'];
+    return '<tr data-entity="ingredient" data-id="'+ing.id+'">'+
+      '<td><input data-field="name" value="'+escapeHtml(ing.name)+'" placeholder="e.g. Flour"></td>'+
+      '<td><input data-field="qty" type="number" min="0" step="any" value="'+escapeHtml(ing.qty)+'"></td>'+
+      '<td><select data-field="unit">'+optionList(unitOptions, ing.unit)+'</select></td>'+
+      '<td><input data-field="price" type="number" min="0" step="any" value="'+escapeHtml(ing.price)+'"></td>'+
+      '<td class="calc">'+peso(cpb)+' / '+baseUnit+'</td>'+
+      '<td><button class="btn danger" data-act="delIngredient" data-id="'+ing.id+'">Delete</button></td></tr>';
+  }).join('');
+  t.innerHTML='<tr><th>Ingredient</th><th>Buy qty</th><th>Unit</th><th>Price (₱)</th><th>Cost per unit</th><th></th></tr>'+
+    (rows||'<tr><td colspan="6" class="empty">No ingredients yet. Click "Add ingredient".</td></tr>');
+}
+function renderPackaging(){
+  var t=document.getElementById('pkgTable');
+  var rows=state.packaging.map(function(p){
+    return '<tr data-entity="packaging" data-id="'+p.id+'">'+
+      '<td><input data-field="name" value="'+escapeHtml(p.name)+'" placeholder="e.g. Container"></td>'+
+      '<td><input data-field="qty" type="number" min="0" step="any" value="'+escapeHtml(p.qty)+'" placeholder="per pack"></td>'+
+      '<td><input data-field="price" type="number" min="0" step="any" value="'+escapeHtml(p.price)+'" placeholder="pack price"></td>'+
+      '<td class="calc">'+peso(pkgCostPerPiece(p))+' / piece</td>'+
+      '<td><button class="btn danger" data-act="delPackaging" data-id="'+p.id+'">Delete</button></td></tr>';
+  }).join('');
+  t.innerHTML='<tr><th>Item</th><th>Pieces per pack</th><th>Pack price (₱)</th><th>Cost per piece</th><th></th></tr>'+
+    (rows||'<tr><td colspan="5" class="empty">No packaging yet. Tip: if you buy 1 piece at a time, put 1 as the pack quantity.</td></tr>');
+}
+function renderRecipes(){
+  var wrap=document.getElementById('recipeList');
+  if(!state.recipes.length){ wrap.innerHTML='<div class="card"><p class="empty">No recipes yet. Click "Add recipe" to build one from your ingredients.</p></div>'; return; }
+  wrap.innerHTML=state.recipes.map(function(r){
+    var lineRows=(r.lines||[]).map(function(l, idx){
+      var ing=getById(state.ingredients,l.ingredientId); var type=ing?UNIT_TYPE[ing.unit]:'weight'; var allowed=TYPE_UNITS[type]||unitOptions;
+      return '<tr class="lines" data-entity="recipeLine" data-id="'+r.id+'" data-idx="'+idx+'">'+
+        '<td><select data-field="ingredientId"><option value="">— pick ingredient —</option>'+optionList(state.ingredients,l.ingredientId,true)+'</select></td>'+
+        '<td><input data-field="qty" type="number" min="0" step="any" value="'+escapeHtml(l.qty)+'"></td>'+
+        '<td><select data-field="unit">'+optionList(allowed,l.unit)+'</select></td>'+
+        '<td class="calc">'+peso(lineCost(l))+'</td>'+
+        '<td><button class="btn danger" data-act="delLine" data-id="'+r.id+'" data-idx="'+idx+'">✕</button></td></tr>';
+    }).join('');
+    return '<div class="card" data-entity="recipe" data-id="'+r.id+'">'+
+      '<div class="grid2">'+
+        '<div><label class="fld">Recipe name</label><input data-field="name" value="'+escapeHtml(r.name)+'" placeholder="e.g. Chocolate Cookie"></div>'+
+        '<div><label class="fld">Yield — how many servings/cups one batch makes</label><input data-field="yield" type="number" min="0" step="any" value="'+escapeHtml(r.yield)+'"></div>'+
+      '</div>'+
+      '<div class="scroll" style="margin-top:12px"><table><tr><th>Ingredient</th><th>Qty used</th><th>Unit</th><th>Cost</th><th></th></tr>'+
+        (lineRows||'<tr><td colspan="5" class="empty">No ingredients added.</td></tr>')+'</table></div>'+
+      '<div class="row" style="margin-top:10px">'+
+        '<button class="btn small secondary" data-act="addLine" data-id="'+r.id+'">+ Add ingredient</button>'+
+        '<div class="spacer"></div>'+
+        '<button class="btn danger" data-act="delRecipe" data-id="'+r.id+'">Delete recipe</button></div>'+
+      '<div class="metrics">'+
+        '<div class="metric"><div class="lbl">Total recipe cost</div><div class="val">'+peso(recipeTotal(r))+'</div></div>'+
+        '<div class="metric"><div class="lbl">Cost per serving</div><div class="val">'+peso(recipePerServing(r))+'</div></div>'+
+      '</div></div>';
+  }).join('');
+}
+function renderProducts(){
+  var wrap=document.getElementById('productList');
+  if(!state.products.length){ wrap.innerHTML='<div class="card"><p class="empty">No products yet. A product = a recipe + its packaging + your target margin. Click "Add product".</p></div>'; return; }
+  wrap.innerHTML=state.products.map(function(p){
+    var cost=productCost(p); var sugg=suggestedPrice(cost,p.targetMargin); var price=num(p.price);
+    var profit=price-cost; var marginPct=price>0?profit/price*100:0; var markupPct=cost>0?profit/cost*100:0; var foodPct=price>0?cost/price*100:0;
+    var r=getById(state.recipes,p.recipeId);
+    var pkgRows=(p.packLines||[]).map(function(l, idx){
+      var pk=getById(state.packaging,l.packagingId);
+      return '<tr class="lines" data-entity="packLine" data-id="'+p.id+'" data-idx="'+idx+'">'+
+        '<td><select data-field="packagingId"><option value="">— pick packaging —</option>'+optionList(state.packaging,l.packagingId,true)+'</select></td>'+
+        '<td><input data-field="qty" type="number" min="0" step="any" value="'+escapeHtml(l.qty)+'"></td>'+
+        '<td class="calc">'+peso((pk?pkgCostPerPiece(pk):0)*num(l.qty))+'</td>'+
+        '<td><button class="btn danger" data-act="delPkgLine" data-id="'+p.id+'" data-idx="'+idx+'">✕</button></td></tr>';
+    }).join('');
+    return '<div class="card" data-entity="product" data-id="'+p.id+'">'+
+      '<div class="grid2">'+
+        '<div><label class="fld">Product name</label><input data-field="name" value="'+escapeHtml(p.name)+'" placeholder="e.g. Choco Chip Scoopie"></div>'+
+        '<div><label class="fld">Recipe</label><select data-field="recipeId"><option value="">— pick recipe —</option>'+optionList(state.recipes,p.recipeId,true)+'</select></div>'+
+      '</div>'+
+      '<p class="hint" style="margin:10px 0 4px">Food cost per serving from recipe: <span class="pill">'+(r?peso(recipePerServing(r)):'—')+'</span></p>'+
+      '<div class="scroll"><table><tr><th>Packaging used</th><th>Qty</th><th>Cost</th><th></th></tr>'+
+        (pkgRows||'<tr><td colspan="4" class="empty">No packaging added.</td></tr>')+'</table></div>'+
+      '<button class="btn small secondary" data-act="addPkgLine" data-id="'+p.id+'" style="margin-top:8px">+ Add packaging</button>'+
+      '<div class="grid2" style="margin-top:14px">'+
+        '<div><label class="fld">Target profit margin (%)</label><input data-field="targetMargin" type="number" min="0" max="95" step="any" value="'+escapeHtml(p.targetMargin)+'"></div>'+
+        '<div><label class="fld">Your selling price (₱)</label><div class="row"><input data-field="price" type="number" min="0" step="any" value="'+escapeHtml(p.price)+'">'+
+          '<button class="btn small" data-act="useSuggested" data-id="'+p.id+'">Use ₱'+(isFinite(sugg)?ceilTo(sugg,5):'—')+'</button></div></div>'+
+      '</div>'+
+      '<div class="metrics">'+
+        '<div class="metric"><div class="lbl">Total cost</div><div class="val">'+peso(cost)+'</div></div>'+
+        '<div class="metric"><div class="lbl">Suggested price ('+pct(num(p.targetMargin))+' margin)</div><div class="val">'+peso(sugg)+'</div></div>'+
+        '<div class="metric"><div class="lbl">Gross profit</div><div class="val '+(profit>=0?'good':'bad')+'">'+peso(profit)+'</div></div>'+
+        '<div class="metric"><div class="lbl">Profit margin</div><div class="val '+(marginPct>=0?'good':'bad')+'">'+pct(marginPct)+'</div></div>'+
+        '<div class="metric"><div class="lbl">Markup</div><div class="val">'+pct(markupPct)+'</div></div>'+
+        '<div class="metric"><div class="lbl">Food cost %</div><div class="val">'+pct(foodPct)+'</div></div>'+
+      '</div>'+
+      '<div class="row" style="margin-top:12px"><div class="spacer"></div><button class="btn danger" data-act="delProduct" data-id="'+p.id+'">Delete product</button></div></div>';
+  }).join('');
+}
+function renderAll(){ renderIngredients(); renderPackaging(); renderRecipes(); renderProducts(); }
+
+/* ---------- events ---------- */
+document.querySelector('nav').addEventListener('click', function(e){
+  var b=e.target.closest('button[data-tab]'); if(!b) return;
+  document.querySelectorAll('nav button').forEach(function(x){x.classList.remove('active');});
+  document.querySelectorAll('section').forEach(function(s){s.classList.remove('active');});
+  b.classList.add('active'); document.getElementById(b.dataset.tab).classList.add('active');
+});
+
+document.body.addEventListener('change', function(e){
+  var el=e.target;
+  if(!el.dataset.field){ handleFileImport(e); return; }
+  var row=el.closest('[data-entity]'); if(!row) return;
+  var entity=row.dataset.entity, id=row.dataset.id, field=el.dataset.field, val=el.value, idx=row.dataset.idx;
+  if(entity==='ingredient'){ var ing=getById(state.ingredients,id); if(ing){ ing[field]=val; } }
+  else if(entity==='packaging'){ var pk=getById(state.packaging,id); if(pk){ pk[field]=val; } }
+  else if(entity==='recipe'){ var r=getById(state.recipes,id); if(r){ r[field]=val; } }
+  else if(entity==='recipeLine'){ var r2=getById(state.recipes,id); if(r2){ var ln=r2.lines[idx]; if(ln){ ln[field]=val; if(field==='ingredientId'){ var ig=getById(state.ingredients,val); if(ig) ln.unit=TYPE_UNITS[UNIT_TYPE[ig.unit]][0]; } } } }
+  else if(entity==='product'){ var p=getById(state.products,id); if(p){ p[field]=val; } }
+  else if(entity==='packLine'){ var p2=getById(state.products,id); if(p2){ var pl=p2.packLines[idx]; if(pl){ pl[field]=val; } } }
+  save(); renderAll();
+});
+
+document.body.addEventListener('click', function(e){
+  var b=e.target.closest('[data-act]'); if(!b) return;
+  if(b.tagName==='A') e.preventDefault();
+  var act=b.dataset.act, id=b.dataset.id, idx=b.dataset.idx;
+  switch(act){
+    case 'addIngredient': state.ingredients.push({id:uid(),name:'',qty:'',unit:'g',price:''}); break;
+    case 'delIngredient': state.ingredients=state.ingredients.filter(function(x){return x.id!==id;}); break;
+    case 'addPackaging': state.packaging.push({id:uid(),name:'',qty:'',price:''}); break;
+    case 'delPackaging': state.packaging=state.packaging.filter(function(x){return x.id!==id;}); break;
+    case 'addRecipe': state.recipes.push({id:uid(),name:'',yield:'',lines:[]}); break;
+    case 'delRecipe': if(confirm('Delete this recipe?')) state.recipes=state.recipes.filter(function(x){return x.id!==id;}); else return; break;
+    case 'addLine': { var r=getById(state.recipes,id); if(r) r.lines.push({ingredientId:'',qty:'',unit:'g'}); break; }
+    case 'delLine': { var r2=getById(state.recipes,id); if(r2) r2.lines.splice(idx,1); break; }
+    case 'addProduct': state.products.push({id:uid(),name:'',recipeId:'',packLines:[],targetMargin:60,price:''}); break;
+    case 'delProduct': if(confirm('Delete this product?')) state.products=state.products.filter(function(x){return x.id!==id;}); else return; break;
+    case 'addPkgLine': { var p=getById(state.products,id); if(p) p.packLines.push({packagingId:'',qty:1}); break; }
+    case 'delPkgLine': { var p2=getById(state.products,id); if(p2) p2.packLines.splice(idx,1); break; }
+    case 'useSuggested': { var p3=getById(state.products,id); if(p3){ var c=productCost(p3); var s=suggestedPrice(c,p3.targetMargin); if(isFinite(s)) p3.price=ceilTo(s,5); } break; }
+    case 'export': exportData(); return;
+    case 'importTrigger': document.getElementById('importFile').click(); return;
+    case 'loadExample': if(confirm('Load example data? This replaces what you have now.')){ state=exampleData(); } else return; break;
+    case 'clearAll': if(confirm('Erase ALL data? Export a backup first if unsure.')){ state=blank(); } else return; break;
+    case 'doLogin': doLogin(); return;
+    case 'toggleAuthMode': toggleAuthMode(); return;
+    case 'openLogin': openLogin(); return;
+    case 'goOffline': goOffline(); return;
+    case 'logout': doLogout(); return;
+    case 'doReconnect': doReconnect(); return;
+    case 'copySql': navigator.clipboard.writeText(document.getElementById('sqlText').textContent).then(function(){ alert('SQL copied. Paste it into Supabase → SQL Editor → New query → Run.'); }, function(){ alert('Could not copy automatically — select the SQL and copy it manually.'); }); return;
+    default: return;
+  }
+  save(); renderAll();
+});
+
+/* reload from cloud when returning to the tab (picks up partner's edits) */
+/* safety net: also refresh when returning to the tab, in case a live update was missed */
+window.addEventListener('focus', function(){
+  if(cloud.connected && !pendingSave){ cloudLoad().then(maybeApplyRemote).catch(function(){}); }
+});
+/* if a partner update arrived while typing, apply it once they leave the field */
+document.body.addEventListener('focusout', function(){
+  if(!pendingRemote) return;
+  setTimeout(function(){ if(!appIsEditing()) maybeApplyRemote(pendingRemote); }, 60);
+});
+/* press Enter in the login form to submit it */
+document.body.addEventListener('keydown', function(e){
+  if(e.key!=='Enter') return;
+  var id=e.target && e.target.id;
+  if(id==='authEmail' || id==='authPass'){ e.preventDefault(); doLogin(); }
+});
+
+/* ---------- backup ---------- */
+function exportData(){
+  var blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});
+  var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='scoopies-backup.json'; a.click(); URL.revokeObjectURL(a.href);
+}
+function handleFileImport(e){
+  if(e.target.id!=='importFile') return;
+  var f=e.target.files[0]; if(!f) return;
+  var reader=new FileReader();
+  reader.onload=function(){
+    try{ var data=JSON.parse(reader.result); if(!data.ingredients) throw new Error('not a Scoopies backup');
+      state=data; save(); renderAll(); alert('Backup imported successfully.'); }
+    catch(err){ alert('Could not read that file: '+err.message); }
+    e.target.value='';
+  };
+  reader.readAsText(f);
+}
+
+/* ---------- example data ---------- */
+function exampleData(){
+  var flour={id:uid(),name:'Flour',qty:1000,unit:'g',price:80};
+  var butter={id:uid(),name:'Butter',qty:500,unit:'g',price:250};
+  var sugar={id:uid(),name:'Sugar',qty:1000,unit:'g',price:60};
+  var chips={id:uid(),name:'Chocolate chips',qty:250,unit:'g',price:120};
+  var cup={id:uid(),name:'Container',qty:50,price:250};
+  var sticker={id:uid(),name:'Sticker',qty:100,price:200};
+  var spoon={id:uid(),name:'Spoon',qty:100,price:100};
+  var recipe={id:uid(),name:'Chocolate Cookie',yield:10,lines:[
+    {ingredientId:flour.id,qty:300,unit:'g'},{ingredientId:butter.id,qty:100,unit:'g'},
+    {ingredientId:sugar.id,qty:150,unit:'g'},{ingredientId:chips.id,qty:100,unit:'g'}]};
+  var product={id:uid(),name:'Choco Chip Scoopie',recipeId:recipe.id,targetMargin:60,price:'',packLines:[
+    {packagingId:cup.id,qty:1},{packagingId:sticker.id,qty:1},{packagingId:spoon.id,qty:1}]};
+  var s={ingredients:[flour,butter,sugar,chips],packaging:[cup,sticker,spoon],recipes:[recipe],products:[product]};
+  state=s; var c=productCost(product); var sg=suggestedPrice(c,60); product.price=isFinite(sg)?ceilTo(sg,5):'';
+  return s;
+}
+
+/* ---------- boot ---------- */
+async function boot(){
+  renderGate();
+  var url=activeUrl(), key=activeKey();
+  if(initClient(url, key)){
+    saveCfg({ url:url, key:key });
+    setStatus('Connecting…','');
+    try{
+      var s = await cloud.client.auth.getSession();
+      await handleAuth(s && s.data ? s.data.session : null);
+    }catch(e){ offlineMode=false; showGate(true); setStatus('Sign in to sync','bad'); renderAccount(); }
+  } else {
+    offlineMode = true; showGate(false); setStatus('Saved on device',''); renderAccount();
+  }
+  renderAll();
+}
+boot();
+</script>
+</body>
+</html>
