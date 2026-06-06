@@ -492,9 +492,11 @@ function renderProducts(){
   var wrap=document.getElementById('productList');
   if(!state.products.length){ wrap.innerHTML='<div class="card"><p class="empty">No products yet. A product = a recipe + its packaging + your target margin. Click "Add product".</p></div>'; return; }
   wrap.innerHTML=state.products.map(function(p){
-    var cost=productCost(p); var sugg=suggestedPrice(cost,p.targetMargin); var price=num(p.price);
-    var profit=price-cost; var marginPct=price>0?profit/price*100:0; var markupPct=cost>0?profit/cost*100:0; var foodPct=price>0?cost/price*100:0;
     var r=getById(state.recipes,p.recipeId);
+    var foodCost=r?recipePerServing(r):0;
+    var cost=productCost(p); var sugg=suggestedPrice(cost,p.targetMargin); var price=num(p.price);
+    var profit=price-cost; var marginPct=price>0?profit/price*100:0; var markupPct=cost>0?profit/cost*100:0;
+    var foodPct=price>0?foodCost/price*100:0; var totalPct=price>0?cost/price*100:0;
     var pkgRows=(p.packLines||[]).map(function(l, idx){
       var pk=getById(state.packaging,l.packagingId);
       return '<tr class="lines" data-entity="packLine" data-id="'+p.id+'" data-idx="'+idx+'">'+
@@ -523,7 +525,8 @@ function renderProducts(){
         '<div class="metric"><div class="lbl">Gross profit</div><div class="val '+(profit>=0?'good':'bad')+'">'+peso(profit)+'</div></div>'+
         '<div class="metric"><div class="lbl">Profit margin</div><div class="val '+(marginPct>=0?'good':'bad')+'">'+pct(marginPct)+'</div></div>'+
         '<div class="metric"><div class="lbl">Markup</div><div class="val">'+pct(markupPct)+'</div></div>'+
-        '<div class="metric"><div class="lbl">Food cost %</div><div class="val">'+pct(foodPct)+'</div></div>'+
+        '<div class="metric"><div class="lbl">Food cost % (ingredients)</div><div class="val">'+pct(foodPct)+'</div></div>'+
+        '<div class="metric"><div class="lbl">Total cost % (food + packaging)</div><div class="val">'+pct(totalPct)+'</div></div>'+
       '</div>'+
       '<div class="row" style="margin-top:12px"><div class="spacer"></div><button class="btn danger" data-act="delProduct" data-id="'+p.id+'">Delete product</button></div></div>';
   }).join('');
