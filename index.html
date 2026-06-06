@@ -161,6 +161,10 @@
     <div class="card">
       <h2>🕘 History</h2>
       <p class="hint">Every change is logged here — what changed, who did it, and when. Newest first; this is a permanent record.</p>
+      <div class="row" style="margin-top:4px;align-items:flex-end">
+        <div><label class="fld">Filter by date</label><input type="date" id="histDate" style="width:auto"></div>
+        <button class="btn small secondary" data-act="histClear">Show all</button>
+      </div>
     </div>
     <div id="historyList"></div>
   </section>
@@ -388,15 +392,18 @@ async function loadHistory(){
   var wrap=document.getElementById('historyList'); if(!wrap) return;
   if(!cloud.client || !session){ wrap.innerHTML='<div class="card"><p class="empty">Sign in to see the history.</p></div>'; return; }
   wrap.innerHTML='<div class="card"><p class="empty">Loading…</p></div>';
+  var de=document.getElementById('histDate'); var fday=de?de.value:'';
   try{
-    var res=await cloud.client.from('scoopies_activity').select('at,actor,summary').order('at',{ascending:false}).limit(300);
+    var q=cloud.client.from('scoopies_activity').select('at,actor,summary').order('at',{ascending:false});
+    if(fday){ var s=new Date(fday+'T00:00:00'); var en=new Date(s.getTime()+86400000); q=q.gte('at',s.toISOString()).lt('at',en.toISOString()); }
+    var res=await q.limit(500);
     if(res.error) throw res.error;
     var rows=res.data||[];
-    if(!rows.length){ wrap.innerHTML='<div class="card"><p class="empty">No changes logged yet. Edit something and it will appear here.</p></div>'; return; }
+    if(!rows.length){ wrap.innerHTML='<div class="card"><p class="empty">'+(fday?'No changes on that date.':'No changes logged yet. Edit something and it will appear here.')+'</p></div>'; return; }
     var html='', cur='';
     rows.forEach(function(r){
       var dk=dayKey(r.at);
-      if(dk!==cur){ if(cur) html+='</table></div></div>'; cur=dk; html+='<div class="card"><h2 style="font-size:15px;margin:0 0 6px">'+escapeHtml(fmtDay(r.at))+'</h2><div class="scroll"><table>'; }
+      if(dk!==cur){ if(cur) html+='</table></div></div>'; cur=dk; html+='<div class="card"><h2 style="font-size:15px;margin:0 0 6px">'+escapeHtml(fmtDay(r.at))+'</h2><div class="scroll"><table><tr><th>Time</th><th>Name</th><th>Action</th></tr>'; }
       html+='<tr><td style="white-space:nowrap;color:var(--muted);width:74px">'+escapeHtml(fmtTime(r.at))+'</td>'+
             '<td style="white-space:nowrap;font-weight:600;width:64px;color:var(--brown)">'+escapeHtml(r.actor||'someone')+'</td>'+
             '<td>'+escapeHtml(r.summary)+'</td></tr>';
@@ -633,6 +640,7 @@ document.querySelector('nav').addEventListener('click', function(e){
 
 document.body.addEventListener('change', function(e){
   var el=e.target;
+  if(el.id==='histDate'){ loadHistory(); return; }
   if(!el.dataset.field){ handleFileImport(e); return; }
   var row=el.closest('[data-entity]'); if(!row) return;
   var entity=row.dataset.entity, id=row.dataset.id, field=el.dataset.field, val=el.value, idx=row.dataset.idx;
@@ -674,6 +682,7 @@ document.body.addEventListener('click', function(e){
     case 'logout': doLogout(); return;
     case 'doReconnect': doReconnect(); return;
     case 'copySql': navigator.clipboard.writeText(document.getElementById('sqlText').textContent).then(function(){ alert('SQL copied. Paste it into Supabase → SQL Editor → New query → Run.'); }, function(){ alert('Could not copy automatically — select the SQL and copy it manually.'); }); return;
+    case 'histClear': { var hd=document.getElementById('histDate'); if(hd) hd.value=''; loadHistory(); return; }
     default: return;
   }
   logChanges(); save(); renderAll();
