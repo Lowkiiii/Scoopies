@@ -109,6 +109,7 @@
     <button data-tab="packaging">2. Packaging</button>
     <button data-tab="recipes">3. Recipes</button>
     <button data-tab="products">4. Pricing</button>
+    <button data-tab="history">🕘 History</button>
     <button data-tab="cloud">☁ Cloud</button>
     <button data-tab="backup">💾 Backup</button>
   </nav>
@@ -155,6 +156,15 @@
   </section>
 
   <!-- CLOUD / ACCOUNT -->
+  <!-- HISTORY -->
+  <section id="history">
+    <div class="card">
+      <h2>🕘 History</h2>
+      <p class="hint">Every change is logged here — what changed, who did it, and when. Newest first; this is a permanent record.</p>
+    </div>
+    <div id="historyList"></div>
+  </section>
+
   <section id="cloud">
     <div class="card">
       <h2>☁ Account &amp; cloud sync</h2>
@@ -241,6 +251,8 @@ var state = loadLocal();
 var cloud = { url:'', key:'', client:null, connected:false, channel:null };
 var session = null, currentUserId = null, offlineMode = false, authMode = 'login';
 var pendingSave = false, saveTimer = null, pendingRemote = null;
+var lastState = null;  /* baseline snapshot for the activity-log diff */
+var NAMES = { 'lukesellado04@gmail.com':'Luke', 'ynazov03@gmail.com':'Ynah' };  /* email → display name */
 
 function blank(){ return {ingredients:[], packaging:[], recipes:[], products:[]}; }
 function loadLocal(){
@@ -300,7 +312,7 @@ function maybeApplyRemote(remote){
   if(!remote) return;
   if(JSON.stringify(remote)===JSON.stringify(state)) return;   /* same data / our own change echoing back */
   if(appIsEditing()){ pendingRemote=remote; return; }          /* wait until they finish the field they're in */
-  state=remote; pendingRemote=null;
+  state=remote; pendingRemote=null; lastState=snapshot(state);
   try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){}
   renderAll();
   setStatus('Updated from partner ✓','good');
@@ -314,8 +326,84 @@ function subscribeRealtime(){
       .on('postgres_changes', { event:'*', schema:'public', table:'scoopies_state' }, function(payload){
         maybeApplyRemote(payload && payload.new ? payload.new.data : null);
       })
+      .on('postgres_changes', { event:'INSERT', schema:'public', table:'scoopies_activity' }, function(){
+        var h=document.getElementById('history'); if(h && h.classList.contains('active')) loadHistory();
+      })
       .subscribe();
   }catch(e){}
+}
+/* ---------- activity log (history) ---------- */
+function actorName(){ var em=(session&&session.user)?session.user.email:''; return NAMES[em]||(em?em.split('@')[0]:'someone'); }
+function snapshot(s){ try{ return JSON.parse(JSON.stringify(s)); }catch(e){ return null; } }
+function fmtv(v){ return (v===''||v==null) ? '(blank)' : v; }
+/* compare two states → list of plain-English change summaries */
+function diffStates(o,n){
+  var out=[];
+  var cats=[
+    {k:'ingredients',label:'ingredient',f:[['name','name'],['price','price','₱'],['qty','quantity'],['unit','unit']]},
+    {k:'packaging',label:'packaging',f:[['name','name'],['price','pack price','₱'],['qty','pieces per pack']]},
+    {k:'recipes',label:'recipe',f:[['name','name'],['yield','yield']]},
+    {k:'products',label:'product',f:[['name','name'],['targetMargin','margin','','%'],['price','price','₱']]}
+  ];
+  cats.forEach(function(c){
+    var ol=(o&&o[c.k])||[], nl=(n&&n[c.k])||[], om={}, nm={};
+    ol.forEach(function(x){om[x.id]=x;}); nl.forEach(function(x){nm[x.id]=x;});
+    nl.forEach(function(x){ if(!om[x.id]) out.push('Added '+c.label+' "'+(x.name||'untitled')+'"'); });
+    ol.forEach(function(x){ if(!nm[x.id]) out.push('Deleted '+c.label+' "'+(x.name||'untitled')+'"'); });
+    nl.forEach(function(x){
+      var p=om[x.id]; if(!p) return; var nm2=x.name||p.name||'untitled';
+      c.f.forEach(function(fd){
+        var key=fd[0], lbl=fd[1], pre=fd[2]||'', suf=fd[3]||'';
+        if(String(p[key]==null?'':p[key])!==String(x[key]==null?'':x[key])){
+          if(key==='name') out.push('Renamed '+c.label+' "'+(p.name||'')+'" → "'+(x.name||'')+'"');
+          else out.push('"'+nm2+'" '+lbl+' '+pre+fmtv(p[key])+suf+' → '+pre+fmtv(x[key])+suf);
+        }
+      });
+      if(c.k==='recipes' && JSON.stringify(p.lines||[])!==JSON.stringify(x.lines||[])) out.push('Updated ingredients in recipe "'+nm2+'"');
+      if(c.k==='products' && JSON.stringify(p.packLines||[])!==JSON.stringify(x.packLines||[])) out.push('Updated packaging in product "'+nm2+'"');
+      if(c.k==='products' && String(p.recipeId||'')!==String(x.recipeId||'')) out.push('Changed recipe for product "'+nm2+'"');
+    });
+  });
+  return out;
+}
+/* write any changes (since the last baseline) to the cloud log, tagged with who + when */
+function logChanges(){
+  if(!cloud.client || !session){ lastState=snapshot(state); return; }
+  var changes = lastState ? diffStates(lastState, state) : [];
+  lastState = snapshot(state);
+  if(!changes.length) return;
+  var who=actorName();
+  var rows=changes.map(function(s){ return { actor:who, summary:s }; });
+  cloud.client.from('scoopies_activity').insert(rows).then(function(){}, function(){});
+}
+function logCoarse(summary){
+  lastState=snapshot(state);
+  if(!cloud.client || !session) return;
+  cloud.client.from('scoopies_activity').insert([{ actor:actorName(), summary:summary }]).then(function(){}, function(){});
+}
+function fmtTime(iso){ try{ return new Date(iso).toLocaleTimeString('en-PH',{hour:'numeric',minute:'2-digit'}); }catch(e){ return ''; } }
+function fmtDay(iso){ try{ return new Date(iso).toLocaleDateString('en-PH',{weekday:'long',month:'long',day:'numeric'}); }catch(e){ return iso; } }
+function dayKey(iso){ try{ return new Date(iso).toDateString(); }catch(e){ return iso; } }
+async function loadHistory(){
+  var wrap=document.getElementById('historyList'); if(!wrap) return;
+  if(!cloud.client || !session){ wrap.innerHTML='<div class="card"><p class="empty">Sign in to see the history.</p></div>'; return; }
+  wrap.innerHTML='<div class="card"><p class="empty">Loading…</p></div>';
+  try{
+    var res=await cloud.client.from('scoopies_activity').select('at,actor,summary').order('at',{ascending:false}).limit(300);
+    if(res.error) throw res.error;
+    var rows=res.data||[];
+    if(!rows.length){ wrap.innerHTML='<div class="card"><p class="empty">No changes logged yet. Edit something and it will appear here.</p></div>'; return; }
+    var html='', cur='';
+    rows.forEach(function(r){
+      var dk=dayKey(r.at);
+      if(dk!==cur){ if(cur) html+='</table></div></div>'; cur=dk; html+='<div class="card"><h2 style="font-size:15px;margin:0 0 6px">'+escapeHtml(fmtDay(r.at))+'</h2><div class="scroll"><table>'; }
+      html+='<tr><td style="white-space:nowrap;color:var(--muted);width:74px">'+escapeHtml(fmtTime(r.at))+'</td>'+
+            '<td style="white-space:nowrap;font-weight:600;width:64px;color:var(--brown)">'+escapeHtml(r.actor||'someone')+'</td>'+
+            '<td>'+escapeHtml(r.summary)+'</td></tr>';
+    });
+    html+='</table></div></div>';
+    wrap.innerHTML=html;
+  }catch(e){ wrap.innerHTML='<div class="card"><p class="empty">Could not load history: '+escapeHtml(e.message||String(e))+'</p></div>'; }
 }
 /* ---------- auth / login gate ---------- */
 function showGate(show){ var g=document.getElementById('authGate'); if(g) g.style.display = show ? 'flex' : 'none'; }
@@ -349,6 +437,7 @@ async function handleAuth(sess){
         try{ cloud.client.realtime.setAuth(session.access_token); }catch(e){}
         var remote = await cloudLoad();
         if(hasData(remote)){ state = remote; } else { await cloudSave(state); }
+        lastState = snapshot(state);
         save(); renderAll(); setStatus('Saved to cloud ✓','good');
       }catch(e){ setStatus('Signed in — cloud read failed','bad'); }
       subscribeRealtime();
@@ -539,6 +628,7 @@ document.querySelector('nav').addEventListener('click', function(e){
   document.querySelectorAll('nav button').forEach(function(x){x.classList.remove('active');});
   document.querySelectorAll('section').forEach(function(s){s.classList.remove('active');});
   b.classList.add('active'); document.getElementById(b.dataset.tab).classList.add('active');
+  if(b.dataset.tab==='history') loadHistory();
 });
 
 document.body.addEventListener('change', function(e){
@@ -552,7 +642,7 @@ document.body.addEventListener('change', function(e){
   else if(entity==='recipeLine'){ var r2=getById(state.recipes,id); if(r2){ var ln=r2.lines[idx]; if(ln){ ln[field]=val; if(field==='ingredientId'){ var ig=getById(state.ingredients,val); if(ig) ln.unit=TYPE_UNITS[UNIT_TYPE[ig.unit]][0]; } } } }
   else if(entity==='product'){ var p=getById(state.products,id); if(p){ p[field]=val; } }
   else if(entity==='packLine'){ var p2=getById(state.products,id); if(p2){ var pl=p2.packLines[idx]; if(pl){ pl[field]=val; } } }
-  save(); renderAll();
+  logChanges(); save(); renderAll();
 });
 
 document.body.addEventListener('click', function(e){
@@ -575,8 +665,8 @@ document.body.addEventListener('click', function(e){
     case 'useSuggested': { var p3=getById(state.products,id); if(p3){ var c=productCost(p3); var s=suggestedPrice(c,p3.targetMargin); if(isFinite(s)) p3.price=ceilTo(s,5); } break; }
     case 'export': exportData(); return;
     case 'importTrigger': document.getElementById('importFile').click(); return;
-    case 'loadExample': if(confirm('Load example data? This replaces what you have now.')){ state=exampleData(); } else return; break;
-    case 'clearAll': if(confirm('Erase ALL data? Export a backup first if unsure.')){ state=blank(); } else return; break;
+    case 'loadExample': if(confirm('Load example data? This replaces what you have now.')){ state=exampleData(); logCoarse('Loaded example data'); } else return; break;
+    case 'clearAll': if(confirm('Erase ALL data? Export a backup first if unsure.')){ state=blank(); logCoarse('Cleared all data'); } else return; break;
     case 'doLogin': doLogin(); return;
     case 'toggleAuthMode': toggleAuthMode(); return;
     case 'openLogin': openLogin(); return;
@@ -586,7 +676,7 @@ document.body.addEventListener('click', function(e){
     case 'copySql': navigator.clipboard.writeText(document.getElementById('sqlText').textContent).then(function(){ alert('SQL copied. Paste it into Supabase → SQL Editor → New query → Run.'); }, function(){ alert('Could not copy automatically — select the SQL and copy it manually.'); }); return;
     default: return;
   }
-  save(); renderAll();
+  logChanges(); save(); renderAll();
 });
 
 /* reload from cloud when returning to the tab (picks up partner's edits) */
@@ -617,7 +707,7 @@ function handleFileImport(e){
   var reader=new FileReader();
   reader.onload=function(){
     try{ var data=JSON.parse(reader.result); if(!data.ingredients) throw new Error('not a Scoopies backup');
-      state=data; save(); renderAll(); alert('Backup imported successfully.'); }
+      state=data; logCoarse('Imported a backup file'); save(); renderAll(); alert('Backup imported successfully.'); }
     catch(err){ alert('Could not read that file: '+err.message); }
     e.target.value='';
   };
@@ -655,7 +745,7 @@ async function boot(){
       await handleAuth(s && s.data ? s.data.session : null);
     }catch(e){ offlineMode=false; showGate(true); setStatus('Sign in to sync','bad'); renderAccount(); }
   } else {
-    offlineMode = true; showGate(false); setStatus('Saved on device',''); renderAccount();
+    offlineMode = true; showGate(false); setStatus('Saved on device',''); lastState=snapshot(state); renderAccount();
   }
   renderAll();
 }
