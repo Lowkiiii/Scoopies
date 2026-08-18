@@ -118,7 +118,7 @@
   <section id="ingredients" class="active">
     <div class="card">
       <h2>Ingredients</h2>
-      <p class="hint">Enter what you buy and the price you pay. The app works out the cost of one gram / mL / piece for you.</p>
+      <p class="hint">Enter how many packs you buy, how much is inside each pack, and the total price paid. The app works out the cost of one gram / mL / piece for you.</p>
       <div class="scroll"><table id="ingTable"></table></div>
       <div class="row" style="margin-top:12px">
         <button class="btn" data-act="addIngredient">+ Add ingredient</button>
@@ -245,7 +245,8 @@ function getById(list,id){ for(var i=0;i<list.length;i++){ if(list[i].id===id) r
 function ceilTo(n,step){ return Math.ceil(n/step)*step; }
 
 /* ---------- state + persistence ---------- */
-var KEY = 'scoopies_costing_v1';
+var TEST_MODE = /(?:^|[?&])test=1(?:&|$)/.test(window.location.search);
+var KEY = TEST_MODE ? 'scoopies_costing_test' : 'scoopies_costing_v1';
 var CFG_KEY = 'scoopies_cloud_cfg';
 /* Embedded so the app auto-connects everywhere. The publishable key is SAFE to expose —
    protection comes from the login + database rules, not from hiding the key. */
@@ -344,7 +345,7 @@ function fmtv(v){ return (v===''||v==null) ? '(blank)' : v; }
 function diffStates(o,n){
   var out=[];
   var cats=[
-    {k:'ingredients',label:'ingredient',f:[['name','name'],['price','price','₱'],['qty','quantity'],['unit','unit']]},
+    {k:'ingredients',label:'ingredient',f:[['name','name'],['price','total price','₱'],['purchaseQty','quantity bought'],['amountPerItem','amount per item'],['unit','unit']]},
     {k:'packaging',label:'packaging',f:[['name','name'],['price','pack price','₱'],['qty','pieces per pack']]},
     {k:'recipes',label:'recipe',f:[['name','name'],['yield','yield']]},
     {k:'products',label:'product',f:[['name','name'],['targetMargin','margin','','%'],['price','price','₱']]}
@@ -509,7 +510,18 @@ function renderAccount(){
 }
 
 /* ---------- cost calculations ---------- */
-function ingCostPerBase(ing){ var base = toBase(ing.qty, ing.unit); return base>0 ? num(ing.price)/base : 0; }
+/* Old records stored the total amount in qty. New records store the number of
+   packs and the amount inside each pack; retaining the old path prevents data loss. */
+function ingredientTotalBase(ing){
+  var hasPackFields = ing.purchaseQty != null || ing.amountPerItem != null;
+  if(hasPackFields){
+    var purchaseQty = ing.purchaseQty != null ? ing.purchaseQty : 1;
+    var amountPerItem = ing.amountPerItem != null ? ing.amountPerItem : ing.qty;
+    return num(purchaseQty) * toBase(amountPerItem, ing.unit);
+  }
+  return toBase(ing.qty, ing.unit);
+}
+function ingCostPerBase(ing){ var base = ingredientTotalBase(ing); return base>0 ? num(ing.price)/base : 0; }
 function pkgCostPerPiece(p){ var q = num(p.qty); return q>0 ? num(p.price)/q : 0; }
 function lineCost(line){ var ing = getById(state.ingredients, line.ingredientId); if(!ing) return 0; return toBase(line.qty, line.unit) * ingCostPerBase(ing); }
 function recipeTotal(r){ var t=0; (r.lines||[]).forEach(function(l){ t+=lineCost(l); }); return t; }
@@ -530,16 +542,19 @@ function renderIngredients(){
   var t=document.getElementById('ingTable');
   var rows=state.ingredients.map(function(ing){
     var cpb=ingCostPerBase(ing); var baseUnit=TYPE_BASE[UNIT_TYPE[ing.unit]||'weight'];
+    var purchaseQty=ing.purchaseQty!=null?ing.purchaseQty:1;
+    var amountPerItem=ing.amountPerItem!=null?ing.amountPerItem:ing.qty;
     return '<tr data-entity="ingredient" data-id="'+ing.id+'">'+
       '<td><input data-field="name" value="'+escapeHtml(ing.name)+'" placeholder="e.g. Flour"></td>'+
-      '<td><input data-field="qty" type="number" min="0" step="any" value="'+escapeHtml(ing.qty)+'"></td>'+
+      '<td><input data-field="purchaseQty" type="number" min="0" step="any" value="'+escapeHtml(purchaseQty)+'" placeholder="e.g. 3"></td>'+
+      '<td><input data-field="amountPerItem" type="number" min="0" step="any" value="'+escapeHtml(amountPerItem)+'" placeholder="e.g. 330"></td>'+
       '<td><select data-field="unit">'+optionList(unitOptions, ing.unit)+'</select></td>'+
       '<td><input data-field="price" type="number" min="0" step="any" value="'+escapeHtml(ing.price)+'"></td>'+
       '<td class="calc">'+peso(cpb)+' / '+baseUnit+'</td>'+
       '<td><button class="btn danger" data-act="delIngredient" data-id="'+ing.id+'">Delete</button></td></tr>';
   }).join('');
-  t.innerHTML='<tr><th>Ingredient</th><th>Buy qty</th><th>Unit</th><th>Price (₱)</th><th>Cost per unit</th><th></th></tr>'+
-    (rows||'<tr><td colspan="6" class="empty">No ingredients yet. Click "Add ingredient".</td></tr>');
+  t.innerHTML='<tr><th>Ingredient</th><th>Qty bought</th><th>Amount each</th><th>Unit</th><th>Total price (₱)</th><th>Cost per unit</th><th></th></tr>'+
+    (rows||'<tr><td colspan="7" class="empty">No ingredients yet. Click "Add ingredient".</td></tr>');
 }
 function renderPackaging(){
   var t=document.getElementById('pkgTable');
@@ -658,7 +673,7 @@ document.body.addEventListener('click', function(e){
   if(b.tagName==='A') e.preventDefault();
   var act=b.dataset.act, id=b.dataset.id, idx=b.dataset.idx;
   switch(act){
-    case 'addIngredient': state.ingredients.push({id:uid(),name:'',qty:'',unit:'g',price:''}); break;
+    case 'addIngredient': state.ingredients.push({id:uid(),name:'',purchaseQty:'',amountPerItem:'',unit:'g',price:''}); break;
     case 'delIngredient': state.ingredients=state.ingredients.filter(function(x){return x.id!==id;}); break;
     case 'addPackaging': state.packaging.push({id:uid(),name:'',qty:'',price:''}); break;
     case 'delPackaging': state.packaging=state.packaging.filter(function(x){return x.id!==id;}); break;
@@ -745,6 +760,14 @@ function exampleData(){
 /* ---------- boot ---------- */
 async function boot(){
   renderGate();
+  if(TEST_MODE){
+    offlineMode=true;
+    showGate(false);
+    setStatus('Test mode','');
+    lastState=snapshot(state);
+    renderAccount(); renderAll();
+    return;
+  }
   var url=activeUrl(), key=activeKey();
   if(initClient(url, key)){
     saveCfg({ url:url, key:key });
