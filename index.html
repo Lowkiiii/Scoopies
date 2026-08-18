@@ -618,7 +618,7 @@ function renderProducts(){
     }).join('');
     return '<div class="card" data-entity="product" data-id="'+p.id+'">'+
       '<div class="grid2">'+
-        '<div><label class="fld">Product name</label><input data-field="name" value="'+escapeHtml(p.name)+'" placeholder="e.g. Choco Chip Scoopie"></div>'+
+        '<div><label class="fld">Product name (auto-filled, editable)</label><input data-field="name" value="'+escapeHtml(p.name)+'" placeholder="e.g. Coconut Matcha Cloud 16 oz"></div>'+
         '<div><label class="fld">Recipe</label><select data-field="recipeId"><option value="">— pick recipe —</option>'+optionList(state.recipes,p.recipeId,true)+'</select></div>'+
       '</div>'+
       '<p class="hint" style="margin:10px 0 4px">Food cost per serving from recipe: <span class="pill">'+(r?peso(recipePerServing(r)):'—')+'</span></p>'+
@@ -663,7 +663,19 @@ document.body.addEventListener('change', function(e){
   else if(entity==='packaging'){ var pk=getById(state.packaging,id); if(pk){ pk[field]=val; } }
   else if(entity==='recipe'){ var r=getById(state.recipes,id); if(r){ r[field]=val; } }
   else if(entity==='recipeLine'){ var r2=getById(state.recipes,id); if(r2){ var ln=r2.lines[idx]; if(ln){ ln[field]=val; if(field==='ingredientId'){ var ig=getById(state.ingredients,val); if(ig) ln.unit=TYPE_UNITS[UNIT_TYPE[ig.unit]][0]; } } } }
-  else if(entity==='product'){ var p=getById(state.products,id); if(p){ p[field]=val; } }
+  else if(entity==='product'){
+    var p=getById(state.products,id);
+    if(p){
+      if(field==='recipeId'){
+        var oldRecipe=getById(state.recipes,p.recipeId);
+        var newRecipe=getById(state.recipes,val);
+        var currentName=String(p.name||'').trim();
+        var oldRecipeName=oldRecipe?String(oldRecipe.name||'').trim():'';
+        if(!currentName || (oldRecipeName && currentName===oldRecipeName)) p.name=newRecipe?newRecipe.name:'';
+      }
+      p[field]=val;
+    }
+  }
   else if(entity==='packLine'){ var p2=getById(state.products,id); if(p2){ var pl=p2.packLines[idx]; if(pl){ pl[field]=val; } } }
   logChanges(); save(); renderAll();
 });

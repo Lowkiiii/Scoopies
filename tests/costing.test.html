@@ -68,6 +68,64 @@ document.getElementById('app').addEventListener('load', async () => {
       throw new Error('new fields were missing from Supabase payload');
     }
   });
+  test('selecting a recipe fills a blank product name', () => {
+    app.state.recipes = [{ id: 'matcha', name: 'Coconut Matcha Cloud', yield: 1, lines: [] }];
+    app.state.packaging = [];
+    app.state.products = [{ id: 'drink', name: '', recipeId: '', packLines: [], targetMargin: 60, price: '' }];
+    app.renderProducts();
+    const recipe = app.document.querySelector('[data-entity="product"] [data-field="recipeId"]');
+    recipe.value = 'matcha';
+    recipe.dispatchEvent(new app.Event('change', { bubbles: true }));
+    if (app.state.products[0].name !== 'Coconut Matcha Cloud') throw new Error('blank product name was not filled from recipe');
+    const cached = JSON.parse(app.localStorage.getItem(app.KEY));
+    if (cached.products[0].name !== 'Coconut Matcha Cloud') throw new Error('auto-filled product name was not saved');
+  });
+  test('changing recipes updates an automatically generated product name', () => {
+    app.state.recipes = [
+      { id: 'matcha', name: 'Coconut Matcha Cloud', yield: 1, lines: [] },
+      { id: 'strawberry', name: 'Strawberry Matcha Cloud', yield: 1, lines: [] }
+    ];
+    app.state.packaging = [];
+    app.state.products = [{ id: 'drink', name: 'Coconut Matcha Cloud', recipeId: 'matcha', packLines: [], targetMargin: 60, price: '' }];
+    app.renderProducts();
+    const recipe = app.document.querySelector('[data-entity="product"] [data-field="recipeId"]');
+    recipe.value = 'strawberry';
+    recipe.dispatchEvent(new app.Event('change', { bubbles: true }));
+    if (app.state.products[0].name !== 'Strawberry Matcha Cloud') throw new Error('automatic product name did not follow recipe');
+  });
+  test('changing recipes preserves a customized product name', () => {
+    app.state.recipes = [
+      { id: 'matcha', name: 'Coconut Matcha Cloud', yield: 1, lines: [] },
+      { id: 'strawberry', name: 'Strawberry Matcha Cloud', yield: 1, lines: [] }
+    ];
+    app.state.packaging = [];
+    app.state.products = [{ id: 'drink', name: 'Coconut Matcha Cloud 22 oz', recipeId: 'matcha', packLines: [], targetMargin: 60, price: '' }];
+    app.renderProducts();
+    const recipe = app.document.querySelector('[data-entity="product"] [data-field="recipeId"]');
+    recipe.value = 'strawberry';
+    recipe.dispatchEvent(new app.Event('change', { bubbles: true }));
+    if (app.state.products[0].name !== 'Coconut Matcha Cloud 22 oz') throw new Error('custom product name was overwritten');
+  });
+  test('clearing a recipe clears its automatically generated product name', () => {
+    app.state.recipes = [{ id: 'matcha', name: 'Coconut Matcha Cloud', yield: 1, lines: [] }];
+    app.state.packaging = [];
+    app.state.products = [{ id: 'drink', name: 'Coconut Matcha Cloud', recipeId: 'matcha', packLines: [], targetMargin: 60, price: '' }];
+    app.renderProducts();
+    const recipe = app.document.querySelector('[data-entity="product"] [data-field="recipeId"]');
+    recipe.value = '';
+    recipe.dispatchEvent(new app.Event('change', { bubbles: true }));
+    if (app.state.products[0].name !== '') throw new Error('automatic product name was not cleared with recipe');
+  });
+  test('clearing a recipe preserves a customized product name', () => {
+    app.state.recipes = [{ id: 'matcha', name: 'Coconut Matcha Cloud', yield: 1, lines: [] }];
+    app.state.packaging = [];
+    app.state.products = [{ id: 'drink', name: 'Coconut Matcha Cloud 22 oz', recipeId: 'matcha', packLines: [], targetMargin: 60, price: '' }];
+    app.renderProducts();
+    const recipe = app.document.querySelector('[data-entity="product"] [data-field="recipeId"]');
+    recipe.value = '';
+    recipe.dispatchEvent(new app.Event('change', { bubbles: true }));
+    if (app.state.products[0].name !== 'Coconut Matcha Cloud 22 oz') throw new Error('custom product name was cleared with recipe');
+  });
   const failures = [];
   for (const current of tests) {
     try { await current.run(); } catch (error) { failures.push(`${current.name}: ${error.message}`); }
