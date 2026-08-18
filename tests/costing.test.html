@@ -1,0 +1,78 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Scoopies costing tests</title>
+<pre id="result">RUNNING</pre>
+<iframe id="app" src="../index.html?test=1" hidden></iframe>
+<script>
+const output = document.getElementById('result');
+const tests = [];
+function test(name, run) { tests.push({ name, run }); }
+function closeTo(actual, expected, epsilon = 1e-10) {
+  if (Math.abs(actual - expected) > epsilon) throw new Error(`expected ${expected}, received ${actual}`);
+}
+document.getElementById('app').addEventListener('load', async () => {
+  const app = document.getElementById('app').contentWindow;
+  test('test mode isolates storage and disables every cloud connection', () => {
+    if (!app.TEST_MODE || app.KEY !== 'scoopies_costing_test') throw new Error('test storage is not isolated');
+    if (app.cloud.client || app.cloud.connected || app.session) throw new Error('cloud access is enabled in test mode');
+  });
+  test('three 330 ml cartons costing P324 produce the correct cost for 120 ml', () => {
+    const ingredient = { id: 'vita-coconut-water', purchaseQty: 3, amountPerItem: 330, unit: 'ml', price: 324 };
+    app.state.ingredients = [ingredient];
+    closeTo(app.ingredientTotalBase(ingredient), 990);
+    closeTo(app.ingCostPerBase(ingredient), 324 / 990);
+    closeTo(app.lineCost({ ingredientId: ingredient.id, qty: 120, unit: 'ml' }), 39.27272727272727);
+  });
+  test('legacy ingredients keep treating qty as the total purchased amount', () => {
+    const ingredient = { id: 'legacy-milk', qty: 1000, unit: 'ml', price: 108 };
+    app.state.ingredients = [ingredient];
+    closeTo(app.ingredientTotalBase(ingredient), 1000);
+    closeTo(app.lineCost({ ingredientId: ingredient.id, qty: 120, unit: 'ml' }), 12.96);
+  });
+  test('editing one new field on a legacy ingredient keeps the other legacy default', () => {
+    closeTo(app.ingredientTotalBase({ qty: 330, purchaseQty: 3, unit: 'ml' }), 990);
+    closeTo(app.ingredientTotalBase({ qty: 330, amountPerItem: 500, unit: 'ml' }), 500);
+  });
+
+  test('liters and kilograms convert before package quantities are multiplied', () => {
+    closeTo(app.ingredientTotalBase({ purchaseQty: 2, amountPerItem: 1.5, unit: 'l' }), 3000);
+    closeTo(app.ingredientTotalBase({ purchaseQty: 3, amountPerItem: 0.5, unit: 'kg' }), 1500);
+  });
+  test('ingredient fields render clearly and changes are persisted in saved state', async () => {
+    const ingredient = {
+      id: 'rendered-vita', name: 'Vita Coconut Water', purchaseQty: 3,
+      amountPerItem: 330, unit: 'ml', price: 324
+    };
+    app.state.ingredients = [ingredient];
+    app.cloud.connected = false;
+    app.renderIngredients();
+    const row = app.document.querySelector('[data-entity="ingredient"]');
+    const purchase = row.querySelector('[data-field="purchaseQty"]');
+    const amount = row.querySelector('[data-field="amountPerItem"]');
+    if (purchase.value !== '3' || amount.value !== '330') throw new Error('new fields did not render their saved values');
+    amount.value = '500';
+    amount.dispatchEvent(new app.Event('change', { bubbles: true }));
+    const cached = JSON.parse(app.localStorage.getItem(app.KEY));
+    if (cached.ingredients[0].amountPerItem !== '500') throw new Error('edited amount was not persisted by save()');
+    let cloudPayload;
+    app.cloud.client = {
+      from(table) {
+        if (table !== 'scoopies_state') throw new Error('wrong cloud table');
+        return { upsert(payload, options) { cloudPayload = { payload, options }; return Promise.resolve({ error: null }); } };
+      }
+    };
+    await app.cloudSave(app.state);
+    if (cloudPayload.payload.id !== 'main' || cloudPayload.options.onConflict !== 'id') throw new Error('Supabase upsert contract changed');
+    const savedIngredient = cloudPayload.payload.data.ingredients[0];
+    if (savedIngredient.purchaseQty !== 3 || savedIngredient.amountPerItem !== '500') {
+      throw new Error('new fields were missing from Supabase payload');
+    }
+  });
+  const failures = [];
+  for (const current of tests) {
+    try { await current.run(); } catch (error) { failures.push(`${current.name}: ${error.message}`); }
+  }
+  output.textContent = failures.length ? `FAIL\n${failures.join('\n')}` : `PASS ${tests.length} tests`;
+  document.title = failures.length ? 'FAIL' : 'PASS';
+});
+</script>
