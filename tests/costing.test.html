@@ -179,6 +179,7 @@ document.getElementById('app').addEventListener('load', async () => {
       packaging: [], recipes: [], products: []
     });
     assert(Array.isArray(state.ingredientCategories), 'legacy state did not gain ingredientCategories');
+    assert(state.schemaVersion === 3 && Array.isArray(state.mixtureDrafts) && state.mixtureDrafts.length === 0, 'legacy state did not migrate to an empty draft collection');
     assert(state.ingredients[0].kind === 'purchased', 'legacy ingredient did not default to purchased');
     assert((state.ingredients[0].categoryId || '') === '', 'legacy ingredient should start uncategorized');
     app.state = state;
@@ -513,6 +514,67 @@ document.getElementById('app').addEventListener('load', async () => {
     assert(app.getById(merged.products[0].packLines, 'cup-line').qty === 2, 'merge lost the local packaging-row edit');
     assert(app.getById(merged.products[0].packLines, 'straw-line'), 'merge lost the partner\'s added packaging row');
   });
+  test('three-way cloud merge preserves both conflicting versions of one draft', () => {
+    const base = normalizedState({ mixtureDrafts: [{
+      id: 'shared', createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z', sourceMixtureId: '',
+      data: { id: 'future-mix', kind: 'mixture', name: 'Base', categoryId: '', batchYield: '', unit: 'ml', components: [{ ingredientId: 'pending-one', qty: 10, unit: 'ml' }], pendingIngredients: [{ id: 'pending-one', name: 'Draft Cream', kind: 'purchased', categoryId: '', purchaseQty: 1, amountPerItem: 100, unit: 'ml', price: 20 }] },
+      quickIngredient: { id: 'quick-one', name: 'Half typed', kind: 'purchased', categoryId: '', purchaseQty: '', amountPerItem: '', unit: 'g', price: '' }
+    }] });
+    const local = app.snapshot(base);
+    local.mixtureDrafts[0].updatedAt = '2026-01-02T00:00:00.000Z';
+    local.mixtureDrafts[0].data.name = 'Local version';
+    const remote = app.snapshot(base);
+    remote.mixtureDrafts[0].updatedAt = '2026-01-03T00:00:00.000Z';
+    remote.mixtureDrafts[0].data.name = 'Remote version';
+    const merged = app.mergeStates(base, local, remote);
+    assert(merged.mixtureDrafts.length === 2, 'one conflicting draft version was lost');
+    assert(merged.mixtureDrafts.some(d => d.data.name === 'Local version') && merged.mixtureDrafts.some(d => d.data.name === 'Remote version'), 'both complete draft versions were not preserved');
+    const copy = merged.mixtureDrafts.find(d => d.conflictCopy);
+    assert(copy && copy.data.id !== 'future-mix', 'merge conflict copy reused the future mixture ID');
+    assert(copy.data.pendingIngredients[0].id !== 'pending-one' && copy.data.components[0].ingredientId === copy.data.pendingIngredients[0].id, 'merge conflict copy did not safely remap a pending ingredient reference');
+    assert(copy.quickIngredient.id !== 'quick-one', 'merge conflict copy reused the partial quick-ingredient ID');
+    const mergedAgain = app.mergeStates(base, local, merged);
+    assert(mergedAgain.mixtureDrafts.length === 2 && new Set(mergedAgain.mixtureDrafts.map(d => d.id)).size === 2, 'repeated merge duplicated an existing conflict copy');
+  });
+  test('draft merge ignores harmless JSON object key reordering', () => {
+    const base = normalizedState({ mixtureDrafts: [{
+      id: 'ordered', createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z', sourceMixtureId: '',
+      data: { id: 'ordered-mix', kind: 'mixture', name: 'Before', categoryId: '', batchYield: '', unit: 'ml', components: [], pendingIngredients: [] },
+      quickIngredient: null
+    }] });
+    const local = app.snapshot(base);
+    local.mixtureDrafts[0].updatedAt = '2026-01-02T00:00:00.000Z';
+    local.mixtureDrafts[0].data.name = 'Same edit';
+    const item = local.mixtureDrafts[0], data = item.data;
+    const remote = app.snapshot(base);
+    remote.mixtureDrafts[0] = {
+      quickIngredient: item.quickIngredient,
+      data: { pendingIngredients: data.pendingIngredients, components: data.components, unit: data.unit, batchYield: data.batchYield, categoryId: data.categoryId, name: data.name, kind: data.kind, id: data.id },
+      sourceSnapshot: item.sourceSnapshot,
+      sourceMixtureId: item.sourceMixtureId,
+      updatedAt: item.updatedAt,
+      createdAt: item.createdAt,
+      id: item.id
+    };
+    const merged = app.mergeStates(base, local, remote);
+    assert(merged.mixtureDrafts.length === 1 && merged.mixtureDrafts[0].data.name === 'Same edit', 'key reordering created a false conflict draft');
+  });
+  test('draft update versus partner finalization keeps a collision-safe copy', () => {
+    const base = normalizedState({ mixtureDrafts: [{
+      id: 'publish-race', createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z', sourceMixtureId: '',
+      data: { id: 'future-published', kind: 'mixture', name: 'Base', categoryId: '', batchYield: 100, unit: 'ml', components: [], pendingIngredients: [] }
+    }] });
+    const local = app.snapshot(base);
+    local.mixtureDrafts[0].updatedAt = '2026-01-02T00:00:00.000Z';
+    local.mixtureDrafts[0].data.name = 'Offline edit';
+    const remote = app.snapshot(base);
+    remote.mixtureDrafts = [];
+    remote.ingredients.push({ id: 'future-published', kind: 'mixture', name: 'Already published', categoryId: '', batchYield: 100, unit: 'ml', components: [] });
+    const merged = app.mergeStates(base, local, remote);
+    assert(merged.mixtureDrafts.length === 1 && merged.mixtureDrafts[0].conflictCopy, 'changed draft was not preserved as a finalization-conflict copy');
+    assert(merged.mixtureDrafts[0].data.id !== 'future-published', 'changed draft could overwrite the partner-published mixture');
+    assert(app.getById(merged.ingredients, 'future-published').name === 'Already published', 'partner-published mixture was lost');
+  });
   test('failed cloud save stays dirty and blocks an older remote overwrite', async () => {
     installState({ ingredients: [
       { id: 'milk', name: 'Milk', kind: 'purchased', purchaseQty: 1, amountPerItem: 1, unit: 'l', price: 120 }
@@ -557,7 +619,8 @@ document.getElementById('app').addEventListener('load', async () => {
       ingredients: [
         { id: 'cream', name: 'Cream', kind: 'purchased', categoryId: '', purchaseQty: 1, amountPerItem: 1, unit: 'l', price: 500 },
         { id: 'whip', name: 'Whip', kind: 'mixture', categoryId: 'prepared', batchYield: 700, unit: 'ml', components: [{ ingredientId: 'cream', qty: 500, unit: 'ml' }] }
-      ]
+      ],
+      mixtureDrafts: [{ id: 'draft-cloud', createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z', sourceMixtureId: '', data: { id: 'future-whip', kind: 'mixture', name: 'Future Whip', categoryId: 'prepared', batchYield: '', unit: 'ml', components: [], pendingIngredients: [] }, quickIngredient: { id: 'quick-cloud', name: 'New Cream', kind: 'purchased', categoryId: '', purchaseQty: '', amountPerItem: 1000, unit: 'ml', price: '' } }]
     });
     let cloudPayload;
     app.cloud.client = {
@@ -570,6 +633,7 @@ document.getElementById('app').addEventListener('load', async () => {
     const data = cloudPayload.payload.data;
     assert(data.ingredientCategories[0].name === 'Prepared mixtures', 'category missing from Supabase payload');
     assert(data.ingredients[1].kind === 'mixture' && data.ingredients[1].components[0].ingredientId === 'cream', 'mixture definition missing from Supabase payload');
+    assert(data.mixtureDrafts[0].data.name === 'Future Whip' && data.mixtureDrafts[0].quickIngredient.amountPerItem === 1000, 'draft or partial quick ingredient missing from Supabase payload');
   });
   test('history diffs identify category and prepared-mixture changes', () => {
     const before = normalizedState();
@@ -653,7 +717,12 @@ document.getElementById('app').addEventListener('load', async () => {
   test('renaming and deleting a category preserves its ingredients as Uncategorized', () => {
     installState({
       ingredientCategories: [{ id: 'milk', name: 'Milk & Cream' }],
-      ingredients: [{ id: 'oatside', name: 'Oatside', kind: 'purchased', categoryId: 'milk', purchaseQty: 1, amountPerItem: 1, unit: 'l', price: 180 }]
+      ingredients: [{ id: 'oatside', name: 'Oatside', kind: 'purchased', categoryId: 'milk', purchaseQty: 1, amountPerItem: 1, unit: 'l', price: 180 }],
+      mixtureDrafts: [{ id: 'category-draft', createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z', sourceMixtureId: 'source-mix',
+        sourceSnapshot: { id: 'source-mix', kind: 'mixture', name: 'Source', categoryId: 'milk', batchYield: 100, unit: 'ml', components: [] },
+        data: { id: 'source-mix', kind: 'mixture', name: 'Draft', categoryId: 'milk', batchYield: '', unit: 'ml', components: [], pendingIngredients: [{ id: 'pending-milk', name: 'Pending', kind: 'purchased', categoryId: 'milk', unit: 'ml' }] },
+        quickIngredient: { id: 'quick-milk', name: 'Quick', kind: 'purchased', categoryId: 'milk', unit: 'ml' }
+      }]
     });
     click(app.document.querySelector('[data-act=setIngredientCategory][data-id=milk]'));
     click(app.document.querySelector('[data-act=editCategory][data-id=milk]'));
@@ -673,6 +742,9 @@ document.getElementById('app').addEventListener('load', async () => {
     assert(app.state.ingredientCategories.length === 0, 'category folder was not deleted');
     assert(app.state.ingredients[0].categoryId === '', 'deleting a folder deleted or stranded its ingredient instead of uncategorizing it');
     assert(app.state.ingredients[0].name === 'Oatside', 'deleting a category changed its ingredient');
+    const draft = app.state.mixtureDrafts[0];
+    assert(draft.data.categoryId === '' && draft.data.pendingIngredients[0].categoryId === '' && draft.quickIngredient.categoryId === '', 'deleting a category stranded draft-owned data');
+    assert(draft.sourceSnapshot.categoryId === '' && draft.updatedAt !== '2026-01-01T00:00:00.000Z', 'category deletion did not update the draft snapshot or revision time');
   });
   test('combined-cost modal creates and persists an exact prepared mixture', () => {
     installState({
@@ -713,7 +785,7 @@ document.getElementById('app').addEventListener('load', async () => {
     const cached = storedState().ingredients.find(item => item.name === 'Sea Salt Whipped Cream');
     assert(cached && cached.components.length === 3, 'mixture was not persisted locally');
   });
-  test('canceling a combined-cost modal discards its draft', () => {
+  test('closing a completely blank combined-cost modal creates no draft', () => {
     installState({ ingredients: [
       { id: 'cream', name: 'Cream', kind: 'purchased', purchaseQty: 1, amountPerItem: 1, unit: 'l', price: 500 }
     ] });
@@ -721,11 +793,183 @@ document.getElementById('app').addEventListener('load', async () => {
     const beforeState = JSON.stringify(app.state);
     const beforeCache = app.localStorage.getItem(app.KEY);
     click(app.document.querySelector('[data-act=openMixtureModal]'));
-    input(app.document.getElementById('mixtureName'), 'Should Not Save');
-    click(app.document.querySelector('[data-act=addMixtureComponent]'));
     click(app.document.querySelector('#mixtureModal [data-act=closeMixtureModal]'));
-    assert(JSON.stringify(app.state) === beforeState, 'Cancel changed application data');
-    assert(app.localStorage.getItem(app.KEY) === beforeCache, 'Cancel wrote a mixture draft to local storage');
+    assert(JSON.stringify(app.state) === beforeState, 'blank close changed application data');
+    assert(app.localStorage.getItem(app.KEY) === beforeCache, 'blank close wrote to local storage');
+    assert(app.state.mixtureDrafts.length === 0, 'blank close created draft clutter');
+  });
+  test('X auto-saves an incomplete combined cost without publishing it', () => {
+    installState({ ingredients: [
+      { id: 'cream', name: 'Cream', kind: 'purchased', purchaseQty: 1, amountPerItem: 1, unit: 'l', price: 500 }
+    ] });
+    app.localStorage.removeItem(app.KEY);
+    click(app.document.querySelector('[data-act=openMixtureModal]'));
+    input(app.document.getElementById('mixtureName'), 'Draft Whip');
+    click(app.document.querySelector('[data-act=addMixtureComponent]'));
+    let row = app.document.querySelector('#mixtureModal [data-mix-index="0"]');
+    change(row.querySelector('[data-mix-field=ingredientId]'), 'cream');
+    row = app.document.querySelector('#mixtureModal [data-mix-index="0"]');
+    input(row.querySelector('[data-mix-field=qty]'), '250');
+    click(app.document.querySelector('#mixtureModal [data-act=closeMixtureModal]'));
+    assert(app.document.getElementById('mixtureModal').hidden, 'X did not close after saving the draft');
+    assert(app.state.mixtureDrafts.length === 1, 'X did not save exactly one draft');
+    assert(!app.state.ingredients.some(item => item.name === 'Draft Whip'), 'draft was published as a live mixture');
+    assert(storedState().mixtureDrafts[0].data.components[0].qty === '250', 'draft was not cached locally');
+    assert(app.document.getElementById('mixtureDraftButton').textContent.includes('(1)'), 'draft count did not update');
+  });
+  test('a category-only change is saved as a draft while untouched blank closes cleanly', () => {
+    installState({ ingredientCategories: [{ id: 'cream-folder', name: 'Cream mixes' }] });
+    click(app.document.querySelector('[data-act=openMixtureModal]'));
+    change(app.document.querySelector('[data-mix-root=categoryId]'), 'cream-folder');
+    click(app.document.querySelector('#mixtureModal [data-act=closeMixtureModal]'));
+    assert(app.state.mixtureDrafts.length === 1 && app.state.mixtureDrafts[0].data.categoryId === 'cream-folder', 'category-only draft input was lost');
+  });
+  test('Escape and backdrop close paths also auto-save meaningful drafts', () => {
+    installState();
+    click(app.document.querySelector('[data-act=openMixtureModal]'));
+    input(app.document.getElementById('mixtureName'), 'Escape draft');
+    app.document.body.dispatchEvent(new app.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    assert(app.state.mixtureDrafts.length === 1 && app.state.mixtureDrafts[0].data.name === 'Escape draft', 'Escape did not save the draft');
+    click(app.document.querySelector('[data-act=openMixtureModal]'));
+    input(app.document.getElementById('mixtureName'), 'Backdrop draft');
+    click(app.document.getElementById('mixtureModal'));
+    assert(app.state.mixtureDrafts.length === 2 && app.state.mixtureDrafts.some(d => d.data.name === 'Backdrop draft'), 'backdrop click did not save the draft');
+  });
+  test('explicit Save draft supports multiple drafts and the Drafts modal lists them', () => {
+    installState();
+    function saveNamedDraft(name) {
+      click(app.document.querySelector('[data-act=openMixtureModal]'));
+      input(app.document.getElementById('mixtureName'), name);
+      click(app.document.querySelector('#mixtureModal [data-act=saveMixtureDraft]'));
+    }
+    saveNamedDraft('First mix');
+    saveNamedDraft('Second mix');
+    assert(app.state.mixtureDrafts.length === 2, 'multiple drafts were not retained');
+    click(app.document.getElementById('mixtureDraftButton'));
+    const cards = app.document.querySelectorAll('#draftsList .draft-card');
+    assert(cards.length === 2, 'draft manager did not list both drafts');
+    assert(/First mix/.test(app.document.getElementById('draftsList').textContent) && /Second mix/.test(app.document.getElementById('draftsList').textContent), 'draft names were missing');
+    const oldConfirm = app.confirm;
+    app.confirm = () => true;
+    try { click(app.document.querySelector('#draftsList [data-act=deleteMixtureDraft]')); } finally { app.confirm = oldConfirm; }
+    assert(app.state.mixtureDrafts.length === 1 && app.document.querySelectorAll('#draftsList .draft-card').length === 1, 'deleting one draft removed the wrong number of drafts');
+    click(app.document.querySelector('#draftsModal [data-act=closeDraftsModal]'));
+  });
+  test('resuming and saving a draft updates the same record', () => {
+    installState({ mixtureDrafts: [{
+      id: 'draft-one', createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z', sourceMixtureId: '',
+      data: { id: 'mix-one', kind: 'mixture', name: 'Saved draft', categoryId: '', batchYield: '', unit: 'ml', components: [], pendingIngredients: [] },
+      quickIngredient: null
+    }] });
+    click(app.document.getElementById('mixtureDraftButton'));
+    click(app.document.querySelector('[data-act=resumeMixtureDraft][data-id=draft-one]'));
+    assert(app.document.getElementById('mixtureName').value === 'Saved draft', 'resume did not restore draft values');
+    input(app.document.getElementById('mixtureName'), 'Updated draft');
+    click(app.document.querySelector('#mixtureModal [data-act=saveMixtureDraft]'));
+    assert(app.state.mixtureDrafts.length === 1 && app.state.mixtureDrafts[0].id === 'draft-one', 'resume created a duplicate draft');
+    assert(app.state.mixtureDrafts[0].data.name === 'Updated draft', 'resumed draft changes were not saved');
+  });
+  test('clearing a resumed draft is preserved when closing', () => {
+    installState({ mixtureDrafts: [{
+      id: 'clear-me', createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z', sourceMixtureId: '',
+      data: { id: 'empty-later', kind: 'mixture', name: 'Remove this name', categoryId: '', batchYield: '', unit: 'ml', components: [], pendingIngredients: [] }
+    }] });
+    click(app.document.getElementById('mixtureDraftButton'));
+    click(app.document.querySelector('[data-act=resumeMixtureDraft][data-id=clear-me]'));
+    input(app.document.getElementById('mixtureName'), '');
+    click(app.document.querySelector('#mixtureModal [data-act=closeMixtureModal]'));
+    assert(app.state.mixtureDrafts.length === 1 && app.state.mixtureDrafts[0].data.name === '', 'cleared draft work was silently discarded');
+  });
+  test('Discard changes keeps the last saved draft but drops the current edits', () => {
+    installState({ mixtureDrafts: [{
+      id: 'discard-test', createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z', sourceMixtureId: '',
+      data: { id: 'discard-mix', kind: 'mixture', name: 'Last saved name', categoryId: '', batchYield: '', unit: 'ml', components: [], pendingIngredients: [] }
+    }] });
+    click(app.document.getElementById('mixtureDraftButton'));
+    click(app.document.querySelector('[data-act=resumeMixtureDraft][data-id=discard-test]'));
+    input(app.document.getElementById('mixtureName'), 'Unsaved replacement');
+    const oldConfirm = app.confirm;
+    app.confirm = () => true;
+    try { click(app.document.querySelector('#mixtureModal [data-act=discardMixtureChanges]')); } finally { app.confirm = oldConfirm; }
+    assert(app.document.getElementById('mixtureModal').hidden, 'Discard changes did not close the editor');
+    assert(app.state.mixtureDrafts.length === 1 && app.state.mixtureDrafts[0].data.name === 'Last saved name', 'Discard changes altered or deleted the saved draft');
+  });
+  test('a partner-changed draft is preserved alongside a separate local copy', () => {
+    installState({ mixtureDrafts: [{
+      id: 'shared-draft', createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z', sourceMixtureId: '',
+      data: { id: 'shared-mix', kind: 'mixture', name: 'Original', categoryId: '', batchYield: '', unit: 'ml', components: [{ ingredientId: 'pending-shared', qty: 20, unit: 'ml' }], pendingIngredients: [{ id: 'pending-shared', name: 'Draft Milk', kind: 'purchased', categoryId: '', purchaseQty: 1, amountPerItem: 100, unit: 'ml', price: 20 }] },
+      quickIngredient: { id: 'quick-shared', name: 'Half typed spice', kind: 'purchased', categoryId: '', purchaseQty: '', amountPerItem: '', unit: 'g', price: '' }
+    }] });
+    click(app.document.getElementById('mixtureDraftButton'));
+    click(app.document.querySelector('[data-act=resumeMixtureDraft][data-id=shared-draft]'));
+    input(app.document.getElementById('mixtureName'), 'My local copy');
+    app.state.mixtureDrafts[0].updatedAt = '2026-01-02T00:00:00.000Z';
+    app.state.mixtureDrafts[0].data.name = 'Partner copy';
+    click(app.document.querySelector('#mixtureModal [data-act=saveMixtureDraft]'));
+    assert(app.state.mixtureDrafts.length === 2, 'partner conflict overwrote or lost one draft');
+    assert(app.state.mixtureDrafts.some(d => d.id === 'shared-draft' && d.data.name === 'Partner copy'), 'partner draft was overwritten');
+    assert(app.state.mixtureDrafts.some(d => d.id !== 'shared-draft' && d.data.name === 'My local copy' && d.conflictCopy), 'local work was not saved as a labeled copy');
+    const localCopy = app.state.mixtureDrafts.find(d => d.id !== 'shared-draft');
+    assert(localCopy.data.id !== 'shared-mix', 'new-draft conflict copy reused the original future mixture ID');
+    assert(localCopy.data.pendingIngredients[0].id !== 'pending-shared' && localCopy.data.components[0].ingredientId === localCopy.data.pendingIngredients[0].id, 'runtime conflict copy did not safely remap its pending ingredient');
+    assert(localCopy.quickIngredient.id !== 'quick-shared', 'runtime conflict copy reused the quick-ingredient ID');
+  });
+  test('a partially typed quick purchased ingredient survives draft resume', () => {
+    installState();
+    click(app.document.querySelector('[data-act=openMixtureModal]'));
+    click(app.document.querySelector('[data-act=beginQuickIngredient]'));
+    input(app.document.querySelector('[data-quick-field=name]'), 'Half entered cream');
+    input(app.document.querySelector('[data-quick-field=amountPerItem]'), '1000');
+    click(app.document.querySelector('#mixtureModal [data-act=closeMixtureModal]'));
+    const savedDraft = app.state.mixtureDrafts[0];
+    assert(savedDraft.quickIngredient.name === 'Half entered cream', 'partial quick ingredient was lost');
+    click(app.document.getElementById('mixtureDraftButton'));
+    click(app.document.querySelector('[data-act=resumeMixtureDraft][data-id="'+savedDraft.id+'"]'));
+    assert(app.document.querySelector('[data-quick-field=name]').value === 'Half entered cream', 'quick ingredient name was not restored');
+    assert(app.document.querySelector('[data-quick-field=amountPerItem]').value === '1000', 'quick ingredient amount was not restored');
+    click(app.document.querySelector('#mixtureModal [data-act=discardMixtureChanges]'));
+  });
+  test('publishing a resumed draft removes only that draft', () => {
+    installState({
+      ingredients: [{ id: 'cream', name: 'Cream', kind: 'purchased', purchaseQty: 1, amountPerItem: 1, unit: 'l', price: 500 }],
+      mixtureDrafts: [
+        { id: 'ready', createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z', sourceMixtureId: '', data: { id: 'whip', kind: 'mixture', name: 'Ready Whip', categoryId: '', batchYield: 500, unit: 'ml', components: [{ ingredientId: 'cream', qty: 250, unit: 'ml' }], pendingIngredients: [] } },
+        { id: 'keep', createdAt: '2026-01-02T00:00:00.000Z', updatedAt: '2026-01-02T00:00:00.000Z', sourceMixtureId: '', data: { id: 'other', kind: 'mixture', name: 'Keep Me', categoryId: '', batchYield: '', unit: 'ml', components: [], pendingIngredients: [] } }
+      ]
+    });
+    click(app.document.getElementById('mixtureDraftButton'));
+    click(app.document.querySelector('[data-act=resumeMixtureDraft][data-id=ready]'));
+    click(app.document.querySelector('[data-act=saveMixture]'));
+    assert(app.state.ingredients.some(item => item.id === 'whip' && item.kind === 'mixture'), 'finished draft was not published');
+    assert(app.state.mixtureDrafts.length === 1 && app.state.mixtureDrafts[0].id === 'keep', 'publishing removed the wrong drafts');
+  });
+  test('editing a saved mixture drafts changes without touching live costing', () => {
+    installState({ ingredients: [
+      { id: 'cream', name: 'Cream', kind: 'purchased', purchaseQty: 1, amountPerItem: 1, unit: 'l', price: 500 },
+      { id: 'whip', name: 'Original Whip', kind: 'mixture', categoryId: '', batchYield: 500, unit: 'ml', components: [{ ingredientId: 'cream', qty: 250, unit: 'ml' }] }
+    ] });
+    click(app.document.querySelector('[data-act=editMixture][data-id=whip]'));
+    input(app.document.getElementById('mixtureName'), 'Edited Whip');
+    click(app.document.querySelector('#mixtureModal [data-act=closeMixtureModal]'));
+    assert(app.getById(app.state.ingredients, 'whip').name === 'Original Whip', 'closing an edit changed the live mixture');
+    assert(app.state.mixtureDrafts.length === 1 && app.state.mixtureDrafts[0].sourceMixtureId === 'whip', 'edit draft was not linked to its source');
+    click(app.document.getElementById('mixtureDraftButton'));
+    click(app.document.querySelector('[data-act=resumeMixtureDraft]'));
+    click(app.document.querySelector('[data-act=saveMixture]'));
+    assert(app.getById(app.state.ingredients, 'whip').name === 'Edited Whip', 'finalizing did not update the original mixture');
+    assert(app.state.ingredients.filter(item => item.kind === 'mixture').length === 1, 'finalizing created a duplicate mixture');
+    assert(app.state.mixtureDrafts.length === 0, 'finalized edit draft was not removed');
+  });
+  test('draft references protect ingredients until the draft is deleted', () => {
+    installState({
+      ingredients: [{ id: 'cream', name: 'Cream', kind: 'purchased', purchaseQty: 1, amountPerItem: 1, unit: 'l', price: 500 }],
+      mixtureDrafts: [{ id: 'using-cream', createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z', sourceMixtureId: '', data: { id: 'mix', kind: 'mixture', name: 'Cream draft', categoryId: '', batchYield: '', unit: 'ml', components: [{ ingredientId: 'cream', qty: 50, unit: 'ml' }], pendingIngredients: [] } }]
+    });
+    assert(app.ingredientUsage('cream').some(use => /draft/i.test(use)), 'draft dependency was not reported');
+    const oldAlert = app.alert;
+    app.alert = () => {};
+    try { click(app.document.querySelector('[data-act=delIngredient][data-id=cream]')); } finally { app.alert = oldAlert; }
+    assert(app.getById(app.state.ingredients, 'cream'), 'ingredient used by a draft was deleted');
   });
   test('combined-cost rerenders keep keyboard focus in the working row', async () => {
     installState({ ingredients: [

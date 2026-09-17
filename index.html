@@ -98,7 +98,7 @@
   .modal-head{display:flex;gap:12px;align-items:flex-start;margin-bottom:12px}
   .modal-head h2{margin:0;flex:1}
   .modal-close{border:0;background:transparent;color:var(--muted);font-size:24px;line-height:1;cursor:pointer;padding:0 4px;min-width:44px;min-height:44px}
-  .modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px;position:sticky;bottom:-18px;
+  .modal-actions{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin-top:16px;position:sticky;bottom:-18px;
     background:#fff;padding:12px 0 2px;border-top:1px solid var(--line)}
   .modal-error{color:var(--bad);font-size:13px;min-height:19px;margin-top:8px}
   .component-grid{display:grid;grid-template-columns:minmax(190px,1fr) 110px 100px 110px 42px;gap:7px;
@@ -113,6 +113,13 @@
   .mixture-totals{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
   .cost-breakdown{margin:10px 0;border:1px solid var(--line);border-radius:10px;padding:9px 11px;background:#fff}
   .cost-breakdown summary{font-size:13px}
+  .draft-list{display:grid;gap:10px;margin-top:12px}
+  .draft-card{border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--cream)}
+  .draft-card-head{display:flex;gap:10px;align-items:flex-start}
+  .draft-card-name{font-weight:700;color:var(--brown);font-size:15px}
+  .draft-meta{font-size:12px;color:var(--muted);margin-top:3px}
+  .draft-actions{display:flex;gap:7px;justify-content:flex-end;flex-wrap:wrap;margin-top:10px}
+  .draft-saved-note{font-size:13px;color:var(--good);min-height:19px;margin-top:8px}
   body.modal-open{overflow:hidden}
   @media(max-width:700px){
     .component-grid{grid-template-columns:1fr 88px 82px 38px}
@@ -130,6 +137,8 @@
     .modal{max-height:94vh;border-radius:16px 16px 0 0;padding:15px}
     .mixture-totals{grid-template-columns:1fr}
     .category-tools{width:100%;margin-left:0}
+    .draft-card-head{display:block}
+    .draft-actions .btn{flex:1 1 auto}
   }
   @media(max-width:480px){
     .component-grid{grid-template-columns:minmax(0,1fr) 82px 44px}
@@ -190,6 +199,7 @@
         </div>
         <button class="btn secondary" data-act="openCategoryModal">+ Add category</button>
         <button class="btn" data-act="openMixtureModal">+ Add combined cost</button>
+        <button id="mixtureDraftButton" class="btn secondary" data-act="openDraftsModal">Drafts (0)</button>
       </div>
       <div id="categoryBar" class="category-bar" aria-label="Ingredient categories"></div>
       <div id="ingredientSearchStatus" class="search-status" aria-live="polite"></div>
@@ -246,7 +256,7 @@
   <section id="cloud">
     <div class="card">
       <h2>☁ Account &amp; cloud sync</h2>
-      <p class="hint">Your ingredients, categories, prepared mixtures, recipes, packaging, and prices save online automatically and update live across your devices.</p>
+      <p class="hint">Your ingredients, categories, prepared mixtures and drafts, recipes, packaging, and prices save online automatically and update live across your devices.</p>
       <div id="cloudState"></div>
       <details style="margin-top:16px">
         <summary>⚙ Advanced / one-time setup</summary>
@@ -325,6 +335,17 @@ create policy "auth update" on scoopies_state for update to authenticated using 
   </div>
 </div>
 
+<div id="draftsModal" class="modal-backdrop" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="draftsModalTitle">
+    <div class="modal-head">
+      <div style="flex:1"><h2 id="draftsModalTitle">Combined-cost drafts</h2><p class="hint">Continue unfinished mixtures here. Drafts do not affect recipes or pricing until you finish them.</p></div>
+      <button class="modal-close" data-act="closeDraftsModal" aria-label="Close drafts dialog">x</button>
+    </div>
+    <div id="draftsList" class="draft-list"></div>
+    <div class="modal-actions"><button class="btn secondary" data-act="closeDraftsModal">Close</button></div>
+  </div>
+</div>
+
 <script>
 /* ---------- units & money ---------- */
 var UNIT_FACTOR = {g:1, kg:1000, ml:1, l:1000, piece:1};
@@ -339,6 +360,15 @@ function num(v){ var n=parseFloat(v); return isNaN(n)?0:n; }
 function uid(){ return 'id'+(uid._c=(uid._c||0)+1)+'_'+Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
 function getById(list,id){ for(var i=0;i<list.length;i++){ if(list[i].id===id) return list[i]; } return null; }
 function ceilTo(n,step){ return Math.ceil(n/step)*step; }
+function canonicalValue(value){
+  if(Array.isArray(value))return value.map(canonicalValue);
+  if(value&&typeof value==='object'){
+    var out={};Object.keys(value).sort().forEach(function(key){if(value[key]!==undefined)out[key]=canonicalValue(value[key]);});return out;
+  }
+  return value;
+}
+function stableSerialize(value){return JSON.stringify(canonicalValue(value));}
+function sameDataValue(a,b){return stableSerialize(a)===stableSerialize(b);}
 
 /* ---------- state + persistence ---------- */
 var TEST_MODE = /(?:^|[?&])test=1(?:&|$)/.test(window.location.search);
@@ -360,12 +390,14 @@ var NAMES = { 'lukesellado04@gmail.com':'Luke', 'ynazov03@gmail.com':'Ynah' };  
 var ingredientUi = { search:'', category:'all' };
 var categoryModalOpen = false, categoryEditId = '', modalReturnFocus = null;
 var mixtureModalOpen = false, mixtureDraft = null, mixtureReadOnly = false, quickIngredientDraft = null, mixtureOriginalExisting = false;
+var draftsModalOpen = false, activeMixtureDraftId = '', mixtureInitialSnapshot = null;
+var mixtureSourceId = '', mixtureSourceSnapshot = null, openedMixtureDraftUpdatedAt = '', openedMixtureDraftFingerprint = '', mixtureDraftNotice = '';
 
-function blank(){ return {schemaVersion:2, ingredientCategories:[], ingredients:[], packaging:[], recipes:[], products:[]}; }
+function blank(){ return {schemaVersion:3, ingredientCategories:[], ingredients:[], mixtureDrafts:[], packaging:[], recipes:[], products:[]}; }
 function normalizeState(raw){
   var src=(raw && typeof raw==='object')?raw:{};
   var out=Object.assign({},src);
-  out.schemaVersion=2;
+  out.schemaVersion=3;
   out.ingredientCategories=Array.isArray(src.ingredientCategories)?src.ingredientCategories.map(function(c){
     return {id:String(c&&c.id||uid()),name:String(c&&c.name||'').trim()};
   }).filter(function(c,i,a){
@@ -386,6 +418,20 @@ function normalizeState(raw){
       }):[];
     }
     return ing;
+  }):[];
+  out.mixtureDrafts=Array.isArray(src.mixtureDrafts)?src.mixtureDrafts.map(function(item){
+    var record=Object.assign({},item||{}),data=Object.assign({},record.data||{});
+    record.id=String(record.id||uid()); record.createdAt=String(record.createdAt||record.updatedAt||new Date().toISOString());
+    record.updatedAt=String(record.updatedAt||record.createdAt); record.sourceMixtureId=String(record.sourceMixtureId||'');
+    record.sourceSnapshot=record.sourceSnapshot&&typeof record.sourceSnapshot==='object'?snapshot(record.sourceSnapshot):null;
+    data.id=String(data.id||record.sourceMixtureId||uid()); data.kind='mixture'; data.name=String(data.name||'');
+    data.categoryId=catIds[String(data.categoryId||'')]?String(data.categoryId):'';
+    data.batchYield=data.batchYield==null?'':data.batchYield; data.unit=UNIT_FACTOR[data.unit]?data.unit:'ml';
+    data.components=Array.isArray(data.components)?data.components.map(function(c){return {ingredientId:String(c&&c.ingredientId||''),qty:c&&c.qty!=null?c.qty:'',unit:UNIT_FACTOR[c&&c.unit]?c.unit:'g'};}):[];
+    data.pendingIngredients=Array.isArray(data.pendingIngredients)?data.pendingIngredients.map(function(x){var p=Object.assign({},x||{});p.id=String(p.id||uid());p.kind='purchased';p.categoryId=catIds[String(p.categoryId||'')]?String(p.categoryId):'';p.unit=UNIT_FACTOR[p.unit]?p.unit:'g';return p;}):[];
+    record.data=data;
+    if(record.quickIngredient){var q=Object.assign({},record.quickIngredient);q.id=String(q.id||uid());q.kind='purchased';q.categoryId=catIds[String(q.categoryId||'')]?String(q.categoryId):'';q.unit=UNIT_FACTOR[q.unit]?q.unit:'g';record.quickIngredient=q;}else record.quickIngredient=null;
+    return record;
   }):[];
   out.packaging=Array.isArray(src.packaging)?src.packaging.map(function(x){return Object.assign({},x);}):[];
   out.recipes=Array.isArray(src.recipes)?src.recipes.map(function(x){
@@ -414,7 +460,7 @@ function rememberSynced(s,clean){
 var MERGE_MISSING={};
 function sameMergeValue(a,b){
   if(a===MERGE_MISSING||b===MERGE_MISSING)return a===b;
-  return JSON.stringify(a)===JSON.stringify(b);
+  return sameDataValue(a,b);
 }
 function cloneMergeValue(v){return v===MERGE_MISSING?MERGE_MISSING:snapshot(v);}
 function mergeNode(base,local,remote){
@@ -448,9 +494,55 @@ function mergeEntityList(base,local,remote){
 }
 function mergeStates(base,local,remote){
   base=normalizeState(base||blank());local=normalizeState(local||blank());remote=normalizeState(remote||blank());
-  var out=mergeNode(base,local,remote),lists=['ingredientCategories','ingredients','packaging','recipes','products'];
+  var out=mergeNode(base,local,remote),lists=['ingredientCategories','ingredients','mixtureDrafts','packaging','recipes','products'];
   lists.forEach(function(k){out[k]=mergeEntityList(base[k],local[k],remote[k]);});
+  out.mixtureDrafts=mergeWholeEntityList(base.mixtureDrafts,local.mixtureDrafts,remote.mixtureDrafts);
   return normalizeState(out);
+}
+function mergeWholeEntityList(base,local,remote){
+  base=base||[]; local=local||[]; remote=remote||[];
+  var bm={},lm={},rm={},order=[],out=[],outIndex={};
+  function pushDraft(record){
+    if(!record||!record.id)return;
+    var copy=snapshot(record),idx=outIndex[copy.id];
+    if(idx==null){outIndex[copy.id]=out.length;out.push(copy);}
+    else if(draftConflictKey(copy)>draftConflictKey(out[idx]))out[idx]=copy;
+  }
+  base.forEach(function(x){bm[x.id]=x;}); local.forEach(function(x){lm[x.id]=x;}); remote.forEach(function(x){rm[x.id]=x;});
+  remote.concat(local).concat(base).forEach(function(x){if(x&&order.indexOf(x.id)<0)order.push(x.id);});
+  order.forEach(function(id){
+    var hasB=Object.prototype.hasOwnProperty.call(bm,id),hasL=Object.prototype.hasOwnProperty.call(lm,id),hasR=Object.prototype.hasOwnProperty.call(rm,id);
+    var b=hasB?bm[id]:MERGE_MISSING,l=hasL?lm[id]:MERGE_MISSING,r=hasR?rm[id]:MERGE_MISSING;
+    if(!hasL&&!hasR)return;
+    if(!hasL){if(!hasB)pushDraft(r);else if(!sameMergeValue(r,b))pushDraft(makeMergedDraftConflictCopy(r,id));return;}
+    if(!hasR){if(!hasB)pushDraft(l);else if(!sameMergeValue(l,b))pushDraft(makeMergedDraftConflictCopy(l,id));return;}
+    if(sameMergeValue(l,b)){pushDraft(r);return;}
+    if(sameMergeValue(r,b)||sameMergeValue(l,r)){pushDraft(l);return;}
+    var localKey=draftConflictKey(l),remoteKey=draftConflictKey(r);
+    var winner=localKey>=remoteKey?l:r,loser=localKey>=remoteKey?r:l;
+    pushDraft(winner);
+    pushDraft(makeMergedDraftConflictCopy(loser,id));
+  });
+  return out;
+}
+function draftConflictKey(record){return String(record&&record.updatedAt||'')+'|'+stableSerialize(record||{});}
+function stableDraftHash(value){
+  var text=String(value||''),hash=2166136261;
+  for(var i=0;i<text.length;i++){hash^=text.charCodeAt(i);hash=Math.imul(hash,16777619);}
+  return (hash>>>0).toString(36);
+}
+function remapDraftOwnedIds(data,quick,makeId){
+  data=data||{};var remap={};
+  (data.pendingIngredients||[]).forEach(function(item,idx){var old=String(item.id||''),next=makeId(old,'pending',idx);if(old)remap[old]=next;item.id=next;});
+  (data.components||[]).forEach(function(c){if(remap[c.ingredientId])c.ingredientId=remap[c.ingredientId];});
+  if(quick)quick.id=makeId(String(quick.id||''),'quick',0);
+}
+function makeMergedDraftConflictCopy(record,originalId){
+  var copy=snapshot(record),suffix=stableDraftHash(stableSerialize(record||{}));
+  copy.id=originalId+'_conflict_'+suffix;copy.conflictCopy=true;
+  if(!copy.sourceMixtureId&&copy.data)copy.data.id=String(copy.data.id||originalId)+'_copy_'+suffix;
+  remapDraftOwnedIds(copy.data,copy.quickIngredient,function(old,kind,idx){return (old||kind)+'_copy_'+suffix+'_'+idx;});
+  return copy;
 }
 function loadLocal(){
   try{ var s = JSON.parse(localStorage.getItem(KEY)); return s && s.ingredients ? normalizeState(s) : blank(); }
@@ -473,7 +565,7 @@ function save(){
       var payload=snapshot(state);
       cloudSave(payload).then(function(){
         if(version!==saveVersion) return;
-        if(pendingRemote&&JSON.stringify(normalizeState(pendingRemote))!==JSON.stringify(state)){
+        if(pendingRemote&&!sameDataValue(normalizeState(pendingRemote),state)){
           pendingSave=false; consumePendingRemoteForCommit(false); save(); return;
         }
         pendingSave=false; pendingRemote=null; rememberSynced(payload,true); setStatus('Saved to cloud ✓','good');
@@ -513,9 +605,9 @@ async function cloudSave(s){
     .upsert({ id:'main', data:s, updated_at:new Date().toISOString() }, { onConflict:'id' });
   if(res.error) throw res.error;
 }
-function hasData(s){ return !!(s && ((s.ingredientCategories&&s.ingredientCategories.length)||(s.ingredients&&s.ingredients.length)||(s.packaging&&s.packaging.length)||(s.recipes&&s.recipes.length)||(s.products&&s.products.length))); }
+function hasData(s){ return !!(s && ((s.ingredientCategories&&s.ingredientCategories.length)||(s.ingredients&&s.ingredients.length)||(s.mixtureDrafts&&s.mixtureDrafts.length)||(s.packaging&&s.packaging.length)||(s.recipes&&s.recipes.length)||(s.products&&s.products.length))); }
 function appIsEditing(){
-  if(categoryModalOpen||mixtureModalOpen) return true;
+  if(categoryModalOpen||mixtureModalOpen||draftsModalOpen) return true;
   var ae=document.activeElement;
   return !!(ae && (ae.tagName==='INPUT'||ae.tagName==='SELECT'||ae.tagName==='TEXTAREA') && ae.closest && ae.closest('.wrap'));
 }
@@ -523,7 +615,7 @@ function appIsEditing(){
 function maybeApplyRemote(remote){
   if(!remote) return;
   remote=normalizeState(remote);
-  if(JSON.stringify(remote)===JSON.stringify(state)){rememberSynced(remote,!pendingSave);return;} /* our own echo */
+  if(sameDataValue(remote,state)){rememberSynced(remote,!pendingSave);return;} /* our own echo */
   if(localDirty||pendingSave||appIsEditing()){ pendingRemote=remote; return; } /* preserve unsynced/local editing */
   state=remote; pendingRemote=null; lastState=snapshot(state);
   try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){}
@@ -810,6 +902,7 @@ function ingredientUsage(id){
   var uses=[];
   state.recipes.forEach(function(r){ if((r.lines||[]).some(function(l){return l.ingredientId===id;})) uses.push('recipe "'+(r.name||'untitled')+'"'); });
   state.ingredients.forEach(function(ing){ if(isMixture(ing)&&(ing.components||[]).some(function(c){return c.ingredientId===id;})) uses.push('mixture "'+(ing.name||'untitled')+'"'); });
+  (state.mixtureDrafts||[]).forEach(function(d){var data=d.data||{};if((data.components||[]).some(function(c){return c.ingredientId===id;}))uses.push('draft "'+(data.name||'untitled combined cost')+'"');});
   return uses;
 }
 function packagingUsage(id){
@@ -999,7 +1092,7 @@ function renderProducts(){
   }).join('');
 }
 function refreshModalBodyClass(){
-  var open=categoryModalOpen||mixtureModalOpen; document.body.classList.toggle('modal-open',open);
+  var open=categoryModalOpen||mixtureModalOpen||draftsModalOpen; document.body.classList.toggle('modal-open',open);
   [document.querySelector('header'),document.querySelector('.wrap')].forEach(function(el){if(!el)return;el.inert=!!open;if(open)el.setAttribute('aria-hidden','true');else el.removeAttribute('aria-hidden');});
 }
 function focusSoon(selector){setTimeout(function(){var el=document.querySelector(selector);if(el)el.focus();},0);}
@@ -1051,8 +1144,17 @@ function saveCategory(){
 function deleteCategory(id){
   var cat=getById(state.ingredientCategories,id); if(!cat) return false;
   var count=state.ingredients.filter(function(x){return x.categoryId===id;}).length;
-  if(!confirm('Delete the folder "'+cat.name+'"? '+count+' item'+(count===1?'':'s')+' will move to Uncategorized.')) return false;
+  var draftCount=(state.mixtureDrafts||[]).filter(function(d){return d.data&&d.data.categoryId===id;}).length;
+  if(!confirm('Delete the folder "'+cat.name+'"? '+count+' item'+(count===1?'':'s')+(draftCount?' and '+draftCount+' draft'+(draftCount===1?'':'s'):'')+' will move to Uncategorized.')) return false;
   state.ingredients.forEach(function(x){if(x.categoryId===id)x.categoryId='';});
+  (state.mixtureDrafts||[]).forEach(function(d){
+    var changed=false;
+    if(d.data&&d.data.categoryId===id){d.data.categoryId='';changed=true;}
+    if(d.sourceSnapshot&&d.sourceSnapshot.categoryId===id){d.sourceSnapshot.categoryId='';changed=true;}
+    ((d.data&&d.data.pendingIngredients)||[]).forEach(function(x){if(x.categoryId===id){x.categoryId='';changed=true;}});
+    if(d.quickIngredient&&d.quickIngredient.categoryId===id){d.quickIngredient.categoryId='';changed=true;}
+    if(changed)d.updatedAt=new Date().toISOString();
+  });
   state.ingredientCategories=state.ingredientCategories.filter(function(x){return x.id!==id;});
   ingredientUi.category='uncategorized'; logChanges(); save(); renderAll(); return true;
 }
@@ -1070,20 +1172,157 @@ function mixtureCandidates(){
   return list.filter(function(x){return !ingredientDependsOn(x.id,mixtureDraft.id,{},draftIngredientLookup);});
 }
 function draftMixtureInfo(){ return mixtureDraft?ingredientCostInfo(mixtureDraft,[],draftIngredientLookup):{valid:false,costPerBase:NaN,batchCost:NaN,error:''}; }
+function sanitizeMixtureSessionCategories(){
+  if(!mixtureDraft)return;
+  if(mixtureDraft.categoryId&&!getById(state.ingredientCategories,mixtureDraft.categoryId))mixtureDraft.categoryId='';
+  (mixtureDraft.pendingIngredients||[]).forEach(function(x){if(x.categoryId&&!getById(state.ingredientCategories,x.categoryId))x.categoryId='';});
+  if(quickIngredientDraft&&quickIngredientDraft.categoryId&&!getById(state.ingredientCategories,quickIngredientDraft.categoryId))quickIngredientDraft.categoryId='';
+}
+function captureMixtureSession(){
+  return {data:mixtureDraft?snapshot(mixtureDraft):null,quickIngredient:quickIngredientDraft?snapshot(quickIngredientDraft):null,sourceMixtureId:mixtureSourceId||''};
+}
+function mixtureSessionChanged(){return !sameDataValue(captureMixtureSession(),mixtureInitialSnapshot);}
+function hasDraftValue(v){return v!==''&&v!=null&&String(v).trim()!=='';}
+function mixtureSessionHasMeaningfulWork(){
+  if(!mixtureDraft)return false;
+  if(String(mixtureDraft.name||'').trim()||hasDraftValue(mixtureDraft.batchYield))return true;
+  var initial=mixtureInitialSnapshot&&mixtureInitialSnapshot.data;
+  if(initial&&(mixtureDraft.categoryId!==initial.categoryId||mixtureDraft.unit!==initial.unit))return true;
+  if((mixtureDraft.pendingIngredients||[]).length)return true;
+  if((mixtureDraft.components||[]).some(function(c){return !!String(c.ingredientId||'').trim()||hasDraftValue(c.qty);}))return true;
+  var q=quickIngredientDraft;
+  return !!(q&&(String(q.name||'').trim()||hasDraftValue(q.purchaseQty)||hasDraftValue(q.amountPerItem)||hasDraftValue(q.price)));
+}
+function setMixtureError(message){var box=document.getElementById('mixtureError');if(box)box.textContent=message||'';}
 function openMixtureModal(id,readOnly){
   var current=id?getById(state.ingredients,id):null;
   if(id&&!isMixture(current)){alert('That mixture is no longer available.');return;}
   mixtureOriginalExisting=!!current;
   mixtureDraft=current?snapshot(current):newMixtureDraft(); mixtureDraft.pendingIngredients=[];
+  mixtureSourceId=current?current.id:''; mixtureSourceSnapshot=current?snapshot(current):null;
+  activeMixtureDraftId=''; openedMixtureDraftUpdatedAt=''; openedMixtureDraftFingerprint=''; mixtureDraftNotice='';
   mixtureReadOnly=!!readOnly; quickIngredientDraft=null; mixtureModalOpen=true; modalReturnFocus=document.activeElement;
+  mixtureInitialSnapshot=captureMixtureSession();
   document.getElementById('mixtureModal').hidden=false; refreshModalBodyClass(); renderMixtureModal();
   setTimeout(function(){var el=document.getElementById(mixtureReadOnly?'closeMixtureButton':'mixtureName');if(el)el.focus();},0);
 }
 function closeMixtureModal(skipRemote){
+  var returnFocus=modalReturnFocus;
   mixtureModalOpen=false; mixtureDraft=null; quickIngredientDraft=null; mixtureReadOnly=false; mixtureOriginalExisting=false;
+  activeMixtureDraftId=''; openedMixtureDraftUpdatedAt=''; openedMixtureDraftFingerprint=''; mixtureInitialSnapshot=null; mixtureSourceId=''; mixtureSourceSnapshot=null; mixtureDraftNotice='';
   document.getElementById('mixtureModal').hidden=true; refreshModalBodyClass();
-  if(modalReturnFocus&&modalReturnFocus.focus) modalReturnFocus.focus();
+  if(returnFocus&&returnFocus.focus&&returnFocus.isConnected)returnFocus.focus();else focusSoon('#mixtureDraftButton');
   if(!skipRemote) applyPendingAfterModal();
+}
+function currentMixtureDraftConflict(){
+  if(!activeMixtureDraftId)return '';
+  var stored=getById(state.mixtureDrafts||[],activeMixtureDraftId);
+  if(!stored&&openedMixtureDraftUpdatedAt)return 'This draft was deleted on another device.';
+  if(stored&&openedMixtureDraftFingerprint&&stableSerialize(stored)!==openedMixtureDraftFingerprint)return 'This draft changed on another device.';
+  if(stored&&openedMixtureDraftUpdatedAt&&stored.updatedAt!==openedMixtureDraftUpdatedAt)return 'This draft changed on another device.';
+  return '';
+}
+function saveCurrentMixtureDraft(closeAfter,automatic){
+  if(!mixtureDraft||mixtureReadOnly)return false;
+  if(!mixtureSessionHasMeaningfulWork()&&!activeMixtureDraftId&&!mixtureSourceId){
+    if(!automatic)setMixtureError('Add a name, item, yield, or purchased-ingredient detail before saving a draft.');
+    return false;
+  }
+  consumePendingRemoteForCommit(false); sanitizeMixtureSessionCategories();
+  if(!Array.isArray(state.mixtureDrafts))state.mixtureDrafts=[];
+  var conflict=currentMixtureDraftConflict(),savedAsCopy=!!conflict;
+  if(savedAsCopy){
+    activeMixtureDraftId='';openedMixtureDraftUpdatedAt='';openedMixtureDraftFingerprint='';
+    if(!mixtureSourceId)mixtureDraft.id=uid();
+    remapDraftOwnedIds(mixtureDraft,quickIngredientDraft,function(){return uid();});
+  }
+  var now=new Date().toISOString(),existing=activeMixtureDraftId?getById(state.mixtureDrafts||[],activeMixtureDraftId):null;
+  var record={
+    id:activeMixtureDraftId||uid(),
+    createdAt:existing&&existing.createdAt||now,
+    updatedAt:now,
+    sourceMixtureId:mixtureSourceId||'',
+    sourceSnapshot:mixtureSourceSnapshot?snapshot(mixtureSourceSnapshot):null,
+    conflictCopy:savedAsCopy||!!(existing&&existing.conflictCopy),
+    data:snapshot(mixtureDraft),
+    quickIngredient:quickIngredientDraft?snapshot(quickIngredientDraft):null
+  };
+  var idx=(state.mixtureDrafts||[]).findIndex(function(d){return d.id===record.id;});
+  if(idx>=0)state.mixtureDrafts[idx]=record;else state.mixtureDrafts.push(record);
+  activeMixtureDraftId=record.id; openedMixtureDraftUpdatedAt=record.updatedAt; openedMixtureDraftFingerprint=stableSerialize(record);
+  mixtureInitialSnapshot=captureMixtureSession(); mixtureDraftNotice=savedAsCopy?'The other draft changed, so your work was saved as a separate draft copy.':'Draft saved. It will not affect costing until you finish it.';
+  save(); setStatus(cloud.connected&&session?'Draft saved — syncing…':'Draft saved on device',cloud.connected&&session?'':'good'); renderAll();
+  if(closeAfter)closeMixtureModal(true);else renderMixtureModal();
+  return true;
+}
+function requestCloseMixtureModal(){
+  if(!mixtureModalOpen)return;
+  if(mixtureReadOnly){closeMixtureModal(false);return;}
+  if(mixtureSessionChanged()&&(mixtureSessionHasMeaningfulWork()||activeMixtureDraftId||mixtureSourceId)){
+    saveCurrentMixtureDraft(true,true);
+    return;
+  }
+  closeMixtureModal(false);
+}
+function discardMixtureChanges(){
+  if(mixtureSessionChanged()&&(mixtureSessionHasMeaningfulWork()||activeMixtureDraftId||mixtureSourceId)&&!confirm(activeMixtureDraftId?'Discard changes made since this draft was opened? The last saved draft will stay available.':'Discard these unsaved changes?'))return;
+  closeMixtureModal(false);
+}
+function renderDraftButton(){
+  var button=document.getElementById('mixtureDraftButton'),count=(state.mixtureDrafts||[]).length;
+  if(button){button.textContent='Drafts ('+count+')';button.setAttribute('aria-label','View '+count+' combined-cost draft'+(count===1?'':'s'));}
+}
+function formatDraftTime(value){
+  var d=new Date(value); if(isNaN(d.getTime()))return 'Saved draft';
+  try{return 'Updated '+d.toLocaleString('en-PH',{dateStyle:'medium',timeStyle:'short'});}catch(e){return 'Updated '+d.toLocaleString();}
+}
+function renderDraftsModal(){
+  var list=document.getElementById('draftsList');if(!list)return;
+  var drafts=(state.mixtureDrafts||[]).slice().sort(function(a,b){return String(b.updatedAt).localeCompare(String(a.updatedAt));});
+  if(!drafts.length){list.innerHTML='<p class="empty">No saved combined-cost drafts.</p>';return;}
+  list.innerHTML=drafts.map(function(d){
+    var data=d.data||{},cat=getById(state.ingredientCategories,data.categoryId),count=(data.components||[]).length;
+    var displayName=String(data.name||'').trim()||'Untitled combined cost';
+    var yieldText=hasDraftValue(data.batchYield)?' &bull; Yield '+escapeHtml(data.batchYield)+' '+escapeHtml(data.unit||''):'';
+    var quickText=d.quickIngredient?' &bull; New ingredient in progress':'';
+    var mode=d.conflictCopy?'Separate copy (partner changed the original)':(d.sourceMixtureId?'Editing saved mixture':'New combined cost');
+    return '<article class="draft-card"><div class="draft-card-head"><div class="spacer"><div class="draft-card-name">'+escapeHtml(displayName)+'</div>'+
+      '<div class="draft-meta">'+escapeHtml(mode)+' &bull; '+count+' item'+(count===1?'':'s')+' &bull; '+escapeHtml(cat?cat.name:'Uncategorized')+yieldText+quickText+'</div>'+
+      '<div class="draft-meta">'+escapeHtml(formatDraftTime(d.updatedAt))+'</div></div></div>'+
+      '<div class="draft-actions"><button class="btn small secondary" data-act="deleteMixtureDraft" data-id="'+escapeHtml(d.id)+'" aria-label="Delete '+escapeHtml(displayName)+'">Delete</button><button class="btn small" data-act="resumeMixtureDraft" data-id="'+escapeHtml(d.id)+'" aria-label="Continue '+escapeHtml(displayName)+'">Continue</button></div></article>';
+  }).join('');
+}
+function openDraftsModal(){
+  draftsModalOpen=true;modalReturnFocus=document.activeElement;renderDraftsModal();
+  document.getElementById('draftsModal').hidden=false;refreshModalBodyClass();
+  focusSoon('#draftsModal [data-act="resumeMixtureDraft"],#draftsModal [data-act="closeDraftsModal"]');
+}
+function closeDraftsModal(skipRemote,skipFocus){
+  draftsModalOpen=false;document.getElementById('draftsModal').hidden=true;refreshModalBodyClass();
+  if(!skipFocus&&modalReturnFocus&&modalReturnFocus.focus)modalReturnFocus.focus();
+  if(!skipRemote)applyPendingAfterModal();
+}
+function resumeMixtureDraft(id){
+  consumePendingRemoteForCommit(false);
+  var record=getById(state.mixtureDrafts||[],id);if(!record){alert('That draft is no longer available.');renderDraftsModal();renderDraftButton();return;}
+  closeDraftsModal(true,true);
+  mixtureDraft=snapshot(record.data);mixtureDraft.pendingIngredients=Array.isArray(mixtureDraft.pendingIngredients)?mixtureDraft.pendingIngredients:[];
+  quickIngredientDraft=record.quickIngredient?snapshot(record.quickIngredient):null;
+  mixtureSourceId=record.sourceMixtureId||'';mixtureSourceSnapshot=record.sourceSnapshot?snapshot(record.sourceSnapshot):null;
+  mixtureOriginalExisting=!!mixtureSourceId;activeMixtureDraftId=record.id;openedMixtureDraftUpdatedAt=record.updatedAt||'';openedMixtureDraftFingerprint=stableSerialize(record);
+  mixtureReadOnly=false;mixtureModalOpen=true;modalReturnFocus=document.getElementById('mixtureDraftButton');sanitizeMixtureSessionCategories();
+  mixtureDraftNotice=mixtureSourceId&&!getById(state.ingredients,mixtureSourceId)?'The original mixture was deleted. You can keep this draft and save it as a new mixture.':'Continuing a saved draft.';
+  mixtureInitialSnapshot=captureMixtureSession();
+  document.getElementById('mixtureModal').hidden=false;refreshModalBodyClass();renderMixtureModal();focusSoon('#mixtureName');
+}
+function deleteMixtureDraft(id){
+  consumePendingRemoteForCommit(false);
+  if(!Array.isArray(state.mixtureDrafts))state.mixtureDrafts=[];
+  var record=getById(state.mixtureDrafts||[],id);if(!record){renderDraftsModal();return;}
+  var name=String(record.data&&record.data.name||'').trim()||'Untitled combined cost';
+  if(!confirm('Delete the draft "'+name+'"? This cannot be undone.'))return;
+  state.mixtureDrafts=state.mixtureDrafts.filter(function(d){return d.id!==id;});
+  save();renderAll();renderDraftsModal();focusSoon('#draftsModal [data-act="resumeMixtureDraft"],#draftsModal [data-act="closeDraftsModal"]');
 }
 function mixtureComponentCost(c){
   var source=draftIngredientLookup(c.ingredientId); if(!source||UNIT_TYPE[c.unit]!==UNIT_TYPE[source.unit]) return NaN;
@@ -1098,8 +1337,9 @@ function renderMixtureModal(){
   var content=document.getElementById('mixtureModalContent'), disabled=mixtureReadOnly?' disabled':'', candidates=mixtureCandidates();
   var rows=(mixtureDraft.components||[]).map(function(c,idx){
     var source=draftIngredientLookup(c.ingredientId), allowed=source?(TYPE_UNITS[UNIT_TYPE[source.unit]]||unitOptions):unitOptions;
+    var missingOption=c.ingredientId&&!source?'<option value="'+escapeHtml(c.ingredientId)+'" selected>[Missing ingredient - replace this]</option>':'';
     return '<div class="component-grid" data-mix-index="'+idx+'">'+
-      '<select data-mix-field="ingredientId" aria-label="Component ingredient"'+disabled+'><option value="">— pick an item —</option>'+ingredientOptions(c.ingredientId,candidates)+'</select>'+
+      '<select data-mix-field="ingredientId" aria-label="Component ingredient"'+disabled+'><option value="">— pick an item —</option>'+missingOption+ingredientOptions(c.ingredientId,candidates)+'</select>'+
       '<input data-mix-field="qty" type="number" min="0" step="any" value="'+escapeHtml(c.qty)+'" aria-label="Component quantity"'+disabled+'>'+
       '<select data-mix-field="unit" aria-label="Component unit"'+disabled+'>'+optionList(allowed,c.unit)+'</select>'+
       '<div class="component-cost">'+peso(mixtureComponentCost(c))+'</div>'+
@@ -1116,15 +1356,18 @@ function renderMixtureModal(){
       '<div id="quickIngredientError" class="modal-error" aria-live="assertive"></div><div class="row"><button class="btn small secondary" data-act="cancelQuickIngredient">Cancel</button><button class="btn small" data-act="addQuickIngredient">Add to mixture</button></div></div>';
   }
   var info=draftMixtureInfo();
-  content.innerHTML='<div class="modal-head"><div style="flex:1"><h2 id="mixtureModalTitle">'+(mixtureReadOnly?'Mixture details':(getById(state.ingredients,mixtureDraft.id)?'Edit combined cost':'Add combined cost'))+'</h2><p class="hint">Use the actual finished amount after mixing; this captures expansion, waste, and losses.</p></div><button class="modal-close" data-act="closeMixtureModal" aria-label="Close mixture dialog">x</button></div>'+
+  var modalTitle=mixtureReadOnly?'Mixture details':(activeMixtureDraftId?'Continue combined-cost draft':(mixtureSourceId?'Edit combined cost':'Add combined cost'));
+  var closeLabel=mixtureReadOnly?'Close mixture dialog':'Save draft and close mixture dialog';
+  content.innerHTML='<div class="modal-head"><div style="flex:1"><h2 id="mixtureModalTitle">'+modalTitle+'</h2><p class="hint">Use the actual finished amount after mixing; this captures expansion, waste, and losses.</p></div><button class="modal-close" data-act="closeMixtureModal" aria-label="'+closeLabel+'">x</button></div>'+
     '<div class="grid2"><div><label class="fld" for="mixtureName">Mixture name</label><input id="mixtureName" data-mix-root="name" value="'+escapeHtml(mixtureDraft.name)+'" placeholder="e.g. Sea Salt Whipped Cream"'+disabled+'></div><div><label class="fld">Category</label><select data-mix-root="categoryId" aria-label="Mixture category"'+disabled+'>'+categoryOptions(mixtureDraft.categoryId)+'</select></div></div>'+
     '<h2 style="font-size:15px;margin-top:16px">Items used in one batch</h2><div class="component-grid head"><span>Ingredient or mixture</span><span>Quantity</span><span>Unit</span><span style="text-align:right">Cost</span><span></span></div>'+
     (rows||'<p class="empty">No items added yet.</p>')+
     (mixtureReadOnly?'':'<div class="row" style="margin-top:8px"><button class="btn small secondary" data-act="addMixtureComponent">+ Add item</button><button class="btn small secondary" data-act="beginQuickIngredient">+ New purchased ingredient</button></div>')+quick+
     '<div class="grid2" style="margin-top:16px"><div><label class="fld">Actual finished batch yield</label><input data-mix-root="batchYield" aria-label="Actual finished batch yield" type="number" min="0" step="any" value="'+escapeHtml(mixtureDraft.batchYield)+'"'+disabled+'></div><div><label class="fld">Finished yield unit</label><select data-mix-root="unit" aria-label="Finished yield unit"'+disabled+'>'+optionList(unitOptions,mixtureDraft.unit)+'</select></div></div>'+
     '<div class="mixture-totals"><div class="metric"><div class="lbl">Total batch cost</div><div class="val" id="mixtureBatchCost">'+peso(info.batchCost)+'</div></div><div class="metric"><div class="lbl">Cost per '+ingredientBaseUnit(mixtureDraft)+'</div><div class="val" id="mixtureUnitCost">'+peso(info.costPerBase)+'</div></div></div>'+
+    '<div class="draft-saved-note" aria-live="polite">'+escapeHtml(mixtureDraftNotice)+'</div>'+
     '<div id="mixtureError" class="modal-error" aria-live="assertive">'+(!info.valid&&mixtureDraft.components.length?escapeHtml(info.error):'')+'</div>'+
-    '<div class="modal-actions">'+(mixtureReadOnly?'<button id="closeMixtureButton" class="btn secondary" data-act="closeMixtureModal">Close</button><button class="btn" data-act="enableMixtureEdit">Edit mixture</button>':'<button class="btn secondary" data-act="closeMixtureModal">Cancel</button><button class="btn" data-act="saveMixture">Save combined cost</button>')+'</div>';
+    '<div class="modal-actions">'+(mixtureReadOnly?'<button id="closeMixtureButton" class="btn secondary" data-act="closeMixtureModal">Close</button><button class="btn" data-act="enableMixtureEdit">Edit mixture</button>':'<button class="btn secondary" data-act="discardMixtureChanges">Discard changes</button><button class="btn secondary" data-act="saveMixtureDraft">Save draft</button><button class="btn" data-act="saveMixture">Save combined cost</button>')+'</div>';
 }
 function refreshMixtureTotals(){
   if(!mixtureDraft) return;
@@ -1172,21 +1415,27 @@ function mixtureValidationError(){
   var info=draftMixtureInfo(); return info.valid?'':info.error;
 }
 function saveMixture(){
-  consumePendingRemoteForCommit();
-  if(mixtureDraft.categoryId&&!getById(state.ingredientCategories,mixtureDraft.categoryId))mixtureDraft.categoryId='';
-  (mixtureDraft.pendingIngredients||[]).forEach(function(x){if(x.categoryId&&!getById(state.ingredientCategories,x.categoryId))x.categoryId='';});
-  if(mixtureOriginalExisting&&!getById(state.ingredients,mixtureDraft.id)){
-    var missingBox=document.getElementById('mixtureError'); if(missingBox)missingBox.textContent='This mixture was deleted on another device. Close this window and try again.'; return false;
+  consumePendingRemoteForCommit(false); sanitizeMixtureSessionCategories();
+  var conflict=currentMixtureDraftConflict();if(conflict){setMixtureError(conflict+' Nothing was overwritten. Click Save draft to keep your work as a separate copy, then review both drafts.');return false;}
+  if(quickIngredientDraft){setMixtureError('Add or cancel the new purchased ingredient before saving the combined cost. You can save this whole form as a draft now.');return false;}
+  var currentSource=mixtureSourceId?getById(state.ingredients,mixtureSourceId):null;
+  if(mixtureSourceId&&!currentSource){
+    if(!confirm('The original mixture was deleted on another device. Save this draft as a new mixture instead?')){setMixtureError('The original mixture is gone. Your draft is still safe.');return false;}
+    mixtureDraft.id=uid();mixtureSourceId='';mixtureSourceSnapshot=null;mixtureOriginalExisting=false;
+  }else if(currentSource&&mixtureSourceSnapshot&&!sameDataValue(currentSource,mixtureSourceSnapshot)){
+    if(!confirm('This mixture changed on another device after this draft was started. Overwrite the latest saved mixture with this draft?')){setMixtureError('Nothing was overwritten. Your draft is still safe. Reopen it after reviewing the latest mixture.');return false;}
   }
+  if(!mixtureSourceId&&getById(state.ingredients,mixtureDraft.id))mixtureDraft.id=uid();
   var error=mixtureValidationError(), box=document.getElementById('mixtureError'); if(error){if(box)box.textContent=error;return false;}
   var referenced={}; mixtureDraft.components.forEach(function(c){referenced[c.ingredientId]=true;});
-  (mixtureDraft.pendingIngredients||[]).forEach(function(x){if(referenced[x.id])state.ingredients.push(Object.assign({},x));});
+  (mixtureDraft.pendingIngredients||[]).forEach(function(x){if(referenced[x.id]&&!getById(state.ingredients,x.id))state.ingredients.push(Object.assign({},x));});
   var saved=Object.assign({},mixtureDraft); delete saved.pendingIngredients; saved.name=saved.name.trim();
   saved.components=(saved.components||[]).map(function(c){return {ingredientId:c.ingredientId,qty:c.qty,unit:c.unit};});
   var idx=state.ingredients.findIndex(function(x){return x.id===saved.id;}); if(idx>=0)state.ingredients[idx]=saved;else state.ingredients.push(saved);
+  if(activeMixtureDraftId)state.mixtureDrafts=state.mixtureDrafts.filter(function(d){return d.id!==activeMixtureDraftId;});
   ingredientUi.category=saved.categoryId||'uncategorized'; ingredientUi.search=''; logChanges(); save(); closeMixtureModal(true); renderAll(); focusSoon('[data-act="openMixtureModal"]'); return true;
 }
-function renderAll(){ renderIngredients(); renderPackaging(); renderRecipes(); renderProducts(); }
+function renderAll(){ renderIngredients(); renderDraftButton(); renderPackaging(); renderRecipes(); renderProducts(); }
 
 /* ---------- events ---------- */
 document.querySelector('nav').addEventListener('click', function(e){
@@ -1274,7 +1523,13 @@ document.body.addEventListener('click', function(e){
     case 'openMixtureModal': openMixtureModal('',false); return;
     case 'editMixture': openMixtureModal(id,false); return;
     case 'viewMixture': openMixtureModal(id,true); return;
-    case 'closeMixtureModal': closeMixtureModal(false); return;
+    case 'closeMixtureModal': requestCloseMixtureModal(); return;
+    case 'discardMixtureChanges': discardMixtureChanges(); return;
+    case 'saveMixtureDraft': saveCurrentMixtureDraft(true,false); return;
+    case 'openDraftsModal': openDraftsModal(); return;
+    case 'closeDraftsModal': closeDraftsModal(false,false); return;
+    case 'resumeMixtureDraft': resumeMixtureDraft(id); return;
+    case 'deleteMixtureDraft': deleteMixtureDraft(id); return;
     case 'enableMixtureEdit': mixtureReadOnly=false; renderMixtureModal(); focusSoon('#mixtureName'); return;
     case 'addMixtureComponent': mixtureDraft.components.push({ingredientId:'',qty:'',unit:'g'}); renderMixtureModal(); focusLastMixtureField('ingredientId'); return;
     case 'removeMixtureComponent': {var nextIndex=Math.max(0,parseInt(idx,10)-1);mixtureDraft.components.splice(parseInt(idx,10),1);renderMixtureModal();focusSoon(mixtureDraft.components.length?'#mixtureModal [data-mix-index="'+Math.min(nextIndex,mixtureDraft.components.length-1)+'"] [data-mix-field="ingredientId"]':'#mixtureModal [data-act="addMixtureComponent"]');return;}
@@ -1329,7 +1584,8 @@ document.body.addEventListener('click', function(e){
 
 document.body.addEventListener('click', function(e){
   if(e.target&&e.target.id==='categoryModal') closeCategoryModal(false);
-  if(e.target&&e.target.id==='mixtureModal') closeMixtureModal(false);
+  if(e.target&&e.target.id==='mixtureModal') requestCloseMixtureModal();
+  if(e.target&&e.target.id==='draftsModal') closeDraftsModal(false,false);
 });
 
 /* reload from cloud when returning to the tab (picks up partner's edits) */
@@ -1348,11 +1604,13 @@ document.body.addEventListener('focusout', function(){
 /* press Enter in the login form to submit it */
 document.body.addEventListener('keydown', function(e){
   if(e.key==='Escape'){
-    if(mixtureModalOpen){e.preventDefault();closeMixtureModal(false);return;}
+    if(draftsModalOpen){e.preventDefault();closeDraftsModal(false,false);return;}
+    if(mixtureModalOpen){e.preventDefault();requestCloseMixtureModal();return;}
     if(categoryModalOpen){e.preventDefault();closeCategoryModal(false);return;}
   }
-  if(e.key==='Tab'&&(mixtureModalOpen||categoryModalOpen)){
-    var modal=document.querySelector((mixtureModalOpen?'#mixtureModal':'#categoryModal')+' .modal');
+  if(e.key==='Tab'&&(draftsModalOpen||mixtureModalOpen||categoryModalOpen)){
+    var selector=draftsModalOpen?'#draftsModal':(mixtureModalOpen?'#mixtureModal':'#categoryModal');
+    var modal=document.querySelector(selector+' .modal');
     var focusable=modal?Array.from(modal.querySelectorAll('button:not([disabled]),input:not([disabled]),select:not([disabled])')):[];
     if(focusable.length){var first=focusable[0],last=focusable[focusable.length-1];if(!modal.contains(document.activeElement)){e.preventDefault();(e.shiftKey?last:first).focus();}else if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}}
   }
@@ -1395,7 +1653,7 @@ function exampleData(){
     {id:uid(),ingredientId:sugar.id,qty:150,unit:'g'},{id:uid(),ingredientId:chips.id,qty:100,unit:'g'}]};
   var product={id:uid(),name:'Choco Chip Scoopie',recipeId:recipe.id,targetMargin:60,price:'',packLines:[
     {id:uid(),packagingId:cup.id,qty:1},{id:uid(),packagingId:sticker.id,qty:1},{id:uid(),packagingId:spoon.id,qty:1}]};
-  var s={schemaVersion:2,ingredientCategories:[baking],ingredients:[flour,butter,sugar,chips],packaging:[cup,sticker,spoon],recipes:[recipe],products:[product]};
+  var s={schemaVersion:3,ingredientCategories:[baking],ingredients:[flour,butter,sugar,chips],mixtureDrafts:[],packaging:[cup,sticker,spoon],recipes:[recipe],products:[product]};
   state=s; var c=productCost(product); var sg=suggestedPrice(c,60); product.price=isFinite(sg)?ceilTo(sg,5):'';
   return s;
 }
