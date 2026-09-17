@@ -2,16 +2,63 @@
 <meta charset="utf-8">
 <title>Scoopies costing tests</title>
 <pre id="result">RUNNING</pre>
-<iframe id="app" src="../index.html?test=1" hidden></iframe>
+<iframe id="app" src="../index.html?test=1" style="position:fixed;left:-10000px;top:0;width:1200px;height:900px;border:0"></iframe>
 <script>
 const output = document.getElementById('result');
 const tests = [];
 function test(name, run) { tests.push({ name, run }); }
 function closeTo(actual, expected, epsilon = 1e-10) {
+  if (!Number.isFinite(actual) || !Number.isFinite(expected)) {
+    throw new Error(`expected finite ${expected}, received ${actual}`);
+  }
   if (Math.abs(actual - expected) > epsilon) throw new Error(`expected ${expected}, received ${actual}`);
+}
+function assert(condition, message) {
+  if (!condition) throw new Error(message || 'assertion failed');
 }
 document.getElementById('app').addEventListener('load', async () => {
   const app = document.getElementById('app').contentWindow;
+  function normalizedState(overrides = {}) {
+    const source = Object.assign({
+      ingredientCategories: [], ingredients: [], packaging: [], recipes: [], products: []
+    }, overrides);
+    return app.normalizeState(source);
+  }
+  function installState(overrides = {}) {
+    if (app.saveTimer) app.clearTimeout(app.saveTimer);
+    app.state = normalizedState(overrides);
+    app.cloud.connected = false;
+    app.pendingSave = false;
+    app.pendingRemote = null;
+    app.saveTimer = null;
+    app.localDirty = false;
+    app.syncedState = app.snapshot(app.state);
+    if (app.ingredientUi) {
+      app.ingredientUi.search = '';
+      app.ingredientUi.category = 'all';
+    }
+    const search = app.document.getElementById('ingredientSearch');
+    if (search) search.value = '';
+    app.renderAll();
+    return app.state;
+  }
+  function click(element) {
+    assert(element, 'expected clickable element was not rendered');
+    element.dispatchEvent(new app.MouseEvent('click', { bubbles: true }));
+  }
+  function change(element, value) {
+    assert(element, 'expected editable field was not rendered');
+    element.value = value;
+    element.dispatchEvent(new app.Event('change', { bubbles: true }));
+  }
+  function input(element, value) {
+    assert(element, 'expected search field was not rendered');
+    element.value = value;
+    element.dispatchEvent(new app.Event('input', { bubbles: true }));
+  }
+  function storedState() {
+    return JSON.parse(app.localStorage.getItem(app.KEY));
+  }
   test('test mode isolates storage and disables every cloud connection', () => {
     if (!app.TEST_MODE || app.KEY !== 'scoopies_costing_test') throw new Error('test storage is not isolated');
     if (app.cloud.client || app.cloud.connected || app.session) throw new Error('cloud access is enabled in test mode');
@@ -125,6 +172,614 @@ document.getElementById('app').addEventListener('load', async () => {
     recipe.value = '';
     recipe.dispatchEvent(new app.Event('change', { bubbles: true }));
     if (app.state.products[0].name !== 'Coconut Matcha Cloud 22 oz') throw new Error('custom product name was cleared with recipe');
+  });
+  test('legacy state normalizes without changing existing ingredient costs', () => {
+    const state = app.normalizeState({
+      ingredients: [{ id: 'legacy-milk', name: 'Milk', qty: 1000, unit: 'ml', price: 108 }],
+      packaging: [], recipes: [], products: []
+    });
+    assert(Array.isArray(state.ingredientCategories), 'legacy state did not gain ingredientCategories');
+    assert(state.ingredients[0].kind === 'purchased', 'legacy ingredient did not default to purchased');
+    assert((state.ingredients[0].categoryId || '') === '', 'legacy ingredient should start uncategorized');
+    app.state = state;
+    closeTo(app.ingCostPerBase(state.ingredients[0]), 0.108);
+    closeTo(app.lineCost({ ingredientId: 'legacy-milk', qty: 120, unit: 'ml' }), 12.96);
+  });
+  test('normalization preserves categories, mixture definitions, and unrelated app data', () => {
+    const original = {
+      ingredientCategories: [{ id: 'prepared', name: 'Prepared mixtures' }],
+      ingredients: [
+        { id: 'cream', name: 'Cream', kind: 'purchased', categoryId: '', purchaseQty: 1, amountPerItem: 1, unit: 'l', price: 500 },
+        { id: 'whip', name: 'Sea Salt Whip', kind: 'mixture', categoryId: 'prepared', batchYield: 700, unit: 'ml', components: [{ ingredientId: 'cream', qty: 500, unit: 'ml' }] }
+      ],
+      packaging: [{ id: 'cup', name: 'Cup', qty: 50, price: 100 }],
+      recipes: [{ id: 'latte', name: 'Matcha Latte', yield: 1, lines: [{ ingredientId: 'whip', qty: 40, unit: 'ml' }] }],
+      products: [{ id: 'latte-product', name: 'Matcha Latte 12oz', recipeId: 'latte', packLines: [{ packagingId: 'cup', qty: 1 }], targetMargin: 53, price: 170 }]
+    };
+    const state = app.normalizeState(original);
+    assert(state.ingredientCategories.length === 1 && state.ingredientCategories[0].name === 'Prepared mixtures', 'category was not preserved');
+    assert(app.isMixture(state.ingredients[1]), 'mixture kind was not preserved');
+    assert(state.ingredients[1].components.length === 1, 'mixture components were not preserved');
+    assert(state.packaging.length === 1 && state.recipes.length === 1 && state.products.length === 1, 'normalization dropped existing business data');
+  });
+  test('prepared mixture computes exact batch cost and cost per output unit', () => {
+    const state = installState({
+      ingredients: [
+        { id: 'cream', name: 'Whipping cream', kind: 'purchased', purchaseQty: 1, amountPerItem: 1, unit: 'l', price: 500 },
+        { id: 'condensed', name: 'Condensed milk', kind: 'purchased', purchaseQty: 1, amountPerItem: 545, unit: 'ml', price: 88 },
+        { id: 'salt', name: 'Sea salt', kind: 'purchased', purchaseQty: 1, amountPerItem: 225, unit: 'g', price: 99 },
+        { id: 'whip', name: 'Sea Salt Whipped Cream', kind: 'mixture', batchYield: 700, unit: 'ml', components: [
+          { ingredientId: 'cream', qty: 500, unit: 'ml' },
+          { ingredientId: 'condensed', qty: 100, unit: 'ml' },
+          { ingredientId: 'salt', qty: 2, unit: 'g' }
+        ] }
+      ]
+    });
+    const mixture = app.getById(state.ingredients, 'whip');
+    const expectedBatchCost = 250 + (88 / 545 * 100) + (99 / 225 * 2);
+    closeTo(app.mixtureBatchCost(mixture), expectedBatchCost);
+    closeTo(app.ingredientTotalBase(mixture), 700);
+    closeTo(app.ingCostPerBase(mixture), expectedBatchCost / 700);
+  });
+  test('mixture yields in liters and kilograms convert to base units', () => {
+    let state = installState({ ingredients: [
+      { id: 'liquid', name: 'Liquid input', kind: 'purchased', purchaseQty: 1, amountPerItem: 1, unit: 'l', price: 600 },
+      { id: 'liquid-mix', name: 'Liquid mix', kind: 'mixture', batchYield: 1.5, unit: 'l', components: [{ ingredientId: 'liquid', qty: 1, unit: 'l' }] }
+    ] });
+    closeTo(app.ingredientTotalBase(app.getById(state.ingredients, 'liquid-mix')), 1500);
+    closeTo(app.ingCostPerBase(app.getById(state.ingredients, 'liquid-mix')), 0.4);
+
+    state = installState({ ingredients: [
+      { id: 'powder', name: 'Powder', kind: 'purchased', purchaseQty: 1, amountPerItem: 2, unit: 'kg', price: 800 },
+      { id: 'powder-mix', name: 'Powder mix', kind: 'mixture', batchYield: 0.5, unit: 'kg', components: [{ ingredientId: 'powder', qty: 250, unit: 'g' }] }
+    ] });
+    closeTo(app.ingredientTotalBase(app.getById(state.ingredients, 'powder-mix')), 500);
+    closeTo(app.ingCostPerBase(app.getById(state.ingredients, 'powder-mix')), 0.2);
+  });
+  test('nested mixtures calculate from current component costs', () => {
+    const state = installState({ ingredients: [
+      { id: 'cream', name: 'Cream', kind: 'purchased', purchaseQty: 1, amountPerItem: 1, unit: 'l', price: 500 },
+      { id: 'whip', name: 'Whip', kind: 'mixture', batchYield: 1000, unit: 'ml', components: [{ ingredientId: 'cream', qty: 800, unit: 'ml' }] },
+      { id: 'salt-whip', name: 'Salt Whip', kind: 'mixture', batchYield: 250, unit: 'ml', components: [
+        { ingredientId: 'whip', qty: 200, unit: 'ml' },
+        { ingredientId: 'cream', qty: 50, unit: 'ml' }
+      ] }
+    ] });
+    const whip = app.getById(state.ingredients, 'whip');
+    const saltWhip = app.getById(state.ingredients, 'salt-whip');
+    closeTo(app.mixtureBatchCost(whip), 400);
+    closeTo(app.ingCostPerBase(whip), 0.4);
+    closeTo(app.mixtureBatchCost(saltWhip), 105);
+    closeTo(app.ingCostPerBase(saltWhip), 0.42);
+  });
+  test('supplier-price changes propagate through mixture, recipe, and product totals', () => {
+    const state = installState({
+      ingredients: [
+        { id: 'cream', name: 'Cream', kind: 'purchased', purchaseQty: 1, amountPerItem: 1, unit: 'l', price: 500 },
+        { id: 'whip', name: 'Whip', kind: 'mixture', batchYield: 1000, unit: 'ml', components: [{ ingredientId: 'cream', qty: 800, unit: 'ml' }] }
+      ],
+      packaging: [{ id: 'cup', name: 'Cup', qty: 50, price: 100 }],
+      recipes: [{ id: 'latte', name: 'Latte', yield: 2, lines: [{ ingredientId: 'whip', qty: 100, unit: 'ml' }] }],
+      products: [{ id: 'drink', name: 'Latte 12oz', recipeId: 'latte', packLines: [{ packagingId: 'cup', qty: 1 }], targetMargin: 50, price: 100 }]
+    });
+    const line = state.recipes[0].lines[0];
+    closeTo(app.lineCost(line), 40);
+    closeTo(app.recipeTotal(state.recipes[0]), 40);
+    closeTo(app.recipePerServing(state.recipes[0]), 20);
+    closeTo(app.productCost(state.products[0]), 22);
+
+    app.getById(state.ingredients, 'cream').price = 600;
+    closeTo(app.lineCost(line), 48);
+    closeTo(app.recipePerServing(state.recipes[0]), 24);
+    closeTo(app.productCost(state.products[0]), 26);
+  });
+  test('an incomplete purchased price invalidates every dependent cost', () => {
+    const state = installState({
+      ingredients: [{ id: 'milk', name: 'Milk', kind: 'purchased', purchaseQty: 1, amountPerItem: 1, unit: 'l', price: '' }],
+      recipes: [{ id: 'latte', name: 'Latte', yield: 1, lines: [{ ingredientId: 'milk', qty: 120, unit: 'ml' }] }],
+      products: [{ id: 'drink', name: 'Latte 12oz', recipeId: 'latte', packLines: [], targetMargin: 50, price: 100 }]
+    });
+    const ingredient = state.ingredients[0];
+    assert(!app.ingredientCostInfo(ingredient).valid, 'blank supplier price was considered valid');
+    assert(Number.isNaN(app.ingCostPerBase(ingredient)), 'blank supplier price was silently treated as zero per unit');
+    assert(Number.isNaN(app.lineCost(state.recipes[0].lines[0])), 'recipe line hid an incomplete ingredient price');
+    assert(Number.isNaN(app.recipeTotal(state.recipes[0])), 'recipe total hid an incomplete ingredient price');
+    assert(Number.isNaN(app.productCost(state.products[0])), 'product total hid an incomplete ingredient price');
+  });
+  test('blank recipe quantity or yield cannot silently underprice a product', () => {
+    const state = installState({
+      ingredients: [{ id: 'milk', name: 'Milk', kind: 'purchased', purchaseQty: 1, amountPerItem: 1, unit: 'l', price: 120 }],
+      recipes: [{ id: 'latte', name: 'Latte', yield: 1, lines: [{ ingredientId: 'milk', qty: '', unit: 'ml' }] }],
+      products: [{ id: 'drink', name: 'Latte', recipeId: 'latte', packLines: [], targetMargin: 50, price: 100 }]
+    });
+    assert(Number.isNaN(app.lineCost(state.recipes[0].lines[0])), 'selected ingredient with blank quantity counted as zero');
+    assert(Number.isNaN(app.productCost(state.products[0])), 'blank recipe quantity produced a product cost');
+    state.recipes[0].lines[0].qty = 120;
+    state.recipes[0].yield = 0;
+    assert(Number.isNaN(app.recipePerServing(state.recipes[0])), 'zero recipe yield counted as zero cost per serving');
+    assert(Number.isNaN(app.productCost(state.products[0])), 'zero recipe yield produced a product cost');
+  });
+  test('incomplete or missing packaging invalidates product pricing', () => {
+    const state = installState({
+      ingredients: [{ id: 'milk', name: 'Milk', kind: 'purchased', purchaseQty: 1, amountPerItem: 1, unit: 'l', price: 120 }],
+      packaging: [{ id: 'cup', name: 'Cup', qty: '', price: 100 }],
+      recipes: [{ id: 'latte', name: 'Latte', yield: 1, lines: [{ ingredientId: 'milk', qty: 120, unit: 'ml' }] }],
+      products: [{ id: 'drink', name: 'Latte', recipeId: 'latte', packLines: [{ packagingId: 'cup', qty: 1 }], targetMargin: 50, price: 100 }]
+    });
+    assert(Number.isNaN(app.pkgCostPerPiece(state.packaging[0])), 'blank pack quantity counted as free packaging');
+    assert(Number.isNaN(app.productCost(state.products[0])), 'incomplete packaging produced a product cost');
+    state.packaging = [];
+    assert(Number.isNaN(app.productCost(state.products[0])), 'missing referenced packaging counted as zero');
+    state.products[0].recipeId = 'missing';
+    assert(Number.isNaN(app.productCost(state.products[0])), 'missing referenced recipe counted as zero');
+  });
+  test('invalid circular mixture data is rejected without recursing forever', () => {
+    const state = installState({ ingredients: [
+      { id: 'a', name: 'Mixture A', kind: 'mixture', batchYield: 100, unit: 'ml', components: [{ ingredientId: 'b', qty: 100, unit: 'ml' }] },
+      { id: 'b', name: 'Mixture B', kind: 'mixture', batchYield: 100, unit: 'ml', components: [{ ingredientId: 'a', qty: 100, unit: 'ml' }] }
+    ] });
+    const result = app.ingCostPerBase(app.getById(state.ingredients, 'a'));
+    assert(Number.isNaN(result), 'circular mixture was not marked invalid');
+  });
+  test('zero-yield mixtures are marked invalid instead of silently costing zero', () => {
+    const state = installState({ ingredients: [
+      { id: 'cream', name: 'Cream', kind: 'purchased', purchaseQty: 1, amountPerItem: 1, unit: 'l', price: 500 },
+      { id: 'bad-mixture', name: 'Bad mixture', kind: 'mixture', batchYield: 0, unit: 'ml', components: [{ ingredientId: 'cream', qty: 100, unit: 'ml' }] }
+    ] });
+    const mixture = app.getById(state.ingredients, 'bad-mixture');
+    closeTo(app.ingredientTotalBase(mixture), 0);
+    assert(Number.isNaN(app.ingCostPerBase(mixture)), 'zero-yield mixture was silently costed as zero');
+  });
+  test('ingredient usage reports both mixture and recipe dependencies', () => {
+    installState({
+      ingredients: [
+        { id: 'cream', name: 'Cream', kind: 'purchased', purchaseQty: 1, amountPerItem: 1, unit: 'l', price: 500 },
+        { id: 'whip', name: 'Sea Salt Whip', kind: 'mixture', batchYield: 700, unit: 'ml', components: [{ ingredientId: 'cream', qty: 500, unit: 'ml' }] },
+        { id: 'cloud', name: 'Matcha Cloud', kind: 'mixture', batchYield: 500, unit: 'ml', components: [{ ingredientId: 'whip', qty: 200, unit: 'ml' }] }
+      ],
+      recipes: [{ id: 'latte', name: 'Matcha Latte', yield: 1, lines: [{ ingredientId: 'whip', qty: 40, unit: 'ml' }] }]
+    });
+    const creamUsage = JSON.stringify(app.ingredientUsage('cream'));
+    const whipUsage = JSON.stringify(app.ingredientUsage('whip'));
+    assert(/Sea Salt Whip|whip/i.test(creamUsage), 'component usage did not mention its parent mixture');
+    assert(/Matcha Cloud|cloud/i.test(whipUsage), 'nested-mixture usage was not reported');
+    assert(/Matcha Latte|latte/i.test(whipUsage), 'recipe usage was not reported');
+  });
+  test('referenced purchased ingredients and mixtures cannot be deleted', () => {
+    installState({
+      ingredients: [
+        { id: 'cream', name: 'Cream', kind: 'purchased', purchaseQty: 1, amountPerItem: 1, unit: 'l', price: 500 },
+        { id: 'whip', name: 'Sea Salt Whip', kind: 'mixture', batchYield: 700, unit: 'ml', components: [{ ingredientId: 'cream', qty: 500, unit: 'ml' }] }
+      ],
+      recipes: [{ id: 'latte', name: 'Matcha Latte', yield: 1, lines: [{ ingredientId: 'whip', qty: 40, unit: 'ml' }] }]
+    });
+    const oldAlert = app.alert;
+    const oldConfirm = app.confirm;
+    const notices = [];
+    app.alert = message => notices.push(String(message));
+    app.confirm = () => true;
+    try {
+      click(app.document.querySelector('[data-act=delIngredient][data-id=cream]'));
+      assert(app.getById(app.state.ingredients, 'cream'), 'component was deleted while a mixture still used it');
+      click(app.document.querySelector('[data-act=delIngredient][data-id=whip]'));
+      assert(app.getById(app.state.ingredients, 'whip'), 'mixture was deleted while a recipe still used it');
+      assert(notices.length >= 2, 'blocked deletions did not explain why they were unsafe');
+    } finally {
+      app.alert = oldAlert;
+      app.confirm = oldConfirm;
+    }
+  });
+  test('recipes and packaging referenced by a product cannot be deleted', () => {
+    installState({
+      packaging: [{ id: 'cup', name: 'Cup', qty: 50, price: 100 }],
+      recipes: [{ id: 'latte', name: 'Latte', yield: 1, lines: [] }],
+      products: [{ id: 'drink', name: 'Latte 12oz', recipeId: 'latte', packLines: [{ packagingId: 'cup', qty: 1 }], targetMargin: 50, price: 100 }]
+    });
+    const oldAlert = app.alert;
+    const oldConfirm = app.confirm;
+    const notices = [];
+    app.alert = message => notices.push(String(message));
+    app.confirm = () => true;
+    try {
+      click(app.document.querySelector('[data-act=delRecipe][data-id=latte]'));
+      click(app.document.querySelector('[data-act=delPackaging][data-id=cup]'));
+      assert(app.getById(app.state.recipes, 'latte'), 'referenced recipe was deleted');
+      assert(app.getById(app.state.packaging, 'cup'), 'referenced packaging was deleted');
+      assert(notices.length === 2, 'blocked dependency deletions were not explained');
+    } finally {
+      app.alert = oldAlert;
+      app.confirm = oldConfirm;
+    }
+  });
+  test('an unreferenced ingredient can still be deleted', () => {
+    installState({ ingredients: [
+      { id: 'unused', name: 'Unused', kind: 'purchased', purchaseQty: 1, amountPerItem: 1, unit: 'kg', price: 100 }
+    ] });
+    const oldConfirm = app.confirm;
+    app.confirm = () => true;
+    try {
+      click(app.document.querySelector('[data-act=delIngredient][data-id=unused]'));
+      assert(!app.getById(app.state.ingredients, 'unused'), 'unreferenced ingredient was not deleted');
+    } finally {
+      app.confirm = oldConfirm;
+    }
+  });
+  test('a realtime update cannot overwrite a local edit waiting to save', () => {
+    const local = installState({
+      ingredientCategories: [{ id: 'prepared', name: 'Prepared mixtures' }],
+      ingredients: [{ id: 'whip', name: 'Sea Salt Whip', kind: 'mixture', categoryId: 'prepared', batchYield: 700, unit: 'ml', components: [] }]
+    });
+    const before = JSON.stringify(local);
+    const olderRemote = normalizedState({
+      ingredients: [{ id: 'cream', name: 'Old cream data', kind: 'purchased', purchaseQty: 1, amountPerItem: 1, unit: 'l', price: 400 }]
+    });
+    app.pendingSave = true;
+    try {
+      app.maybeApplyRemote(olderRemote);
+      assert(JSON.stringify(app.state) === before, 'remote data replaced a local edit during the save debounce');
+      assert(app.pendingRemote && app.pendingRemote.ingredients[0].name === 'Old cream data', 'remote update was not safely queued');
+    } finally {
+      app.pendingSave = false;
+      app.pendingRemote = null;
+    }
+  });
+  test('an older cloud request cannot unlock a newer pending edit', async () => {
+    installState({ ingredients: [
+      { id: 'milk', name: 'Milk', kind: 'purchased', purchaseQty: 1, amountPerItem: 1, unit: 'l', price: 120 }
+    ] });
+    const originalCloudSave = app.cloudSave;
+    const originalSetTimeout = app.setTimeout;
+    const originalClearTimeout = app.clearTimeout;
+    const originalSession = app.session;
+    const originalConnected = app.cloud.connected;
+    const timers = [];
+    const requests = [];
+    app.cloud.connected = true;
+    app.session = { user: { id: 'test-user' } };
+    app.setTimeout = fn => { timers.push(fn); return timers.length; };
+    app.clearTimeout = () => {};
+    app.cloudSave = payload => new Promise(resolve => requests.push({ payload, resolve }));
+    try {
+      app.state.ingredients[0].name = 'First edit';
+      app.save();
+      timers.shift()();
+      app.state.ingredients[0].name = 'Newer edit';
+      app.save();
+      timers.shift()();
+      assert(requests.length === 2, 'two ordered cloud requests were not started');
+      assert(requests[0].payload.ingredients[0].name === 'First edit', 'first request did not use an immutable snapshot');
+      assert(requests[1].payload.ingredients[0].name === 'Newer edit', 'newer request did not include the latest edit');
+
+      requests[0].resolve();
+      await Promise.resolve(); await Promise.resolve();
+      assert(app.pendingSave, 'older request incorrectly marked the newer edit as saved');
+      app.maybeApplyRemote(normalizedState({ ingredients: [
+        { id: 'old', name: 'Older remote data', kind: 'purchased', purchaseQty: 1, amountPerItem: 1, unit: 'l', price: 90 }
+      ] }));
+      assert(app.state.ingredients[0].name === 'Newer edit', 'remote data overwrote the newer pending edit');
+
+      requests[1].resolve();
+      await Promise.resolve(); await Promise.resolve();
+      assert(app.pendingSave && timers.length === 1, 'queued partner data did not schedule a merged save');
+      timers.shift()();
+      assert(requests.length === 3, 'merged retry request was not started');
+      assert(requests[2].payload.ingredients.some(item => item.name === 'Newer edit'), 'merged retry lost the newer local edit');
+      assert(requests[2].payload.ingredients.some(item => item.name === 'Older remote data'), 'merged retry lost the queued remote item');
+      requests[2].resolve();
+      await Promise.resolve(); await Promise.resolve();
+      assert(!app.pendingSave && !app.pendingRemote && !app.localDirty, 'merged retry did not finish the save cleanly');
+    } finally {
+      app.cloudSave = originalCloudSave;
+      app.setTimeout = originalSetTimeout;
+      app.clearTimeout = originalClearTimeout;
+      app.session = originalSession;
+      app.cloud.connected = originalConnected;
+      app.pendingSave = false;
+      app.pendingRemote = null;
+      app.saveTimer = null;
+      app.localDirty = false;
+      app.syncedState = app.snapshot(app.state);
+    }
+  });
+  test('three-way cloud merge preserves unrelated edits from both devices', () => {
+    const base = normalizedState({ ingredients: [
+      { id: 'milk', name: 'Milk', kind: 'purchased', purchaseQty: 1, amountPerItem: 1, unit: 'l', price: 120 },
+      { id: 'matcha', name: 'Matcha', kind: 'purchased', purchaseQty: 1, amountPerItem: 100, unit: 'g', price: 900 }
+    ] });
+    const local = app.snapshot(base);
+    local.ingredients[0].price = 135;
+    const remote = app.snapshot(base);
+    remote.ingredients[1].name = 'Ceremonial Matcha';
+    remote.ingredients.push({ id: 'salt', name: 'Sea Salt', kind: 'purchased', purchaseQty: 1, amountPerItem: 225, unit: 'g', price: 99 });
+    const merged = app.mergeStates(base, local, remote);
+    assert(app.getById(merged.ingredients, 'milk').price === 135, 'merge lost this device\'s supplier-price edit');
+    assert(app.getById(merged.ingredients, 'matcha').name === 'Ceremonial Matcha', 'merge lost the partner\'s ingredient edit');
+    assert(app.getById(merged.ingredients, 'salt'), 'merge lost the partner\'s newly added ingredient');
+  });
+  test('three-way cloud merge preserves concurrent recipe and packaging rows', () => {
+    const base = normalizedState({
+      recipes: [{ id: 'latte', name: 'Latte', yield: 1, lines: [{ id: 'milk-line', ingredientId: 'milk', qty: 100, unit: 'ml' }] }],
+      products: [{ id: 'drink', name: 'Latte', recipeId: 'latte', packLines: [{ id: 'cup-line', packagingId: 'cup', qty: 1 }], targetMargin: 50, price: 100 }]
+    });
+    const local = app.snapshot(base);
+    local.recipes[0].lines[0].qty = 120;
+    local.products[0].packLines[0].qty = 2;
+    const remote = app.snapshot(base);
+    remote.recipes[0].lines.push({ id: 'syrup-line', ingredientId: 'syrup', qty: 10, unit: 'ml' });
+    remote.products[0].packLines.push({ id: 'straw-line', packagingId: 'straw', qty: 1 });
+    const merged = app.mergeStates(base, local, remote);
+    assert(app.getById(merged.recipes[0].lines, 'milk-line').qty === 120, 'merge lost the local recipe-row edit');
+    assert(app.getById(merged.recipes[0].lines, 'syrup-line'), 'merge lost the partner\'s added recipe row');
+    assert(app.getById(merged.products[0].packLines, 'cup-line').qty === 2, 'merge lost the local packaging-row edit');
+    assert(app.getById(merged.products[0].packLines, 'straw-line'), 'merge lost the partner\'s added packaging row');
+  });
+  test('failed cloud save stays dirty and blocks an older remote overwrite', async () => {
+    installState({ ingredients: [
+      { id: 'milk', name: 'Milk', kind: 'purchased', purchaseQty: 1, amountPerItem: 1, unit: 'l', price: 120 }
+    ] });
+    const originalCloudSave = app.cloudSave;
+    const originalSetTimeout = app.setTimeout;
+    const originalClearTimeout = app.clearTimeout;
+    const originalSession = app.session;
+    let timer;
+    app.cloud.connected = true;
+    app.session = { user: { id: 'test-user' } };
+    app.setTimeout = fn => { timer = fn; return 1; };
+    app.clearTimeout = () => {};
+    app.cloudSave = () => Promise.reject(new Error('offline'));
+    try {
+      app.state.ingredients[0].price = 135;
+      app.save();
+      timer();
+      await Promise.resolve(); await Promise.resolve(); await Promise.resolve();
+      assert(app.localDirty && !app.pendingSave, 'failed save was incorrectly marked synced');
+      app.maybeApplyRemote(normalizedState({ ingredients: [
+        { id: 'milk', name: 'Milk', kind: 'purchased', purchaseQty: 1, amountPerItem: 1, unit: 'l', price: 120 }
+      ] }));
+      assert(app.state.ingredients[0].price === 135, 'older cloud state overwrote a locally saved offline edit');
+      assert(app.pendingRemote, 'older cloud state was not retained for a later merge');
+    } finally {
+      app.cloudSave = originalCloudSave;
+      app.setTimeout = originalSetTimeout;
+      app.clearTimeout = originalClearTimeout;
+      app.session = originalSession;
+      app.cloud.connected = false;
+      app.pendingSave = false;
+      app.pendingRemote = null;
+      app.saveTimer = null;
+      app.localDirty = false;
+      app.syncedState = app.snapshot(app.state);
+    }
+  });
+  test('categories and mixture definitions are included in the cloud payload', async () => {
+    installState({
+      ingredientCategories: [{ id: 'prepared', name: 'Prepared mixtures' }],
+      ingredients: [
+        { id: 'cream', name: 'Cream', kind: 'purchased', categoryId: '', purchaseQty: 1, amountPerItem: 1, unit: 'l', price: 500 },
+        { id: 'whip', name: 'Whip', kind: 'mixture', categoryId: 'prepared', batchYield: 700, unit: 'ml', components: [{ ingredientId: 'cream', qty: 500, unit: 'ml' }] }
+      ]
+    });
+    let cloudPayload;
+    app.cloud.client = {
+      from(table) {
+        assert(table === 'scoopies_state', 'wrong cloud table');
+        return { upsert(payload, options) { cloudPayload = { payload, options }; return Promise.resolve({ error: null }); } };
+      }
+    };
+    await app.cloudSave(app.state);
+    const data = cloudPayload.payload.data;
+    assert(data.ingredientCategories[0].name === 'Prepared mixtures', 'category missing from Supabase payload');
+    assert(data.ingredients[1].kind === 'mixture' && data.ingredients[1].components[0].ingredientId === 'cream', 'mixture definition missing from Supabase payload');
+  });
+  test('history diffs identify category and prepared-mixture changes', () => {
+    const before = normalizedState();
+    const after = normalizedState({
+      ingredientCategories: [{ id: 'prepared', name: 'Prepared mixtures' }],
+      ingredients: [{ id: 'whip', name: 'Sea Salt Whip', kind: 'mixture', categoryId: 'prepared', batchYield: 700, unit: 'ml', components: [] }]
+    });
+    const summaries = app.diffStates(before, after).join(' | ');
+    assert(/category/i.test(summaries) && /Prepared mixtures/i.test(summaries), 'category creation was absent from history diff');
+    assert(/mixture/i.test(summaries) && /Sea Salt Whip/i.test(summaries), 'mixture creation was absent from history diff');
+  });
+  test('category modal validates names and persists a new category', () => {
+    installState();
+    app.localStorage.removeItem(app.KEY);
+    click(app.document.querySelector('[data-act=openCategoryModal]'));
+    const modal = app.document.getElementById('categoryModal');
+    const name = app.document.getElementById('categoryName');
+    assert(modal && !modal.hidden, 'Add category did not open its modal');
+
+    click(app.document.querySelector('[data-act=saveCategory]'));
+    assert(app.state.ingredientCategories.length === 0, 'blank category was saved');
+    assert(app.document.getElementById('categoryError').textContent.trim(), 'blank category did not show validation');
+
+    name.value = 'Milk & Cream';
+    click(app.document.querySelector('[data-act=saveCategory]'));
+    assert(app.state.ingredientCategories.length === 1, 'valid category was not added');
+    assert(app.state.ingredientCategories[0].name === 'Milk & Cream', 'category name was not preserved');
+    assert(modal.hidden, 'category modal stayed open after a valid save');
+    assert(storedState().ingredientCategories[0].name === 'Milk & Cream', 'category was not persisted locally');
+
+    click(app.document.querySelector('[data-act=openCategoryModal]'));
+    name.value = '  milk & cream  ';
+    click(app.document.querySelector('[data-act=saveCategory]'));
+    assert(app.state.ingredientCategories.length === 1, 'case-insensitive duplicate category was accepted');
+    assert(!modal.hidden && app.document.getElementById('categoryError').textContent.trim(), 'duplicate category did not show validation');
+    click(app.document.querySelector('[data-act=closeCategoryModal]'));
+  });
+  test('ingredient search is immediate and case-insensitive', () => {
+    installState({ ingredients: [
+      { id: 'oatside', name: 'Oatside', kind: 'purchased', purchaseQty: 1, amountPerItem: 1, unit: 'l', price: 180 },
+      { id: 'matcha', name: 'MOLI MATCHA', kind: 'purchased', purchaseQty: 1, amountPerItem: 135, unit: 'g', price: 1360 },
+      { id: 'salt', name: 'Sea Salt', kind: 'purchased', purchaseQty: 1, amountPerItem: 225, unit: 'g', price: 99 }
+    ] });
+    const search = app.document.getElementById('ingredientSearch');
+    input(search, 'mAtChA');
+    let rows = Array.from(app.document.querySelectorAll('#ingTable [data-entity=ingredient]'));
+    assert(rows.length === 1 && rows[0].dataset.id === 'matcha', 'search did not filter by name case-insensitively');
+    assert(/1/.test(app.document.getElementById('ingredientSearchStatus').textContent), 'search result count was not announced');
+    input(search, '');
+    rows = Array.from(app.document.querySelectorAll('#ingTable [data-entity=ingredient]'));
+    assert(rows.length === 3, 'clearing search did not restore all ingredients');
+  });
+  test('category folders filter ingredients and new ingredients inherit the selected folder', () => {
+    installState({
+      ingredientCategories: [{ id: 'milk', name: 'Milk & Cream' }, { id: 'powders', name: 'Powders' }],
+      ingredients: [
+        { id: 'oatside', name: 'Oatside', kind: 'purchased', categoryId: 'milk', purchaseQty: 1, amountPerItem: 1, unit: 'l', price: 180 },
+        { id: 'matcha', name: 'Matcha', kind: 'purchased', categoryId: 'powders', purchaseQty: 1, amountPerItem: 135, unit: 'g', price: 1360 },
+        { id: 'salt', name: 'Sea Salt', kind: 'purchased', categoryId: '', purchaseQty: 1, amountPerItem: 225, unit: 'g', price: 99 }
+      ]
+    });
+    click(app.document.querySelector('[data-act=setIngredientCategory][data-id=milk]'));
+    let rows = Array.from(app.document.querySelectorAll('#ingTable [data-entity=ingredient]'));
+    assert(rows.length === 1 && rows[0].dataset.id === 'oatside', 'category folder did not filter ingredients');
+
+    click(app.document.querySelector('[data-act=addIngredient]'));
+    const added = app.state.ingredients[app.state.ingredients.length - 1];
+    assert(added.categoryId === 'milk', 'ingredient added inside a folder did not inherit that category');
+  });
+  test('ingredient category dropdown moves an item and persists its assignment', () => {
+    installState({
+      ingredientCategories: [{ id: 'milk', name: 'Milk & Cream' }],
+      ingredients: [{ id: 'oatside', name: 'Oatside', kind: 'purchased', categoryId: '', purchaseQty: 1, amountPerItem: 1, unit: 'l', price: 180 }]
+    });
+    app.localStorage.removeItem(app.KEY);
+    const category = app.document.querySelector('[data-entity=ingredient][data-id=oatside] [data-field=categoryId]');
+    change(category, 'milk');
+    assert(app.state.ingredients[0].categoryId === 'milk', 'ingredient was not moved to selected category');
+    assert(storedState().ingredients[0].categoryId === 'milk', 'ingredient category assignment was not persisted');
+  });
+  test('renaming and deleting a category preserves its ingredients as Uncategorized', () => {
+    installState({
+      ingredientCategories: [{ id: 'milk', name: 'Milk & Cream' }],
+      ingredients: [{ id: 'oatside', name: 'Oatside', kind: 'purchased', categoryId: 'milk', purchaseQty: 1, amountPerItem: 1, unit: 'l', price: 180 }]
+    });
+    click(app.document.querySelector('[data-act=setIngredientCategory][data-id=milk]'));
+    click(app.document.querySelector('[data-act=editCategory][data-id=milk]'));
+    const name = app.document.getElementById('categoryName');
+    assert(name.value === 'Milk & Cream', 'rename modal did not load the category name');
+    name.value = 'Dairy & Alternatives';
+    click(app.document.querySelector('[data-act=saveCategory]'));
+    assert(app.state.ingredientCategories[0].name === 'Dairy & Alternatives', 'category rename was not saved');
+
+    const oldConfirm = app.confirm;
+    app.confirm = () => true;
+    try {
+      click(app.document.querySelector('[data-act=deleteCategory][data-id=milk]'));
+    } finally {
+      app.confirm = oldConfirm;
+    }
+    assert(app.state.ingredientCategories.length === 0, 'category folder was not deleted');
+    assert(app.state.ingredients[0].categoryId === '', 'deleting a folder deleted or stranded its ingredient instead of uncategorizing it');
+    assert(app.state.ingredients[0].name === 'Oatside', 'deleting a category changed its ingredient');
+  });
+  test('combined-cost modal creates and persists an exact prepared mixture', () => {
+    installState({
+      ingredientCategories: [{ id: 'prepared', name: 'Prepared mixtures' }],
+      ingredients: [
+        { id: 'cream', name: 'Whipping cream', kind: 'purchased', purchaseQty: 1, amountPerItem: 1, unit: 'l', price: 500 },
+        { id: 'condensed', name: 'Condensed milk', kind: 'purchased', purchaseQty: 1, amountPerItem: 545, unit: 'ml', price: 88 },
+        { id: 'salt', name: 'Sea salt', kind: 'purchased', purchaseQty: 1, amountPerItem: 225, unit: 'g', price: 99 }
+      ]
+    });
+    app.localStorage.removeItem(app.KEY);
+    click(app.document.querySelector('[data-act=openMixtureModal]'));
+    const modal = app.document.getElementById('mixtureModal');
+    assert(modal && !modal.hidden, 'Add combined cost did not open its modal');
+    input(app.document.getElementById('mixtureName'), 'Sea Salt Whipped Cream');
+    change(app.document.querySelector('[data-mix-root=categoryId]'), 'prepared');
+    function addComponent(ingredientId, qty) {
+      click(app.document.querySelector('[data-act=addMixtureComponent]'));
+      const rows = app.document.querySelectorAll('[data-mix-index]');
+      let row = rows[rows.length - 1];
+      change(row.querySelector('[data-mix-field=ingredientId]'), ingredientId);
+      const updatedRows = app.document.querySelectorAll('[data-mix-index]');
+      row = updatedRows[updatedRows.length - 1];
+      input(row.querySelector('[data-mix-field=qty]'), String(qty));
+    }
+    addComponent('cream', 500);
+    addComponent('condensed', 100);
+    addComponent('salt', 2);
+    input(app.document.querySelector('[data-mix-root=batchYield]'), '700');
+    assert(/267\.03/.test(app.document.getElementById('mixtureBatchCost').textContent), 'live batch total was not calculated');
+    assert(/0\.38/.test(app.document.getElementById('mixtureUnitCost').textContent), 'live unit cost was not calculated');
+    click(app.document.querySelector('[data-act=saveMixture]'));
+    const mixture = app.state.ingredients.find(item => item.name === 'Sea Salt Whipped Cream');
+    assert(mixture && mixture.kind === 'mixture', 'saved combined cost did not become a prepared mixture');
+    assert(mixture.categoryId === 'prepared' && mixture.components.length === 3, 'mixture category or components were not saved');
+    closeTo(app.mixtureBatchCost(mixture), 250 + (88 / 545 * 100) + (99 / 225 * 2));
+    assert(modal.hidden, 'mixture modal stayed open after a valid save');
+    const cached = storedState().ingredients.find(item => item.name === 'Sea Salt Whipped Cream');
+    assert(cached && cached.components.length === 3, 'mixture was not persisted locally');
+  });
+  test('canceling a combined-cost modal discards its draft', () => {
+    installState({ ingredients: [
+      { id: 'cream', name: 'Cream', kind: 'purchased', purchaseQty: 1, amountPerItem: 1, unit: 'l', price: 500 }
+    ] });
+    app.save();
+    const beforeState = JSON.stringify(app.state);
+    const beforeCache = app.localStorage.getItem(app.KEY);
+    click(app.document.querySelector('[data-act=openMixtureModal]'));
+    input(app.document.getElementById('mixtureName'), 'Should Not Save');
+    click(app.document.querySelector('[data-act=addMixtureComponent]'));
+    click(app.document.querySelector('#mixtureModal [data-act=closeMixtureModal]'));
+    assert(JSON.stringify(app.state) === beforeState, 'Cancel changed application data');
+    assert(app.localStorage.getItem(app.KEY) === beforeCache, 'Cancel wrote a mixture draft to local storage');
+  });
+  test('combined-cost rerenders keep keyboard focus in the working row', async () => {
+    installState({ ingredients: [
+      { id: 'cream', name: 'Cream', kind: 'purchased', purchaseQty: 1, amountPerItem: 1, unit: 'l', price: 500 }
+    ] });
+    click(app.document.querySelector('[data-act=openMixtureModal]'));
+    click(app.document.querySelector('#mixtureModal [data-act=addMixtureComponent]'));
+    await new Promise(resolve => app.setTimeout(resolve, 0));
+    let row = app.document.querySelector('#mixtureModal [data-mix-index="0"]');
+    assert(app.document.activeElement === row.querySelector('[data-mix-field=ingredientId]'), 'Add item did not focus the new ingredient selector');
+    change(row.querySelector('[data-mix-field=ingredientId]'), 'cream');
+    await new Promise(resolve => app.setTimeout(resolve, 0));
+    row = app.document.querySelector('#mixtureModal [data-mix-index="0"]');
+    assert(app.document.activeElement === row.querySelector('[data-mix-field=qty]'), 'ingredient selection did not move focus to quantity');
+    click(row.querySelector('[data-act=removeMixtureComponent]'));
+    await new Promise(resolve => app.setTimeout(resolve, 0));
+    assert(app.document.activeElement === app.document.querySelector('#mixtureModal [data-act=addMixtureComponent]'), 'removing the last row did not restore focus to Add item');
+    click(app.document.querySelector('#mixtureModal [data-act=closeMixtureModal]'));
+  });
+  test('new purchased ingredient can be created atomically inside a mixture modal', () => {
+    installState({ ingredientCategories: [{ id: 'prepared', name: 'Prepared mixtures' }] });
+    click(app.document.querySelector('[data-act=openMixtureModal]'));
+    input(app.document.getElementById('mixtureName'), 'Brown Sugar Syrup');
+    change(app.document.querySelector('[data-mix-root=categoryId]'), 'prepared');
+    click(app.document.querySelector('[data-act=beginQuickIngredient]'));
+    input(app.document.querySelector('[data-quick-field=name]'), 'Brown Sugar');
+    input(app.document.querySelector('[data-quick-field=purchaseQty]'), '1');
+    input(app.document.querySelector('[data-quick-field=amountPerItem]'), '1000');
+    input(app.document.querySelector('[data-quick-field=price]'), '80');
+    click(app.document.querySelector('[data-act=addQuickIngredient]'));
+    const component = app.document.querySelector('[data-mix-index]');
+    input(component.querySelector('[data-mix-field=qty]'), '100');
+    input(app.document.querySelector('[data-mix-root=batchYield]'), '500');
+    click(app.document.querySelector('[data-act=saveMixture]'));
+    const sugar = app.state.ingredients.find(item => item.name === 'Brown Sugar');
+    const syrup = app.state.ingredients.find(item => item.name === 'Brown Sugar Syrup');
+    assert(sugar && sugar.kind === 'purchased', 'quick ingredient was not committed with mixture');
+    assert(sugar.categoryId === 'prepared', 'quick ingredient did not inherit the mixture category');
+    assert(syrup && syrup.components[0].ingredientId === sugar.id, 'mixture did not reference its quick ingredient');
+    closeTo(app.mixtureBatchCost(syrup), 8);
+    closeTo(app.ingCostPerBase(syrup), 0.016);
+    const cached = storedState();
+    assert(cached.ingredients.some(item => item.name === 'Brown Sugar'), 'quick ingredient was not persisted');
+    assert(cached.ingredients.some(item => item.name === 'Brown Sugar Syrup'), 'mixture using quick ingredient was not persisted');
+  });
+  test('mixture editor excludes candidates that would create a circular dependency', () => {
+    installState({ ingredients: [
+      { id: 'cream', name: 'Cream', kind: 'purchased', purchaseQty: 1, amountPerItem: 1, unit: 'l', price: 500 },
+      { id: 'a', name: 'Mixture A', kind: 'mixture', batchYield: 100, unit: 'ml', components: [{ ingredientId: 'cream', qty: 100, unit: 'ml' }] },
+      { id: 'b', name: 'Mixture B', kind: 'mixture', batchYield: 100, unit: 'ml', components: [{ ingredientId: 'a', qty: 100, unit: 'ml' }] }
+    ] });
+    click(app.document.querySelector('[data-act=editMixture][data-id=a]'));
+    assert(!app.document.querySelector('#mixtureModal option[value=b]'), 'dependent mixture was offered and could create a cycle');
+    click(app.document.querySelector('#mixtureModal [data-act=closeMixtureModal]'));
   });
   const failures = [];
   for (const current of tests) {

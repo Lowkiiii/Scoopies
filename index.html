@@ -17,7 +17,7 @@
   .hwrap{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
   header h1{margin:0;font-size:20px;letter-spacing:.3px}
   header p{margin:4px 0 0;font-size:13px;opacity:.85}
-  .wrap{max-width:1000px;margin:0 auto;padding:0 14px 60px}
+  .wrap{width:100%;max-width:1000px;min-width:0;margin:0 auto;padding:0 14px 60px}
   nav{display:flex;flex-wrap:wrap;gap:6px;position:sticky;top:0;background:var(--cream);
     padding:10px 0;z-index:5;border-bottom:1px solid var(--line)}
   nav button{flex:1 1 auto;min-width:110px;padding:10px 8px;border:1px solid var(--line);
@@ -25,12 +25,12 @@
   nav button.active{background:var(--brown);color:#fff;border-color:var(--brown)}
   section{display:none;margin-top:16px}
   section.active{display:block}
-  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;max-width:100%;min-width:0;
     padding:14px;margin-bottom:14px;box-shadow:0 1px 2px rgba(0,0,0,.03)}
   h2{font-size:18px;margin:6px 0 2px;color:var(--brown)}
   .hint{font-size:13px;color:var(--muted);margin:0 0 12px}
   table{width:100%;border-collapse:collapse;font-size:14px}
-  .scroll{overflow-x:auto}
+  .scroll{overflow-x:auto;max-width:100%;-webkit-overflow-scrolling:touch}
   th,td{padding:8px 6px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle}
   th{font-size:12px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted)}
   input,select{font:inherit;padding:8px;border:1px solid var(--line);border-radius:8px;
@@ -67,7 +67,7 @@
   .steps{font-size:14px;padding-left:20px;margin:8px 0}
   .steps li{margin:7px 0}
   summary{cursor:pointer;font-weight:600;color:var(--brown)}
-  #authGate{display:flex;position:fixed;inset:0;z-index:50;background:linear-gradient(160deg,#5b3a29,#7a4f37);
+  #authGate{display:flex;position:fixed;inset:0;z-index:120;background:linear-gradient(160deg,#5b3a29,#7a4f37);
     align-items:center;justify-content:center;padding:18px}
   .gatecard{background:#fff;border:1px solid var(--line);border-radius:16px;max-width:380px;width:100%;
     padding:24px;box-shadow:0 12px 40px rgba(0,0,0,.28)}
@@ -76,6 +76,70 @@
   .authmsg{font-size:13px;color:var(--muted);min-height:18px;margin-top:8px}
   .authmsg.bad{color:var(--bad)}
   .offlink{font-size:12px;color:var(--muted);text-decoration:underline}
+  .ingredient-toolbar{display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin:14px 0 10px}
+  .ingredient-search{flex:1 1 260px;min-width:190px}
+  .category-bar{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin:6px 0 10px}
+  .category-chip{border:1px solid var(--line);background:#fff;color:var(--brown);border-radius:999px;
+    padding:7px 11px;cursor:pointer;font:inherit;font-size:13px;font-weight:600}
+  .category-chip.active{background:var(--brown);border-color:var(--brown);color:#fff}
+  .category-tools{display:flex;gap:6px;margin-left:auto}
+  .type-badge{display:inline-block;border-radius:999px;padding:2px 7px;margin-top:4px;font-size:11px;
+    font-weight:700;background:#eef5ff;color:#315b8a;border:1px solid #cfdef0}
+  .type-badge.purchased{background:#f8f3ec;color:var(--brown2);border-color:var(--line)}
+  .ingredient-name-text{font-weight:650;min-width:160px}
+  .mixture-meta{font-size:12px;color:var(--muted);margin-top:3px}
+  .search-status{font-size:12px;color:var(--muted);margin:2px 0 8px;min-height:18px}
+  .modal-backdrop{position:fixed;inset:0;z-index:80;background:rgba(43,32,24,.58);display:flex;
+    align-items:center;justify-content:center;padding:18px}
+  .modal-backdrop[hidden]{display:none}
+  .modal{background:#fff;border-radius:16px;border:1px solid var(--line);box-shadow:0 18px 55px rgba(0,0,0,.3);
+    width:min(760px,100%);max-height:calc(100vh - 36px);overflow:auto;padding:18px}
+  .modal.small{width:min(430px,100%)}
+  .modal-head{display:flex;gap:12px;align-items:flex-start;margin-bottom:12px}
+  .modal-head h2{margin:0;flex:1}
+  .modal-close{border:0;background:transparent;color:var(--muted);font-size:24px;line-height:1;cursor:pointer;padding:0 4px;min-width:44px;min-height:44px}
+  .modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px;position:sticky;bottom:-18px;
+    background:#fff;padding:12px 0 2px;border-top:1px solid var(--line)}
+  .modal-error{color:var(--bad);font-size:13px;min-height:19px;margin-top:8px}
+  .component-grid{display:grid;grid-template-columns:minmax(190px,1fr) 110px 100px 110px 42px;gap:7px;
+    align-items:center;margin:7px 0}
+  .component-grid>*{min-width:0}
+  .component-grid input[type=number]{width:100%;min-width:0}
+  .component-grid.head{font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.3px}
+  .component-cost{text-align:right;font-weight:650;white-space:nowrap}
+  .icon-btn{border:1px solid #e7c7c2;background:#fff;color:var(--bad);border-radius:8px;cursor:pointer;
+    min-height:44px;font-size:18px}
+  .quick-panel{background:var(--cream);border:1px solid var(--line);border-radius:10px;padding:12px;margin-top:10px}
+  .mixture-totals{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+  .cost-breakdown{margin:10px 0;border:1px solid var(--line);border-radius:10px;padding:9px 11px;background:#fff}
+  .cost-breakdown summary{font-size:13px}
+  body.modal-open{overflow:hidden}
+  @media(max-width:700px){
+    .component-grid{grid-template-columns:1fr 88px 82px 38px}
+    .component-grid .component-cost{grid-column:1 / -1;grid-row:2;text-align:left;padding:0 2px 6px}
+    .component-grid .icon-btn{grid-column:4;grid-row:1}
+    .component-grid.head{display:none}
+  }
+  @media(max-width:560px){
+    nav{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
+    nav button{width:100%;min-width:0;font-size:12px;padding:9px 4px}
+    .ingredient-toolbar{display:grid;grid-template-columns:minmax(0,1fr)}
+    .ingredient-search{grid-column:1 / -1;min-width:0}
+    .ingredient-toolbar .btn{width:100%;min-width:0;padding-left:7px;padding-right:7px;white-space:normal}
+    .modal-backdrop{padding:8px;align-items:flex-end}
+    .modal{max-height:94vh;border-radius:16px 16px 0 0;padding:15px}
+    .mixture-totals{grid-template-columns:1fr}
+    .category-tools{width:100%;margin-left:0}
+  }
+  @media(max-width:480px){
+    .component-grid{grid-template-columns:minmax(0,1fr) 82px 44px}
+    .component-grid [data-mix-field="ingredientId"]{grid-column:1 / -1;grid-row:1}
+    .component-grid [data-mix-field="qty"]{grid-column:1;grid-row:2}
+    .component-grid [data-mix-field="unit"]{grid-column:2;grid-row:2}
+    .component-grid .icon-btn{grid-column:3;grid-row:2}
+    .component-grid .component-cost{grid-column:1 / -1;grid-row:3;padding:0 2px 7px}
+    .component-grid .component-cost::before{content:'Cost: ';color:var(--muted);font-weight:500}
+  }
 </style>
 </head>
 <body>
@@ -119,6 +183,16 @@
     <div class="card">
       <h2>Ingredients</h2>
       <p class="hint">Enter how many packs you buy, how much is inside each pack, and the total price paid. The app works out the cost of one gram / mL / piece for you.</p>
+      <div class="ingredient-toolbar">
+        <div class="ingredient-search">
+          <label class="fld" for="ingredientSearch">Search ingredients and mixtures</label>
+          <input id="ingredientSearch" type="search" placeholder="Search by name..." autocomplete="off">
+        </div>
+        <button class="btn secondary" data-act="openCategoryModal">+ Add category</button>
+        <button class="btn" data-act="openMixtureModal">+ Add combined cost</button>
+      </div>
+      <div id="categoryBar" class="category-bar" aria-label="Ingredient categories"></div>
+      <div id="ingredientSearchStatus" class="search-status" aria-live="polite"></div>
       <div class="scroll"><table id="ingTable"></table></div>
       <div class="row" style="margin-top:12px">
         <button class="btn" data-act="addIngredient">+ Add ingredient</button>
@@ -172,7 +246,7 @@
   <section id="cloud">
     <div class="card">
       <h2>☁ Account &amp; cloud sync</h2>
-      <p class="hint">Your data is protected by a login — only you and your partner can see or change it. It saves online automatically and updates live across your devices.</p>
+      <p class="hint">Your ingredients, categories, prepared mixtures, recipes, packaging, and prices save online automatically and update live across your devices.</p>
       <div id="cloudState"></div>
       <details style="margin-top:16px">
         <summary>⚙ Advanced / one-time setup</summary>
@@ -229,6 +303,28 @@ create policy "auth update" on scoopies_state for update to authenticated using 
   </section>
 </div>
 
+<div id="categoryModal" class="modal-backdrop" hidden>
+  <div class="modal small" role="dialog" aria-modal="true" aria-labelledby="categoryModalTitle">
+    <div class="modal-head">
+      <h2 id="categoryModalTitle">Add ingredient category</h2>
+      <button class="modal-close" data-act="closeCategoryModal" aria-label="Close category dialog">x</button>
+    </div>
+    <label class="fld" for="categoryName">Category name</label>
+    <input id="categoryName" maxlength="60" placeholder="e.g. Milk &amp; Cream" autocomplete="off">
+    <div id="categoryError" class="modal-error" aria-live="assertive"></div>
+    <div class="modal-actions">
+      <button class="btn secondary" data-act="closeCategoryModal">Cancel</button>
+      <button class="btn" data-act="saveCategory">Save category</button>
+    </div>
+  </div>
+</div>
+
+<div id="mixtureModal" class="modal-backdrop" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="mixtureModalTitle">
+    <div id="mixtureModalContent"></div>
+  </div>
+</div>
+
 <script>
 /* ---------- units & money ---------- */
 var UNIT_FACTOR = {g:1, kg:1000, ml:1, l:1000, piece:1};
@@ -247,6 +343,8 @@ function ceilTo(n,step){ return Math.ceil(n/step)*step; }
 /* ---------- state + persistence ---------- */
 var TEST_MODE = /(?:^|[?&])test=1(?:&|$)/.test(window.location.search);
 var KEY = TEST_MODE ? 'scoopies_costing_test' : 'scoopies_costing_v1';
+var DIRTY_KEY = TEST_MODE ? 'scoopies_costing_test_dirty' : 'scoopies_costing_v1_dirty';
+var SYNCED_KEY = TEST_MODE ? 'scoopies_costing_test_synced' : 'scoopies_costing_v1_synced';
 var CFG_KEY = 'scoopies_cloud_cfg';
 /* Embedded so the app auto-connects everywhere. The publishable key is SAFE to expose —
    protection comes from the login + database rules, not from hiding the key. */
@@ -255,29 +353,137 @@ var DEFAULT_KEY = 'sb_publishable_0doOTYpX9SKPHNHSSHLYRg_g2lJCsAj';
 var state = loadLocal();
 var cloud = { url:'', key:'', client:null, connected:false, channel:null };
 var session = null, currentUserId = null, offlineMode = false, authMode = 'login';
-var pendingSave = false, saveTimer = null, pendingRemote = null;
+var pendingSave = false, saveTimer = null, pendingRemote = null, saveVersion = 0, retryingDirty = false;
+var localDirty = loadLocalDirty(), syncedState = loadSyncedLocal();
 var lastState = null;  /* baseline snapshot for the activity-log diff */
 var NAMES = { 'lukesellado04@gmail.com':'Luke', 'ynazov03@gmail.com':'Ynah' };  /* email → display name */
+var ingredientUi = { search:'', category:'all' };
+var categoryModalOpen = false, categoryEditId = '', modalReturnFocus = null;
+var mixtureModalOpen = false, mixtureDraft = null, mixtureReadOnly = false, quickIngredientDraft = null, mixtureOriginalExisting = false;
 
-function blank(){ return {ingredients:[], packaging:[], recipes:[], products:[]}; }
+function blank(){ return {schemaVersion:2, ingredientCategories:[], ingredients:[], packaging:[], recipes:[], products:[]}; }
+function normalizeState(raw){
+  var src=(raw && typeof raw==='object')?raw:{};
+  var out=Object.assign({},src);
+  out.schemaVersion=2;
+  out.ingredientCategories=Array.isArray(src.ingredientCategories)?src.ingredientCategories.map(function(c){
+    return {id:String(c&&c.id||uid()),name:String(c&&c.name||'').trim()};
+  }).filter(function(c,i,a){
+    if(!c.name) return false;
+    return a.findIndex(function(x){return x.name.toLowerCase()===c.name.toLowerCase();})===i;
+  }):[];
+  var catIds={}; out.ingredientCategories.forEach(function(c){catIds[c.id]=true;});
+  out.ingredients=Array.isArray(src.ingredients)?src.ingredients.map(function(item){
+    var ing=Object.assign({},item||{});
+    ing.id=String(ing.id||uid());
+    ing.kind=ing.kind==='mixture'?'mixture':'purchased';
+    ing.categoryId=catIds[String(ing.categoryId||'')]?String(ing.categoryId):'';
+    if(ing.kind==='mixture'){
+      ing.batchYield=ing.batchYield==null?'':ing.batchYield;
+      ing.unit=UNIT_FACTOR[ing.unit]?ing.unit:'ml';
+      ing.components=Array.isArray(ing.components)?ing.components.map(function(c){
+        return {ingredientId:String(c&&c.ingredientId||''),qty:c&&c.qty!=null?c.qty:'',unit:UNIT_FACTOR[c&&c.unit]?c.unit:'g'};
+      }):[];
+    }
+    return ing;
+  }):[];
+  out.packaging=Array.isArray(src.packaging)?src.packaging.map(function(x){return Object.assign({},x);}):[];
+  out.recipes=Array.isArray(src.recipes)?src.recipes.map(function(x){
+    var r=Object.assign({},x); r.id=String(r.id||uid()); r.lines=Array.isArray(x&&x.lines)?x.lines.map(function(l,i){var line=Object.assign({},l);line.id=String(line.id||r.id+'_line_'+i);return line;}):[]; return r;
+  }):[];
+  out.products=Array.isArray(src.products)?src.products.map(function(x){
+    var p=Object.assign({},x); p.id=String(p.id||uid()); p.packLines=Array.isArray(x&&x.packLines)?x.packLines.map(function(l,i){var line=Object.assign({},l);line.id=String(line.id||p.id+'_pack_'+i);return line;}):[]; return p;
+  }):[];
+  return out;
+}
+function loadLocalDirty(){ try{return !TEST_MODE&&localStorage.getItem(DIRTY_KEY)==='1';}catch(e){return false;} }
+function loadSyncedLocal(){
+  if(TEST_MODE) return snapshot(state);
+  try{var raw=JSON.parse(localStorage.getItem(SYNCED_KEY));return raw&&raw.ingredients?normalizeState(raw):null;}catch(e){return null;}
+}
+function markLocalDirty(){
+  localDirty=true;
+  if(!TEST_MODE){try{localStorage.setItem(DIRTY_KEY,'1');}catch(e){}}
+}
+function rememberSynced(s,clean){
+  if(!s) return;
+  syncedState=snapshot(normalizeState(s));
+  if(!TEST_MODE){try{localStorage.setItem(SYNCED_KEY,JSON.stringify(syncedState));}catch(e){}}
+  if(clean){localDirty=false;if(!TEST_MODE){try{localStorage.removeItem(DIRTY_KEY);}catch(e){}}}
+}
+var MERGE_MISSING={};
+function sameMergeValue(a,b){
+  if(a===MERGE_MISSING||b===MERGE_MISSING)return a===b;
+  return JSON.stringify(a)===JSON.stringify(b);
+}
+function cloneMergeValue(v){return v===MERGE_MISSING?MERGE_MISSING:snapshot(v);}
+function mergeNode(base,local,remote){
+  if(sameMergeValue(local,base))return cloneMergeValue(remote);
+  if(sameMergeValue(remote,base)||sameMergeValue(local,remote))return cloneMergeValue(local);
+  if(Array.isArray(local)&&Array.isArray(remote)){
+    var arrays=(Array.isArray(base)?base:[]).concat(local,remote);
+    if(arrays.length&&arrays.every(function(x){return x&&typeof x==='object'&&!Array.isArray(x)&&x.id;}))return mergeEntityList(Array.isArray(base)?base:[],local,remote);
+  }
+  var lo=local!==MERGE_MISSING&&local&&typeof local==='object'&&!Array.isArray(local);
+  var ro=remote!==MERGE_MISSING&&remote&&typeof remote==='object'&&!Array.isArray(remote);
+  if(lo&&ro){
+    var bo=base!==MERGE_MISSING&&base&&typeof base==='object'&&!Array.isArray(base)?base:{};
+    var out={},keys={}; Object.keys(bo).concat(Object.keys(local),Object.keys(remote)).forEach(function(k){keys[k]=true;});
+    Object.keys(keys).forEach(function(k){
+      var value=mergeNode(Object.prototype.hasOwnProperty.call(bo,k)?bo[k]:MERGE_MISSING,Object.prototype.hasOwnProperty.call(local,k)?local[k]:MERGE_MISSING,Object.prototype.hasOwnProperty.call(remote,k)?remote[k]:MERGE_MISSING);
+      if(value!==MERGE_MISSING)out[k]=value;
+    });
+    return out;
+  }
+  return cloneMergeValue(local); /* same-field conflict: keep this device's edit */
+}
+function mergeEntityList(base,local,remote){
+  base=base||[];local=local||[];remote=remote||[];
+  var bm={},lm={},rm={},order=[];
+  base.forEach(function(x){bm[x.id]=x;});local.forEach(function(x){lm[x.id]=x;});remote.forEach(function(x){rm[x.id]=x;});
+  remote.concat(local).concat(base).forEach(function(x){if(x&&order.indexOf(x.id)<0)order.push(x.id);});
+  return order.map(function(id){
+    return mergeNode(Object.prototype.hasOwnProperty.call(bm,id)?bm[id]:MERGE_MISSING,Object.prototype.hasOwnProperty.call(lm,id)?lm[id]:MERGE_MISSING,Object.prototype.hasOwnProperty.call(rm,id)?rm[id]:MERGE_MISSING);
+  }).filter(function(x){return x!==MERGE_MISSING;});
+}
+function mergeStates(base,local,remote){
+  base=normalizeState(base||blank());local=normalizeState(local||blank());remote=normalizeState(remote||blank());
+  var out=mergeNode(base,local,remote),lists=['ingredientCategories','ingredients','packaging','recipes','products'];
+  lists.forEach(function(k){out[k]=mergeEntityList(base[k],local[k],remote[k]);});
+  return normalizeState(out);
+}
 function loadLocal(){
-  try{ var s = JSON.parse(localStorage.getItem(KEY)); return s && s.ingredients ? s : blank(); }
+  try{ var s = JSON.parse(localStorage.getItem(KEY)); return s && s.ingredients ? normalizeState(s) : blank(); }
   catch(e){ return blank(); }
 }
 function setStatus(text, kind){ var el=document.getElementById('syncStatus'); if(el){ el.textContent=text; el.className='status '+(kind||''); } }
 
 /* save: always cache locally; if cloud connected, also push (debounced) */
 function save(){
+  var version=++saveVersion;
+  markLocalDirty();
   try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){}
   if(cloud.connected && session){
     setStatus('Saving…','');
     pendingSave = true;
     clearTimeout(saveTimer);
     saveTimer = setTimeout(function(){
-      cloudSave(state).then(function(){ pendingSave=false; setStatus('Saved to cloud ✓','good'); })
-        .catch(function(e){ pendingSave=false; setStatus('Saved on device — cloud error','bad'); });
+      if(version===saveVersion) saveTimer=null;
+      consumePendingRemoteForCommit(false);
+      var payload=snapshot(state);
+      cloudSave(payload).then(function(){
+        if(version!==saveVersion) return;
+        if(pendingRemote&&JSON.stringify(normalizeState(pendingRemote))!==JSON.stringify(state)){
+          pendingSave=false; consumePendingRemoteForCommit(false); save(); return;
+        }
+        pendingSave=false; pendingRemote=null; rememberSynced(payload,true); setStatus('Saved to cloud ✓','good');
+      }).catch(function(e){
+        if(version!==saveVersion) return;
+        pendingSave=false; setStatus('Saved on device — will retry cloud','bad');
+      });
     }, 600);
   } else {
+    clearTimeout(saveTimer); saveTimer=null; pendingSave=false;
     setStatus('Saved on device','');
   }
 }
@@ -300,27 +506,40 @@ function initClient(url, key){
 async function cloudLoad(){
   var res = await cloud.client.from('scoopies_state').select('data').eq('id','main').maybeSingle();
   if(res.error) throw res.error;
-  return res.data ? res.data.data : null;
+  return res.data && res.data.data ? normalizeState(res.data.data) : null;
 }
 async function cloudSave(s){
   var res = await cloud.client.from('scoopies_state')
     .upsert({ id:'main', data:s, updated_at:new Date().toISOString() }, { onConflict:'id' });
   if(res.error) throw res.error;
 }
-function hasData(s){ return s && s.ingredients && (s.ingredients.length||s.packaging.length||s.recipes.length||s.products.length); }
+function hasData(s){ return !!(s && ((s.ingredientCategories&&s.ingredientCategories.length)||(s.ingredients&&s.ingredients.length)||(s.packaging&&s.packaging.length)||(s.recipes&&s.recipes.length)||(s.products&&s.products.length))); }
 function appIsEditing(){
+  if(categoryModalOpen||mixtureModalOpen) return true;
   var ae=document.activeElement;
-  return !!(ae && (ae.tagName==='INPUT'||ae.tagName==='SELECT') && ae.closest && ae.closest('.wrap'));
+  return !!(ae && (ae.tagName==='INPUT'||ae.tagName==='SELECT'||ae.tagName==='TEXTAREA') && ae.closest && ae.closest('.wrap'));
 }
 /* apply a fresh copy from the cloud, unless it's our own echo or we're mid-typing */
 function maybeApplyRemote(remote){
   if(!remote) return;
-  if(JSON.stringify(remote)===JSON.stringify(state)) return;   /* same data / our own change echoing back */
-  if(appIsEditing()){ pendingRemote=remote; return; }          /* wait until they finish the field they're in */
+  remote=normalizeState(remote);
+  if(JSON.stringify(remote)===JSON.stringify(state)){rememberSynced(remote,!pendingSave);return;} /* our own echo */
+  if(localDirty||pendingSave||appIsEditing()){ pendingRemote=remote; return; } /* preserve unsynced/local editing */
   state=remote; pendingRemote=null; lastState=snapshot(state);
   try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){}
+  rememberSynced(remote,true);
   renderAll();
   setStatus('Updated from partner ✓','good');
+}
+async function retryDirtySave(){
+  if(retryingDirty||!cloud.connected||!session||!localDirty||pendingSave)return;
+  retryingDirty=true; setStatus('Checking cloud before retry…','');
+  try{
+    var remote=await cloudLoad();
+    if(remote!==null){pendingRemote=remote;consumePendingRemoteForCommit(false);}
+    save();
+  }catch(e){setStatus('Saved on device — will retry cloud','bad');}
+  finally{retryingDirty=false;}
 }
 /* live updates: listen for any change to our row and apply it */
 function subscribeRealtime(){
@@ -341,11 +560,13 @@ function subscribeRealtime(){
 function actorName(){ var em=(session&&session.user)?session.user.email:''; return NAMES[em]||(em?em.split('@')[0]:'someone'); }
 function snapshot(s){ try{ return JSON.parse(JSON.stringify(s)); }catch(e){ return null; } }
 function fmtv(v){ return (v===''||v==null) ? '(blank)' : v; }
+function categoryNameIn(s,id){ var c=getById((s&&s.ingredientCategories)||[],id); return c?c.name:'Uncategorized'; }
 /* compare two states → list of plain-English change summaries */
 function diffStates(o,n){
   var out=[];
   var cats=[
-    {k:'ingredients',label:'ingredient',f:[['name','name'],['price','total price','₱'],['purchaseQty','quantity bought'],['amountPerItem','amount per item'],['unit','unit']]},
+    {k:'ingredientCategories',label:'category',f:[['name','name']]},
+    {k:'ingredients',label:'ingredient',f:[['name','name'],['price','total price','₱'],['purchaseQty','quantity bought'],['amountPerItem','amount per item'],['batchYield','finished batch yield'],['unit','unit']]},
     {k:'packaging',label:'packaging',f:[['name','name'],['price','pack price','₱'],['qty','pieces per pack']]},
     {k:'recipes',label:'recipe',f:[['name','name'],['yield','yield']]},
     {k:'products',label:'product',f:[['name','name'],['targetMargin','margin','','%'],['price','price','₱']]}
@@ -353,8 +574,8 @@ function diffStates(o,n){
   cats.forEach(function(c){
     var ol=(o&&o[c.k])||[], nl=(n&&n[c.k])||[], om={}, nm={};
     ol.forEach(function(x){om[x.id]=x;}); nl.forEach(function(x){nm[x.id]=x;});
-    nl.forEach(function(x){ if(!om[x.id]) out.push('Added '+c.label+' "'+(x.name||'untitled')+'"'); });
-    ol.forEach(function(x){ if(!nm[x.id]) out.push('Deleted '+c.label+' "'+(x.name||'untitled')+'"'); });
+    nl.forEach(function(x){ if(!om[x.id]) out.push('Added '+(c.k==='ingredients'&&x.kind==='mixture'?'mixture':c.label)+' "'+(x.name||'untitled')+'"'); });
+    ol.forEach(function(x){ if(!nm[x.id]) out.push('Deleted '+(c.k==='ingredients'&&x.kind==='mixture'?'mixture':c.label)+' "'+(x.name||'untitled')+'"'); });
     nl.forEach(function(x){
       var p=om[x.id]; if(!p) return; var nm2=x.name||p.name||'untitled';
       c.f.forEach(function(fd){
@@ -364,6 +585,8 @@ function diffStates(o,n){
           else out.push('"'+nm2+'" '+lbl+' '+pre+fmtv(p[key])+suf+' → '+pre+fmtv(x[key])+suf);
         }
       });
+      if(c.k==='ingredients' && String(p.categoryId||'')!==String(x.categoryId||'')) out.push('Moved "'+nm2+'" from '+categoryNameIn(o,p.categoryId)+' to '+categoryNameIn(n,x.categoryId));
+      if(c.k==='ingredients' && (p.kind==='mixture'||x.kind==='mixture') && JSON.stringify(p.components||[])!==JSON.stringify(x.components||[])) out.push('Updated components in mixture "'+nm2+'"');
       if(c.k==='recipes' && JSON.stringify(p.lines||[])!==JSON.stringify(x.lines||[])) out.push('Updated ingredients in recipe "'+nm2+'"');
       if(c.k==='products' && JSON.stringify(p.packLines||[])!==JSON.stringify(x.packLines||[])) out.push('Updated packaging in product "'+nm2+'"');
       if(c.k==='products' && String(p.recipeId||'')!==String(x.recipeId||'')) out.push('Changed recipe for product "'+nm2+'"');
@@ -444,9 +667,19 @@ async function handleAuth(sess){
       try{
         try{ cloud.client.realtime.setAuth(session.access_token); }catch(e){}
         var remote = await cloudLoad();
-        if(hasData(remote)){ state = remote; } else { await cloudSave(state); }
+        if(remote!==null){
+          if(localDirty){
+            state=mergeStates(syncedState||blank(),state,remote); rememberSynced(remote,false);
+          }else{
+            state=remote; rememberSynced(remote,true);
+          }
+        }else{
+          await cloudSave(state); rememberSynced(state,true);
+        }
+        try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){}
         lastState = snapshot(state);
-        save(); renderAll(); setStatus('Saved to cloud ✓','good');
+        renderAll();
+        if(localDirty)save();else setStatus('Saved to cloud ✓','good');
       }catch(e){ setStatus('Signed in — cloud read failed','bad'); }
       subscribeRealtime();
     }
@@ -510,9 +743,12 @@ function renderAccount(){
 }
 
 /* ---------- cost calculations ---------- */
+function isMixture(ing){ return !!(ing&&ing.kind==='mixture'); }
+function ingredientBaseUnit(ing){ return TYPE_BASE[UNIT_TYPE[ing&&ing.unit]||'weight']; }
 /* Old records stored the total amount in qty. New records store the number of
    packs and the amount inside each pack; retaining the old path prevents data loss. */
 function ingredientTotalBase(ing){
+  if(isMixture(ing)) return toBase(ing.batchYield,ing.unit);
   var hasPackFields = ing.purchaseQty != null || ing.amountPerItem != null;
   if(hasPackFields){
     var purchaseQty = ing.purchaseQty != null ? ing.purchaseQty : 1;
@@ -521,40 +757,151 @@ function ingredientTotalBase(ing){
   }
   return toBase(ing.qty, ing.unit);
 }
-function ingCostPerBase(ing){ var base = ingredientTotalBase(ing); return base>0 ? num(ing.price)/base : 0; }
-function pkgCostPerPiece(p){ var q = num(p.qty); return q>0 ? num(p.price)/q : 0; }
-function lineCost(line){ var ing = getById(state.ingredients, line.ingredientId); if(!ing) return 0; return toBase(line.qty, line.unit) * ingCostPerBase(ing); }
+function stateIngredientLookup(id){ return getById(state.ingredients,id); }
+function ingredientCostInfo(ing,trail,lookup){
+  lookup=lookup||stateIngredientLookup; trail=trail||[];
+  if(!ing) return {valid:false,costPerBase:NaN,batchCost:NaN,error:'Missing ingredient'};
+  if(trail.indexOf(ing.id)>=0) return {valid:false,costPerBase:NaN,batchCost:NaN,error:'Circular mixture reference'};
+  if(!isMixture(ing)){
+    var base=ingredientTotalBase(ing), hasPrice=ing.price!==''&&ing.price!=null, price=num(ing.price);
+    if(!(base>0)||!hasPrice||!isFinite(price)||price<0) return {valid:false,costPerBase:NaN,batchCost:NaN,error:'Complete the purchase amount and enter a non-negative price'};
+    return {valid:true,costPerBase:price/base,batchCost:price,error:''};
+  }
+  var yieldBase=toBase(ing.batchYield,ing.unit), components=ing.components||[];
+  if(!(yieldBase>0)) return {valid:false,costPerBase:NaN,batchCost:NaN,error:'Finished batch yield must be greater than zero'};
+  if(!components.length) return {valid:false,costPerBase:NaN,batchCost:NaN,error:'Add at least one component'};
+  var total=0, nextTrail=trail.concat([ing.id]);
+  for(var i=0;i<components.length;i++){
+    var c=components[i], source=lookup(c.ingredientId);
+    if(!source) return {valid:false,costPerBase:NaN,batchCost:NaN,error:'A component ingredient is missing'};
+    if(UNIT_TYPE[c.unit]!==UNIT_TYPE[source.unit]) return {valid:false,costPerBase:NaN,batchCost:NaN,error:'A component uses an incompatible unit'};
+    var used=toBase(c.qty,c.unit);
+    if(!(used>0)) return {valid:false,costPerBase:NaN,batchCost:NaN,error:'Every component needs a quantity greater than zero'};
+    var info=ingredientCostInfo(source,nextTrail,lookup);
+    if(!info.valid) return {valid:false,costPerBase:NaN,batchCost:NaN,error:(source.name||'Component')+': '+info.error};
+    total+=used*info.costPerBase;
+  }
+  return {valid:true,costPerBase:total/yieldBase,batchCost:total,error:''};
+}
+function mixtureBatchCost(ing,trail,lookup){ var info=ingredientCostInfo(ing,trail,lookup); return info.valid?info.batchCost:NaN; }
+function ingCostPerBase(ing,trail,lookup){ var info=ingredientCostInfo(ing,trail,lookup); return info.valid?info.costPerBase:NaN; }
+function pkgCostPerPiece(p){
+  if(!p)return NaN;
+  var q=num(p.qty),hasPrice=p.price!==''&&p.price!=null,price=num(p.price);
+  return q>0&&hasPrice&&isFinite(price)&&price>=0?price/q:NaN;
+}
+function packagingLineCost(line){
+  if(!line||!line.packagingId)return NaN;
+  var p=getById(state.packaging,line.packagingId),q=num(line.qty),each=pkgCostPerPiece(p);
+  return p&&q>0&&isFinite(each)?q*each:NaN;
+}
+function lineCost(line){
+  if(!line||!line.ingredientId) return 0;
+  var ing=getById(state.ingredients,line.ingredientId); if(!ing) return NaN;
+  if(UNIT_TYPE[line.unit]!==UNIT_TYPE[ing.unit]) return NaN;
+  var used=toBase(line.qty,line.unit); return used>0?used*ingCostPerBase(ing):NaN;
+}
 function recipeTotal(r){ var t=0; (r.lines||[]).forEach(function(l){ t+=lineCost(l); }); return t; }
-function recipePerServing(r){ var y=num(r.yield); return y>0 ? recipeTotal(r)/y : 0; }
-function productPackagingCost(p){ var t=0; (p.packLines||[]).forEach(function(l){ var pk=getById(state.packaging,l.packagingId); if(pk) t+=num(l.qty)*pkgCostPerPiece(pk); }); return t; }
-function productCost(p){ var r=getById(state.recipes,p.recipeId); var food=r?recipePerServing(r):0; return food + productPackagingCost(p); }
+function recipePerServing(r){ var y=num(r&&r.yield); return y>0 ? recipeTotal(r)/y : NaN; }
+function productPackagingCost(p){ var t=0; (p.packLines||[]).forEach(function(l){t+=packagingLineCost(l);}); return t; }
+function productCost(p){ var r=getById(state.recipes,p.recipeId); return r?recipePerServing(r)+productPackagingCost(p):NaN; }
 function suggestedPrice(cost, marginPct){ var m=num(marginPct)/100; if(m>=1) return Infinity; return cost/(1-m); }
+function ingredientUsage(id){
+  var uses=[];
+  state.recipes.forEach(function(r){ if((r.lines||[]).some(function(l){return l.ingredientId===id;})) uses.push('recipe "'+(r.name||'untitled')+'"'); });
+  state.ingredients.forEach(function(ing){ if(isMixture(ing)&&(ing.components||[]).some(function(c){return c.ingredientId===id;})) uses.push('mixture "'+(ing.name||'untitled')+'"'); });
+  return uses;
+}
+function packagingUsage(id){
+  return state.products.filter(function(p){return (p.packLines||[]).some(function(l){return l.packagingId===id;});}).map(function(p){return 'product "'+(p.name||'untitled')+'"';});
+}
+function recipeUsage(id){
+  return state.products.filter(function(p){return p.recipeId===id;}).map(function(p){return 'product "'+(p.name||'untitled')+'"';});
+}
+function ingredientDependsOn(startId,targetId,seen,lookup){
+  lookup=lookup||stateIngredientLookup; seen=seen||{};
+  if(startId===targetId) return true;
+  if(seen[startId]) return false; seen[startId]=true;
+  var ing=lookup(startId); if(!isMixture(ing)) return false;
+  return (ing.components||[]).some(function(c){return ingredientDependsOn(c.ingredientId,targetId,seen,lookup);});
+}
 
 /* ---------- rendering ---------- */
 var unitOptions = ['g','kg','ml','l','piece'];
 function optionList(arr, selected, useObj){
   return arr.map(function(o){ var v=useObj?o.id:o; var label=useObj?o.name:o;
-    return '<option value="'+v+'"'+(v===selected?' selected':'')+'>'+escapeHtml(label||'(unnamed)')+'</option>'; }).join('');
+    return '<option value="'+escapeHtml(v)+'"'+(String(v)===String(selected)?' selected':'')+'>'+escapeHtml(label||'(unnamed)')+'</option>'; }).join('');
 }
 function escapeHtml(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+function categoryOptions(selected){
+  return '<option value=""'+(!selected?' selected':'')+'>Uncategorized</option>'+state.ingredientCategories.map(function(c){
+    return '<option value="'+escapeHtml(c.id)+'"'+(c.id===selected?' selected':'')+'>'+escapeHtml(c.name)+'</option>';
+  }).join('');
+}
+function ingredientOptions(selected,list){
+  list=list||state.ingredients;
+  var purchased=list.filter(function(x){return !isMixture(x);});
+  var mixtures=list.filter(isMixture);
+  function opts(a){ return a.map(function(x){return '<option value="'+escapeHtml(x.id)+'"'+(x.id===selected?' selected':'')+'>'+escapeHtml(x.name||'(unnamed)')+'</option>';}).join(''); }
+  return (purchased.length?'<optgroup label="Purchased ingredients">'+opts(purchased)+'</optgroup>':'')+
+    (mixtures.length?'<optgroup label="Prepared mixtures">'+opts(mixtures)+'</optgroup>':'');
+}
+function selectedRealCategory(){ return getById(state.ingredientCategories,ingredientUi.category); }
+function ingredientMatchesView(ing){
+  if(ingredientUi.category==='uncategorized'&&ing.categoryId) return false;
+  if(ingredientUi.category!=='all'&&ingredientUi.category!=='uncategorized'&&ing.categoryId!==ingredientUi.category) return false;
+  var q=ingredientUi.search.trim().toLowerCase(); if(!q) return true;
+  var cat=getById(state.ingredientCategories,ing.categoryId), hay=(ing.name||'')+' '+(cat?cat.name:'Uncategorized');
+  if(isMixture(ing)) (ing.components||[]).forEach(function(c){var x=getById(state.ingredients,c.ingredientId); if(x) hay+=' '+(x.name||'');});
+  return hay.toLowerCase().indexOf(q)>=0;
+}
+function renderCategoryBar(){
+  if(ingredientUi.category!=='all'&&ingredientUi.category!=='uncategorized'&&!getById(state.ingredientCategories,ingredientUi.category)) ingredientUi.category='all';
+  var bar=document.getElementById('categoryBar'); if(!bar) return;
+  function chip(id,label,count){ var active=ingredientUi.category===id; return '<button class="category-chip'+(active?' active':'')+'" data-act="setIngredientCategory" data-id="'+escapeHtml(id)+'" aria-pressed="'+(active?'true':'false')+'">'+escapeHtml(label)+' ('+count+')</button>'; }
+  var html=chip('all','All',state.ingredients.length);
+  state.ingredientCategories.forEach(function(c){ html+=chip(c.id,c.name,state.ingredients.filter(function(x){return x.categoryId===c.id;}).length); });
+  html+=chip('uncategorized','Uncategorized',state.ingredients.filter(function(x){return !x.categoryId;}).length);
+  var selected=selectedRealCategory();
+  if(selected) html+='<span class="category-tools"><button class="btn small secondary" data-act="editCategory" data-id="'+escapeHtml(selected.id)+'">Rename</button><button class="btn small danger" data-act="deleteCategory" data-id="'+escapeHtml(selected.id)+'">Delete folder</button></span>';
+  bar.innerHTML=html;
+}
 
 function renderIngredients(){
-  var t=document.getElementById('ingTable');
-  var rows=state.ingredients.map(function(ing){
-    var cpb=ingCostPerBase(ing); var baseUnit=TYPE_BASE[UNIT_TYPE[ing.unit]||'weight'];
+  renderCategoryBar();
+  var searchInput=document.getElementById('ingredientSearch'); if(searchInput&&searchInput.value!==ingredientUi.search)searchInput.value=ingredientUi.search;
+  var t=document.getElementById('ingTable'), visible=state.ingredients.filter(ingredientMatchesView);
+  var status=document.getElementById('ingredientSearchStatus');
+  if(status) status.textContent=(ingredientUi.search||ingredientUi.category!=='all')?'Showing '+visible.length+' of '+state.ingredients.length+' ingredient'+(state.ingredients.length===1?'':'s'):' '+state.ingredients.length+' ingredient'+(state.ingredients.length===1?'':'s');
+  var rows=visible.map(function(ing){
+    var cpb=ingCostPerBase(ing), baseUnit=ingredientBaseUnit(ing), id=escapeHtml(ing.id);
+    if(isMixture(ing)){
+      var info=ingredientCostInfo(ing), count=(ing.components||[]).length;
+      return '<tr data-entity="ingredient" data-id="'+id+'">'+
+        '<td><div class="ingredient-name-text">'+escapeHtml(ing.name||'(unnamed mixture)')+'</div><span class="type-badge">Prepared mixture</span><div class="mixture-meta">'+count+' component'+(count===1?'':'s')+(info.valid?'':' · Needs attention')+'</div></td>'+
+        '<td><select data-field="categoryId" aria-label="Category for '+escapeHtml(ing.name||'mixture')+'">'+categoryOptions(ing.categoryId)+'</select></td>'+
+        '<td><span class="pill">Combined</span></td>'+
+        '<td class="calc">'+escapeHtml(ing.batchYield||'—')+'</td>'+
+        '<td>'+escapeHtml(ing.unit)+'</td>'+
+        '<td class="calc">'+peso(info.batchCost)+'</td>'+
+        '<td class="calc">'+peso(cpb)+' / '+baseUnit+'</td>'+
+        '<td><div class="row"><button class="btn small secondary" data-act="editMixture" data-id="'+id+'">View / Edit</button><button class="btn danger" data-act="delIngredient" data-id="'+id+'">Delete</button></div></td></tr>';
+    }
     var purchaseQty=ing.purchaseQty!=null?ing.purchaseQty:1;
     var amountPerItem=ing.amountPerItem!=null?ing.amountPerItem:ing.qty;
-    return '<tr data-entity="ingredient" data-id="'+ing.id+'">'+
-      '<td><input data-field="name" value="'+escapeHtml(ing.name)+'" placeholder="e.g. Flour"></td>'+
+    return '<tr data-entity="ingredient" data-id="'+id+'">'+
+      '<td><input data-field="name" value="'+escapeHtml(ing.name)+'" placeholder="e.g. Flour"><span class="type-badge purchased">Purchased</span></td>'+
+      '<td><select data-field="categoryId" aria-label="Ingredient category">'+categoryOptions(ing.categoryId)+'</select></td>'+
       '<td><input data-field="purchaseQty" type="number" min="0" step="any" value="'+escapeHtml(purchaseQty)+'" placeholder="e.g. 3"></td>'+
       '<td><input data-field="amountPerItem" type="number" min="0" step="any" value="'+escapeHtml(amountPerItem)+'" placeholder="e.g. 330"></td>'+
       '<td><select data-field="unit">'+optionList(unitOptions, ing.unit)+'</select></td>'+
       '<td><input data-field="price" type="number" min="0" step="any" value="'+escapeHtml(ing.price)+'"></td>'+
       '<td class="calc">'+peso(cpb)+' / '+baseUnit+'</td>'+
-      '<td><button class="btn danger" data-act="delIngredient" data-id="'+ing.id+'">Delete</button></td></tr>';
+      '<td><button class="btn danger" data-act="delIngredient" data-id="'+id+'">Delete</button></td></tr>';
   }).join('');
-  t.innerHTML='<tr><th>Ingredient</th><th>Qty bought</th><th>Amount each</th><th>Unit</th><th>Total price (₱)</th><th>Cost per unit</th><th></th></tr>'+
-    (rows||'<tr><td colspan="7" class="empty">No ingredients yet. Click "Add ingredient".</td></tr>');
+  var empty=state.ingredients.length?'No ingredients match this search or folder.':'No ingredients yet. Click "Add ingredient" or "Add combined cost".';
+  t.innerHTML='<tr><th>Ingredient</th><th>Category</th><th>Qty bought</th><th>Amount each / yield</th><th>Unit</th><th>Total / batch cost</th><th>Cost per unit</th><th></th></tr>'+
+    (rows||'<tr><td colspan="8" class="empty">'+empty+'</td></tr>');
 }
 function renderPackaging(){
   var t=document.getElementById('pkgTable');
@@ -575,12 +922,12 @@ function renderRecipes(){
   wrap.innerHTML=state.recipes.map(function(r){
     var lineRows=(r.lines||[]).map(function(l, idx){
       var ing=getById(state.ingredients,l.ingredientId); var type=ing?UNIT_TYPE[ing.unit]:'weight'; var allowed=TYPE_UNITS[type]||unitOptions;
-      return '<tr class="lines" data-entity="recipeLine" data-id="'+r.id+'" data-idx="'+idx+'">'+
-        '<td><select data-field="ingredientId"><option value="">— pick ingredient —</option>'+optionList(state.ingredients,l.ingredientId,true)+'</select></td>'+
+      return '<tr class="lines" data-entity="recipeLine" data-id="'+r.id+'" data-idx="'+idx+'" data-line-id="'+escapeHtml(l.id)+'">'+
+        '<td><div class="row"><select data-field="ingredientId" style="flex:1;min-width:180px"><option value="">— pick ingredient —</option>'+ingredientOptions(l.ingredientId)+'</select>'+(isMixture(ing)?'<button class="btn small secondary" data-act="viewMixture" data-id="'+escapeHtml(ing.id)+'">View mixture</button>':'')+'</div></td>'+
         '<td><input data-field="qty" type="number" min="0" step="any" value="'+escapeHtml(l.qty)+'"></td>'+
         '<td><select data-field="unit">'+optionList(allowed,l.unit)+'</select></td>'+
         '<td class="calc">'+peso(lineCost(l))+'</td>'+
-        '<td><button class="btn danger" data-act="delLine" data-id="'+r.id+'" data-idx="'+idx+'">✕</button></td></tr>';
+        '<td><button class="btn danger" data-act="delLine" data-id="'+r.id+'" data-idx="'+idx+'" data-line-id="'+escapeHtml(l.id)+'">✕</button></td></tr>';
     }).join('');
     return '<div class="card" data-entity="recipe" data-id="'+r.id+'">'+
       '<div class="grid2">'+
@@ -599,22 +946,30 @@ function renderRecipes(){
       '</div></div>';
   }).join('');
 }
+function recipeBreakdownHtml(r){
+  if(!r) return '';
+  var y=num(r.yield), rows=(r.lines||[]).map(function(l){
+    var ing=getById(state.ingredients,l.ingredientId), cost=y>0?lineCost(l)/y:NaN;
+    return '<tr><td>'+escapeHtml(ing?ing.name:'Missing ingredient')+(isMixture(ing)?' <span class="type-badge">Mixture</span>':'')+'</td><td>'+escapeHtml(l.qty)+' '+escapeHtml(l.unit)+'</td><td class="calc">'+peso(cost)+'</td><td>'+(isMixture(ing)?'<button class="btn small secondary" data-act="viewMixture" data-id="'+escapeHtml(ing.id)+'">View</button>':'')+'</td></tr>';
+  }).join('');
+  return '<details class="cost-breakdown"><summary>View food-cost breakdown</summary><div class="scroll" style="margin-top:8px"><table><tr><th>Ingredient</th><th>Recipe quantity</th><th>Cost / serving</th><th></th></tr>'+(rows||'<tr><td colspan="4" class="empty">No recipe ingredients.</td></tr>')+'</table></div></details>';
+}
 function renderProducts(){
   var wrap=document.getElementById('productList');
   if(!state.products.length){ wrap.innerHTML='<div class="card"><p class="empty">No products yet. A product = a recipe + its packaging + your target margin. Click "Add product".</p></div>'; return; }
   wrap.innerHTML=state.products.map(function(p){
     var r=getById(state.recipes,p.recipeId);
-    var foodCost=r?recipePerServing(r):0;
+    var foodCost=r?recipePerServing(r):NaN;
     var cost=productCost(p); var sugg=suggestedPrice(cost,p.targetMargin); var price=num(p.price);
-    var profit=price-cost; var marginPct=price>0?profit/price*100:0; var markupPct=cost>0?profit/cost*100:0;
+    var profit=price-cost; var marginPct=price>0?profit/price*100:0; var markupPct=isFinite(cost)&&cost>0?profit/cost*100:(isFinite(cost)?0:NaN);
     var foodPct=price>0?foodCost/price*100:0; var totalPct=price>0?cost/price*100:0;
     var pkgRows=(p.packLines||[]).map(function(l, idx){
       var pk=getById(state.packaging,l.packagingId);
-      return '<tr class="lines" data-entity="packLine" data-id="'+p.id+'" data-idx="'+idx+'">'+
+      return '<tr class="lines" data-entity="packLine" data-id="'+p.id+'" data-idx="'+idx+'" data-line-id="'+escapeHtml(l.id)+'">'+
         '<td><select data-field="packagingId"><option value="">— pick packaging —</option>'+optionList(state.packaging,l.packagingId,true)+'</select></td>'+
         '<td><input data-field="qty" type="number" min="0" step="any" value="'+escapeHtml(l.qty)+'"></td>'+
-        '<td class="calc">'+peso((pk?pkgCostPerPiece(pk):0)*num(l.qty))+'</td>'+
-        '<td><button class="btn danger" data-act="delPkgLine" data-id="'+p.id+'" data-idx="'+idx+'">✕</button></td></tr>';
+        '<td class="calc">'+peso(packagingLineCost(l))+'</td>'+
+        '<td><button class="btn danger" data-act="delPkgLine" data-id="'+p.id+'" data-idx="'+idx+'" data-line-id="'+escapeHtml(l.id)+'">✕</button></td></tr>';
     }).join('');
     return '<div class="card" data-entity="product" data-id="'+p.id+'">'+
       '<div class="grid2">'+
@@ -622,6 +977,7 @@ function renderProducts(){
         '<div><label class="fld">Recipe</label><select data-field="recipeId"><option value="">— pick recipe —</option>'+optionList(state.recipes,p.recipeId,true)+'</select></div>'+
       '</div>'+
       '<p class="hint" style="margin:10px 0 4px">Food cost per serving from recipe: <span class="pill">'+(r?peso(recipePerServing(r)):'—')+'</span></p>'+
+      recipeBreakdownHtml(r)+
       '<div class="scroll"><table><tr><th>Packaging used</th><th>Qty</th><th>Cost</th><th></th></tr>'+
         (pkgRows||'<tr><td colspan="4" class="empty">No packaging added.</td></tr>')+'</table></div>'+
       '<button class="btn small secondary" data-act="addPkgLine" data-id="'+p.id+'" style="margin-top:8px">+ Add packaging</button>'+
@@ -642,6 +998,194 @@ function renderProducts(){
       '<div class="row" style="margin-top:12px"><div class="spacer"></div><button class="btn danger" data-act="delProduct" data-id="'+p.id+'">Delete product</button></div></div>';
   }).join('');
 }
+function refreshModalBodyClass(){
+  var open=categoryModalOpen||mixtureModalOpen; document.body.classList.toggle('modal-open',open);
+  [document.querySelector('header'),document.querySelector('.wrap')].forEach(function(el){if(!el)return;el.inert=!!open;if(open)el.setAttribute('aria-hidden','true');else el.removeAttribute('aria-hidden');});
+}
+function focusSoon(selector){setTimeout(function(){var el=document.querySelector(selector);if(el)el.focus();},0);}
+function focusLastMixtureField(field){setTimeout(function(){var rows=document.querySelectorAll('#mixtureModal [data-mix-index]'),row=rows[rows.length-1],el=row&&row.querySelector('[data-mix-field="'+field+'"]');if(el)el.focus();},0);}
+function consumePendingRemoteForCommit(shouldRender){
+  if(!pendingRemote) return false;
+  var remote=normalizeState(pendingRemote);
+  state=mergeStates(syncedState||blank(),state,remote); pendingRemote=null;
+  rememberSynced(remote,false); lastState=snapshot(state);
+  try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){}
+  if(shouldRender!==false)renderAll(); return true;
+}
+function applyPendingAfterModal(){
+  setTimeout(function(){ if(pendingRemote&&!appIsEditing()) maybeApplyRemote(pendingRemote); },0);
+}
+function openCategoryModal(id){
+  categoryEditId=id||''; categoryModalOpen=true; modalReturnFocus=document.activeElement;
+  var current=categoryEditId?getById(state.ingredientCategories,categoryEditId):null;
+  document.getElementById('categoryModalTitle').textContent=current?'Rename category':'Add ingredient category';
+  document.getElementById('categoryName').value=current?current.name:'';
+  document.getElementById('categoryError').textContent='';
+  document.getElementById('categoryModal').hidden=false; refreshModalBodyClass();
+  setTimeout(function(){document.getElementById('categoryName').focus();},0);
+}
+function closeCategoryModal(skipRemote){
+  categoryModalOpen=false; categoryEditId=''; document.getElementById('categoryModal').hidden=true; refreshModalBodyClass();
+  if(modalReturnFocus&&modalReturnFocus.focus) modalReturnFocus.focus();
+  if(!skipRemote) applyPendingAfterModal();
+}
+function categoryNameError(name,id){
+  var clean=String(name||'').trim(); if(!clean) return 'Enter a category name.';
+  var reserved=['all','uncategorized']; if(reserved.indexOf(clean.toLowerCase())>=0) return 'That name is reserved by the app.';
+  if(state.ingredientCategories.some(function(c){return c.id!==id&&c.name.toLowerCase()===clean.toLowerCase();})) return 'A category with that name already exists.';
+  return '';
+}
+function saveCategory(){
+  consumePendingRemoteForCommit();
+  var name=document.getElementById('categoryName').value.trim(), error=categoryNameError(name,categoryEditId);
+  if(error){document.getElementById('categoryError').textContent=error;return false;}
+  if(categoryEditId){
+    var current=getById(state.ingredientCategories,categoryEditId);
+    if(!current){document.getElementById('categoryError').textContent='This category was removed on another device. Close and try again.';return false;}
+    current.name=name;
+  }else{
+    var created={id:uid(),name:name}; state.ingredientCategories.push(created); ingredientUi.category=created.id;
+  }
+  logChanges(); save(); closeCategoryModal(true); renderAll(); focusSoon('[data-act="openCategoryModal"]'); return true;
+}
+function deleteCategory(id){
+  var cat=getById(state.ingredientCategories,id); if(!cat) return false;
+  var count=state.ingredients.filter(function(x){return x.categoryId===id;}).length;
+  if(!confirm('Delete the folder "'+cat.name+'"? '+count+' item'+(count===1?'':'s')+' will move to Uncategorized.')) return false;
+  state.ingredients.forEach(function(x){if(x.categoryId===id)x.categoryId='';});
+  state.ingredientCategories=state.ingredientCategories.filter(function(x){return x.id!==id;});
+  ingredientUi.category='uncategorized'; logChanges(); save(); renderAll(); return true;
+}
+function newMixtureDraft(){
+  var selected=selectedRealCategory();
+  return {id:uid(),kind:'mixture',name:'',categoryId:selected?selected.id:'',batchYield:'',unit:'ml',components:[],pendingIngredients:[]};
+}
+function draftIngredientLookup(id){
+  if(mixtureDraft&&mixtureDraft.id===id) return mixtureDraft;
+  var pending=mixtureDraft&&getById(mixtureDraft.pendingIngredients||[],id); return pending||getById(state.ingredients,id);
+}
+function mixtureCandidates(){
+  if(!mixtureDraft) return [];
+  var list=state.ingredients.concat(mixtureDraft.pendingIngredients||[]).filter(function(x){return x.id!==mixtureDraft.id;});
+  return list.filter(function(x){return !ingredientDependsOn(x.id,mixtureDraft.id,{},draftIngredientLookup);});
+}
+function draftMixtureInfo(){ return mixtureDraft?ingredientCostInfo(mixtureDraft,[],draftIngredientLookup):{valid:false,costPerBase:NaN,batchCost:NaN,error:''}; }
+function openMixtureModal(id,readOnly){
+  var current=id?getById(state.ingredients,id):null;
+  if(id&&!isMixture(current)){alert('That mixture is no longer available.');return;}
+  mixtureOriginalExisting=!!current;
+  mixtureDraft=current?snapshot(current):newMixtureDraft(); mixtureDraft.pendingIngredients=[];
+  mixtureReadOnly=!!readOnly; quickIngredientDraft=null; mixtureModalOpen=true; modalReturnFocus=document.activeElement;
+  document.getElementById('mixtureModal').hidden=false; refreshModalBodyClass(); renderMixtureModal();
+  setTimeout(function(){var el=document.getElementById(mixtureReadOnly?'closeMixtureButton':'mixtureName');if(el)el.focus();},0);
+}
+function closeMixtureModal(skipRemote){
+  mixtureModalOpen=false; mixtureDraft=null; quickIngredientDraft=null; mixtureReadOnly=false; mixtureOriginalExisting=false;
+  document.getElementById('mixtureModal').hidden=true; refreshModalBodyClass();
+  if(modalReturnFocus&&modalReturnFocus.focus) modalReturnFocus.focus();
+  if(!skipRemote) applyPendingAfterModal();
+}
+function mixtureComponentCost(c){
+  var source=draftIngredientLookup(c.ingredientId); if(!source||UNIT_TYPE[c.unit]!==UNIT_TYPE[source.unit]) return NaN;
+  return toBase(c.qty,c.unit)*ingCostPerBase(source,[],draftIngredientLookup);
+}
+function beginQuickIngredient(){
+  quickIngredientDraft={id:uid(),kind:'purchased',name:'',categoryId:mixtureDraft.categoryId||'',purchaseQty:'',amountPerItem:'',unit:'g',price:''};
+  renderMixtureModal(); setTimeout(function(){var e=document.getElementById('quickIngredientName');if(e)e.focus();},0);
+}
+function renderMixtureModal(){
+  if(!mixtureDraft) return;
+  var content=document.getElementById('mixtureModalContent'), disabled=mixtureReadOnly?' disabled':'', candidates=mixtureCandidates();
+  var rows=(mixtureDraft.components||[]).map(function(c,idx){
+    var source=draftIngredientLookup(c.ingredientId), allowed=source?(TYPE_UNITS[UNIT_TYPE[source.unit]]||unitOptions):unitOptions;
+    return '<div class="component-grid" data-mix-index="'+idx+'">'+
+      '<select data-mix-field="ingredientId" aria-label="Component ingredient"'+disabled+'><option value="">— pick an item —</option>'+ingredientOptions(c.ingredientId,candidates)+'</select>'+
+      '<input data-mix-field="qty" type="number" min="0" step="any" value="'+escapeHtml(c.qty)+'" aria-label="Component quantity"'+disabled+'>'+
+      '<select data-mix-field="unit" aria-label="Component unit"'+disabled+'>'+optionList(allowed,c.unit)+'</select>'+
+      '<div class="component-cost">'+peso(mixtureComponentCost(c))+'</div>'+
+      (mixtureReadOnly?'':'<button class="icon-btn" data-act="removeMixtureComponent" data-idx="'+idx+'" aria-label="Remove component">&times;</button>')+'</div>';
+  }).join('');
+  var quick='';
+  if(!mixtureReadOnly&&quickIngredientDraft){
+    quick='<div class="quick-panel"><strong>New purchased ingredient</strong><p class="hint">This will be saved together with the mixture.</p><div class="grid2">'+
+      '<div><label class="fld" for="quickIngredientName">Ingredient name</label><input id="quickIngredientName" data-quick-field="name" value="'+escapeHtml(quickIngredientDraft.name)+'"></div>'+
+      '<div><label class="fld">Category</label><select data-quick-field="categoryId" aria-label="New ingredient category">'+categoryOptions(quickIngredientDraft.categoryId)+'</select></div>'+
+      '<div><label class="fld">Quantity bought</label><input data-quick-field="purchaseQty" aria-label="New ingredient quantity bought" type="number" min="0" step="any" value="'+escapeHtml(quickIngredientDraft.purchaseQty)+'"></div>'+
+      '<div><label class="fld">Amount in each</label><div class="row"><input data-quick-field="amountPerItem" aria-label="Amount in each purchased item" type="number" min="0" step="any" value="'+escapeHtml(quickIngredientDraft.amountPerItem)+'"><select data-quick-field="unit" aria-label="New ingredient unit" style="width:95px">'+optionList(unitOptions,quickIngredientDraft.unit)+'</select></div></div>'+
+      '<div><label class="fld">Total price (&#8369;)</label><input data-quick-field="price" aria-label="New ingredient total price" type="number" min="0" step="any" value="'+escapeHtml(quickIngredientDraft.price)+'"></div></div>'+
+      '<div id="quickIngredientError" class="modal-error" aria-live="assertive"></div><div class="row"><button class="btn small secondary" data-act="cancelQuickIngredient">Cancel</button><button class="btn small" data-act="addQuickIngredient">Add to mixture</button></div></div>';
+  }
+  var info=draftMixtureInfo();
+  content.innerHTML='<div class="modal-head"><div style="flex:1"><h2 id="mixtureModalTitle">'+(mixtureReadOnly?'Mixture details':(getById(state.ingredients,mixtureDraft.id)?'Edit combined cost':'Add combined cost'))+'</h2><p class="hint">Use the actual finished amount after mixing; this captures expansion, waste, and losses.</p></div><button class="modal-close" data-act="closeMixtureModal" aria-label="Close mixture dialog">x</button></div>'+
+    '<div class="grid2"><div><label class="fld" for="mixtureName">Mixture name</label><input id="mixtureName" data-mix-root="name" value="'+escapeHtml(mixtureDraft.name)+'" placeholder="e.g. Sea Salt Whipped Cream"'+disabled+'></div><div><label class="fld">Category</label><select data-mix-root="categoryId" aria-label="Mixture category"'+disabled+'>'+categoryOptions(mixtureDraft.categoryId)+'</select></div></div>'+
+    '<h2 style="font-size:15px;margin-top:16px">Items used in one batch</h2><div class="component-grid head"><span>Ingredient or mixture</span><span>Quantity</span><span>Unit</span><span style="text-align:right">Cost</span><span></span></div>'+
+    (rows||'<p class="empty">No items added yet.</p>')+
+    (mixtureReadOnly?'':'<div class="row" style="margin-top:8px"><button class="btn small secondary" data-act="addMixtureComponent">+ Add item</button><button class="btn small secondary" data-act="beginQuickIngredient">+ New purchased ingredient</button></div>')+quick+
+    '<div class="grid2" style="margin-top:16px"><div><label class="fld">Actual finished batch yield</label><input data-mix-root="batchYield" aria-label="Actual finished batch yield" type="number" min="0" step="any" value="'+escapeHtml(mixtureDraft.batchYield)+'"'+disabled+'></div><div><label class="fld">Finished yield unit</label><select data-mix-root="unit" aria-label="Finished yield unit"'+disabled+'>'+optionList(unitOptions,mixtureDraft.unit)+'</select></div></div>'+
+    '<div class="mixture-totals"><div class="metric"><div class="lbl">Total batch cost</div><div class="val" id="mixtureBatchCost">'+peso(info.batchCost)+'</div></div><div class="metric"><div class="lbl">Cost per '+ingredientBaseUnit(mixtureDraft)+'</div><div class="val" id="mixtureUnitCost">'+peso(info.costPerBase)+'</div></div></div>'+
+    '<div id="mixtureError" class="modal-error" aria-live="assertive">'+(!info.valid&&mixtureDraft.components.length?escapeHtml(info.error):'')+'</div>'+
+    '<div class="modal-actions">'+(mixtureReadOnly?'<button id="closeMixtureButton" class="btn secondary" data-act="closeMixtureModal">Close</button><button class="btn" data-act="enableMixtureEdit">Edit mixture</button>':'<button class="btn secondary" data-act="closeMixtureModal">Cancel</button><button class="btn" data-act="saveMixture">Save combined cost</button>')+'</div>';
+}
+function refreshMixtureTotals(){
+  if(!mixtureDraft) return;
+  var rows=document.querySelectorAll('#mixtureModal [data-mix-index]');
+  rows.forEach(function(row){var idx=parseInt(row.dataset.mixIndex,10), cost=row.querySelector('.component-cost');if(cost)cost.textContent=peso(mixtureComponentCost(mixtureDraft.components[idx]));});
+  var info=draftMixtureInfo(), batch=document.getElementById('mixtureBatchCost'), unit=document.getElementById('mixtureUnitCost');
+  if(batch)batch.textContent=peso(info.batchCost); if(unit)unit.textContent=peso(info.costPerBase);
+  var err=document.getElementById('mixtureError'); if(err)err.textContent=(!info.valid&&mixtureDraft.components.length)?info.error:'';
+}
+function quickIngredientError(){
+  var q=quickIngredientDraft, name=String(q&&q.name||'').trim();
+  if(!name) return 'Enter the purchased ingredient name.';
+  var all=state.ingredients.concat(mixtureDraft.pendingIngredients||[]);
+  if(all.some(function(x){return x.name&&x.name.trim().toLowerCase()===name.toLowerCase();})) return 'An ingredient with that name already exists.';
+  if(!(num(q.purchaseQty)>0)||!(num(q.amountPerItem)>0)) return 'Enter a quantity bought and the amount in each.';
+  if(q.price===''||q.price==null||num(q.price)<0) return 'Enter the total purchase price. Use 0 only when it is genuinely free.';
+  return '';
+}
+function addQuickIngredient(){
+  var error=quickIngredientError(), box=document.getElementById('quickIngredientError'); if(error){if(box)box.textContent=error;return false;}
+  quickIngredientDraft.name=quickIngredientDraft.name.trim();
+  mixtureDraft.pendingIngredients.push(Object.assign({},quickIngredientDraft));
+  mixtureDraft.components.push({ingredientId:quickIngredientDraft.id,qty:'',unit:TYPE_UNITS[UNIT_TYPE[quickIngredientDraft.unit]][0]});
+  quickIngredientDraft=null; renderMixtureModal(); focusLastMixtureField('qty'); return true;
+}
+function mixtureValidationError(){
+  var name=String(mixtureDraft.name||'').trim(); if(!name) return 'Enter a mixture name.';
+  var pending=mixtureDraft.pendingIngredients||[], all=state.ingredients.concat(pending);
+  if(all.some(function(x){return x.id!==mixtureDraft.id&&x.name&&x.name.trim().toLowerCase()===name.toLowerCase();})) return 'An ingredient or mixture with that name already exists.';
+  if(!(toBase(mixtureDraft.batchYield,mixtureDraft.unit)>0)) return 'Enter the actual finished batch yield.';
+  if(!mixtureDraft.components.length) return 'Add at least one item to the mixture.';
+  var seen={};
+  for(var i=0;i<mixtureDraft.components.length;i++){
+    var c=mixtureDraft.components[i], source=draftIngredientLookup(c.ingredientId);
+    if(!source) return 'Choose an ingredient for every item row.';
+    if(seen[c.ingredientId]) return 'The same item is listed twice. Combine it into one row.'; seen[c.ingredientId]=true;
+    if(UNIT_TYPE[c.unit]!==UNIT_TYPE[source.unit]) return 'The unit for "'+(source.name||'item')+'" is incompatible.';
+    if(!(toBase(c.qty,c.unit)>0)) return 'Enter an amount used for "'+(source.name||'item')+'".';
+    var componentInfo=ingredientCostInfo(source,[],draftIngredientLookup); if(!componentInfo.valid) return (source.name||'Item')+': '+componentInfo.error;
+  }
+  var original=getById(state.ingredients,mixtureDraft.id);
+  if(original&&UNIT_TYPE[original.unit]!==UNIT_TYPE[mixtureDraft.unit]){
+    var uses=ingredientUsage(mixtureDraft.id); if(uses.length) return 'Remove this mixture from '+uses.join(', ')+' before changing its yield type.';
+  }
+  var info=draftMixtureInfo(); return info.valid?'':info.error;
+}
+function saveMixture(){
+  consumePendingRemoteForCommit();
+  if(mixtureDraft.categoryId&&!getById(state.ingredientCategories,mixtureDraft.categoryId))mixtureDraft.categoryId='';
+  (mixtureDraft.pendingIngredients||[]).forEach(function(x){if(x.categoryId&&!getById(state.ingredientCategories,x.categoryId))x.categoryId='';});
+  if(mixtureOriginalExisting&&!getById(state.ingredients,mixtureDraft.id)){
+    var missingBox=document.getElementById('mixtureError'); if(missingBox)missingBox.textContent='This mixture was deleted on another device. Close this window and try again.'; return false;
+  }
+  var error=mixtureValidationError(), box=document.getElementById('mixtureError'); if(error){if(box)box.textContent=error;return false;}
+  var referenced={}; mixtureDraft.components.forEach(function(c){referenced[c.ingredientId]=true;});
+  (mixtureDraft.pendingIngredients||[]).forEach(function(x){if(referenced[x.id])state.ingredients.push(Object.assign({},x));});
+  var saved=Object.assign({},mixtureDraft); delete saved.pendingIngredients; saved.name=saved.name.trim();
+  saved.components=(saved.components||[]).map(function(c){return {ingredientId:c.ingredientId,qty:c.qty,unit:c.unit};});
+  var idx=state.ingredients.findIndex(function(x){return x.id===saved.id;}); if(idx>=0)state.ingredients[idx]=saved;else state.ingredients.push(saved);
+  ingredientUi.category=saved.categoryId||'uncategorized'; ingredientUi.search=''; logChanges(); save(); closeMixtureModal(true); renderAll(); focusSoon('[data-act="openMixtureModal"]'); return true;
+}
 function renderAll(){ renderIngredients(); renderPackaging(); renderRecipes(); renderProducts(); }
 
 /* ---------- events ---------- */
@@ -653,16 +1197,51 @@ document.querySelector('nav').addEventListener('click', function(e){
   if(b.dataset.tab==='history') loadHistory();
 });
 
+document.body.addEventListener('input', function(e){
+  var el=e.target;
+  if(el.id==='ingredientSearch'){ingredientUi.search=el.value||'';renderIngredients();return;}
+  if(!mixtureDraft) return;
+  if(el.dataset.mixRoot){mixtureDraft[el.dataset.mixRoot]=el.value;refreshMixtureTotals();return;}
+  if(el.dataset.mixField){
+    var row=el.closest('[data-mix-index]'), c=row&&mixtureDraft.components[parseInt(row.dataset.mixIndex,10)];
+    if(c){c[el.dataset.mixField]=el.value;refreshMixtureTotals();} return;
+  }
+  if(el.dataset.quickField&&quickIngredientDraft){quickIngredientDraft[el.dataset.quickField]=el.value;return;}
+});
+
 document.body.addEventListener('change', function(e){
   var el=e.target;
   if(el.id==='histDate'){ loadHistory(); return; }
+  if(mixtureDraft&&el.dataset.mixRoot){
+    mixtureDraft[el.dataset.mixRoot]=el.value;
+    if(el.dataset.mixRoot==='unit'){renderMixtureModal();focusSoon('#mixtureModal [data-mix-root="unit"]');}else refreshMixtureTotals(); return;
+  }
+  if(mixtureDraft&&el.dataset.mixField){
+    var mixRow=el.closest('[data-mix-index]'), mixLine=mixRow&&mixtureDraft.components[parseInt(mixRow.dataset.mixIndex,10)];
+    if(mixLine){
+      mixLine[el.dataset.mixField]=el.value;
+      if(el.dataset.mixField==='ingredientId'){
+        var picked=draftIngredientLookup(el.value),mixIndex=mixRow.dataset.mixIndex; if(picked)mixLine.unit=TYPE_UNITS[UNIT_TYPE[picked.unit]][0]; renderMixtureModal(); focusSoon('#mixtureModal [data-mix-index="'+mixIndex+'"] [data-mix-field="qty"]');
+      }else refreshMixtureTotals();
+    } return;
+  }
+  if(quickIngredientDraft&&el.dataset.quickField){quickIngredientDraft[el.dataset.quickField]=el.value;return;}
   if(!el.dataset.field){ handleFileImport(e); return; }
   var row=el.closest('[data-entity]'); if(!row) return;
-  var entity=row.dataset.entity, id=row.dataset.id, field=el.dataset.field, val=el.value, idx=row.dataset.idx;
-  if(entity==='ingredient'){ var ing=getById(state.ingredients,id); if(ing){ ing[field]=val; } }
+  var entity=row.dataset.entity, id=row.dataset.id, field=el.dataset.field, val=el.value, idx=row.dataset.idx, lineId=row.dataset.lineId;
+  consumePendingRemoteForCommit(false);
+  if(entity==='ingredient'){
+    var ing=getById(state.ingredients,id);
+    if(ing){
+      if(field==='unit'&&UNIT_TYPE[ing.unit]!==UNIT_TYPE[val]){
+        var uses=ingredientUsage(id); if(uses.length){alert('Remove this ingredient from '+uses.join(', ')+' before changing between weight, volume, or pieces.');renderAll();return;}
+      }
+      ing[field]=val;
+    }
+  }
   else if(entity==='packaging'){ var pk=getById(state.packaging,id); if(pk){ pk[field]=val; } }
   else if(entity==='recipe'){ var r=getById(state.recipes,id); if(r){ r[field]=val; } }
-  else if(entity==='recipeLine'){ var r2=getById(state.recipes,id); if(r2){ var ln=r2.lines[idx]; if(ln){ ln[field]=val; if(field==='ingredientId'){ var ig=getById(state.ingredients,val); if(ig) ln.unit=TYPE_UNITS[UNIT_TYPE[ig.unit]][0]; } } } }
+  else if(entity==='recipeLine'){ var r2=getById(state.recipes,id); if(r2){ var ln=lineId?getById(r2.lines,lineId):r2.lines[idx]; if(!ln){alert('That recipe row changed on another device. Please try again.');renderAll();return;} ln[field]=val; if(field==='ingredientId'){ var ig=getById(state.ingredients,val); if(ig) ln.unit=TYPE_UNITS[UNIT_TYPE[ig.unit]][0]; } } }
   else if(entity==='product'){
     var p=getById(state.products,id);
     if(p){
@@ -676,32 +1255,65 @@ document.body.addEventListener('change', function(e){
       p[field]=val;
     }
   }
-  else if(entity==='packLine'){ var p2=getById(state.products,id); if(p2){ var pl=p2.packLines[idx]; if(pl){ pl[field]=val; } } }
+  else if(entity==='packLine'){ var p2=getById(state.products,id); if(p2){ var pl=lineId?getById(p2.packLines,lineId):p2.packLines[idx]; if(!pl){alert('That packaging row changed on another device. Please try again.');renderAll();return;} pl[field]=val; } }
   logChanges(); save(); renderAll();
 });
 
 document.body.addEventListener('click', function(e){
   var b=e.target.closest('[data-act]'); if(!b) return;
   if(b.tagName==='A') e.preventDefault();
-  var act=b.dataset.act, id=b.dataset.id, idx=b.dataset.idx;
+  var act=b.dataset.act, id=b.dataset.id, idx=b.dataset.idx, lineId=b.dataset.lineId;
+  if(['deleteCategory','addIngredient','delIngredient','addPackaging','delPackaging','addRecipe','delRecipe','addLine','delLine','addProduct','delProduct','addPkgLine','delPkgLine','useSuggested','loadExample','clearAll'].indexOf(act)>=0)consumePendingRemoteForCommit(false);
   switch(act){
-    case 'addIngredient': state.ingredients.push({id:uid(),name:'',purchaseQty:'',amountPerItem:'',unit:'g',price:''}); break;
-    case 'delIngredient': state.ingredients=state.ingredients.filter(function(x){return x.id!==id;}); break;
+    case 'setIngredientCategory': ingredientUi.category=id; renderIngredients(); return;
+    case 'openCategoryModal': openCategoryModal(''); return;
+    case 'editCategory': openCategoryModal(id); return;
+    case 'closeCategoryModal': closeCategoryModal(false); return;
+    case 'saveCategory': saveCategory(); return;
+    case 'deleteCategory': deleteCategory(id); return;
+    case 'openMixtureModal': openMixtureModal('',false); return;
+    case 'editMixture': openMixtureModal(id,false); return;
+    case 'viewMixture': openMixtureModal(id,true); return;
+    case 'closeMixtureModal': closeMixtureModal(false); return;
+    case 'enableMixtureEdit': mixtureReadOnly=false; renderMixtureModal(); focusSoon('#mixtureName'); return;
+    case 'addMixtureComponent': mixtureDraft.components.push({ingredientId:'',qty:'',unit:'g'}); renderMixtureModal(); focusLastMixtureField('ingredientId'); return;
+    case 'removeMixtureComponent': {var nextIndex=Math.max(0,parseInt(idx,10)-1);mixtureDraft.components.splice(parseInt(idx,10),1);renderMixtureModal();focusSoon(mixtureDraft.components.length?'#mixtureModal [data-mix-index="'+Math.min(nextIndex,mixtureDraft.components.length-1)+'"] [data-mix-field="ingredientId"]':'#mixtureModal [data-act="addMixtureComponent"]');return;}
+    case 'beginQuickIngredient': beginQuickIngredient(); return;
+    case 'cancelQuickIngredient': quickIngredientDraft=null; renderMixtureModal(); focusSoon('#mixtureModal [data-act="beginQuickIngredient"]'); return;
+    case 'addQuickIngredient': addQuickIngredient(); return;
+    case 'saveMixture': saveMixture(); return;
+    case 'addIngredient': {
+      var selected=selectedRealCategory();
+      ingredientUi.search='';
+      state.ingredients.push({id:uid(),kind:'purchased',categoryId:selected?selected.id:'',name:'',purchaseQty:'',amountPerItem:'',unit:'g',price:''}); break;
+    }
+    case 'delIngredient': {
+      var target=getById(state.ingredients,id), usedBy=ingredientUsage(id);
+      if(usedBy.length){alert('Cannot delete "'+(target&&target.name||'this item')+'" because it is used by '+usedBy.join(', ')+'. Remove or replace it there first.');return;}
+      if(!confirm('Delete "'+(target&&target.name||'this ingredient')+'"?'))return;
+      state.ingredients=state.ingredients.filter(function(x){return x.id!==id;}); break;
+    }
     case 'addPackaging': state.packaging.push({id:uid(),name:'',qty:'',price:''}); break;
-    case 'delPackaging': state.packaging=state.packaging.filter(function(x){return x.id!==id;}); break;
+    case 'delPackaging': {
+      var packagingUses=packagingUsage(id); if(packagingUses.length){alert('Cannot delete this packaging because it is used by '+packagingUses.join(', ')+'. Remove or replace it there first.');return;}
+      state.packaging=state.packaging.filter(function(x){return x.id!==id;}); break;
+    }
     case 'addRecipe': state.recipes.push({id:uid(),name:'',yield:'',lines:[]}); break;
-    case 'delRecipe': if(confirm('Delete this recipe?')) state.recipes=state.recipes.filter(function(x){return x.id!==id;}); else return; break;
-    case 'addLine': { var r=getById(state.recipes,id); if(r) r.lines.push({ingredientId:'',qty:'',unit:'g'}); break; }
-    case 'delLine': { var r2=getById(state.recipes,id); if(r2) r2.lines.splice(idx,1); break; }
+    case 'delRecipe': {
+      var recipeUses=recipeUsage(id); if(recipeUses.length){alert('Cannot delete this recipe because it is used by '+recipeUses.join(', ')+'. Change that product first.');return;}
+      if(confirm('Delete this recipe?'))state.recipes=state.recipes.filter(function(x){return x.id!==id;});else return; break;
+    }
+    case 'addLine': { var r=getById(state.recipes,id); if(r) r.lines.push({id:uid(),ingredientId:'',qty:'',unit:'g'}); break; }
+    case 'delLine': { var r2=getById(state.recipes,id); if(r2) r2.lines=r2.lines.filter(function(x,i){return lineId?x.id!==lineId:i!==parseInt(idx,10);}); break; }
     case 'addProduct': state.products.push({id:uid(),name:'',recipeId:'',packLines:[],targetMargin:60,price:''}); break;
     case 'delProduct': if(confirm('Delete this product?')) state.products=state.products.filter(function(x){return x.id!==id;}); else return; break;
-    case 'addPkgLine': { var p=getById(state.products,id); if(p) p.packLines.push({packagingId:'',qty:1}); break; }
-    case 'delPkgLine': { var p2=getById(state.products,id); if(p2) p2.packLines.splice(idx,1); break; }
+    case 'addPkgLine': { var p=getById(state.products,id); if(p) p.packLines.push({id:uid(),packagingId:'',qty:1}); break; }
+    case 'delPkgLine': { var p2=getById(state.products,id); if(p2) p2.packLines=p2.packLines.filter(function(x,i){return lineId?x.id!==lineId:i!==parseInt(idx,10);}); break; }
     case 'useSuggested': { var p3=getById(state.products,id); if(p3){ var c=productCost(p3); var s=suggestedPrice(c,p3.targetMargin); if(isFinite(s)) p3.price=ceilTo(s,5); } break; }
     case 'export': exportData(); return;
     case 'importTrigger': document.getElementById('importFile').click(); return;
-    case 'loadExample': if(confirm('Load example data? This replaces what you have now.')){ state=exampleData(); logCoarse('Loaded example data'); } else return; break;
-    case 'clearAll': if(confirm('Erase ALL data? Export a backup first if unsure.')){ state=blank(); logCoarse('Cleared all data'); } else return; break;
+    case 'loadExample': if(confirm('Load example data? This replaces what you have now.')){ state=exampleData(); ingredientUi={search:'',category:'all'}; logCoarse('Loaded example data'); } else return; break;
+    case 'clearAll': if(confirm('Erase ALL data? Export a backup first if unsure.')){ state=blank(); ingredientUi={search:'',category:'all'}; logCoarse('Cleared all data'); } else return; break;
     case 'doLogin': doLogin(); return;
     case 'toggleAuthMode': toggleAuthMode(); return;
     case 'openLogin': openLogin(); return;
@@ -715,11 +1327,19 @@ document.body.addEventListener('click', function(e){
   logChanges(); save(); renderAll();
 });
 
+document.body.addEventListener('click', function(e){
+  if(e.target&&e.target.id==='categoryModal') closeCategoryModal(false);
+  if(e.target&&e.target.id==='mixtureModal') closeMixtureModal(false);
+});
+
 /* reload from cloud when returning to the tab (picks up partner's edits) */
 /* safety net: also refresh when returning to the tab, in case a live update was missed */
 window.addEventListener('focus', function(){
-  if(cloud.connected && !pendingSave){ cloudLoad().then(maybeApplyRemote).catch(function(){}); }
+  if(!cloud.connected||pendingSave)return;
+  if(localDirty){retryDirtySave();return;}
+  cloudLoad().then(maybeApplyRemote).catch(function(){});
 });
+window.addEventListener('online',retryDirtySave);
 /* if a partner update arrived while typing, apply it once they leave the field */
 document.body.addEventListener('focusout', function(){
   if(!pendingRemote) return;
@@ -727,8 +1347,18 @@ document.body.addEventListener('focusout', function(){
 });
 /* press Enter in the login form to submit it */
 document.body.addEventListener('keydown', function(e){
+  if(e.key==='Escape'){
+    if(mixtureModalOpen){e.preventDefault();closeMixtureModal(false);return;}
+    if(categoryModalOpen){e.preventDefault();closeCategoryModal(false);return;}
+  }
+  if(e.key==='Tab'&&(mixtureModalOpen||categoryModalOpen)){
+    var modal=document.querySelector((mixtureModalOpen?'#mixtureModal':'#categoryModal')+' .modal');
+    var focusable=modal?Array.from(modal.querySelectorAll('button:not([disabled]),input:not([disabled]),select:not([disabled])')):[];
+    if(focusable.length){var first=focusable[0],last=focusable[focusable.length-1];if(!modal.contains(document.activeElement)){e.preventDefault();(e.shiftKey?last:first).focus();}else if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}}
+  }
   if(e.key!=='Enter') return;
   var id=e.target && e.target.id;
+  if(categoryModalOpen&&id==='categoryName'){e.preventDefault();saveCategory();return;}
   if(id==='authEmail' || id==='authPass'){ e.preventDefault(); doLogin(); }
 });
 
@@ -742,8 +1372,8 @@ function handleFileImport(e){
   var f=e.target.files[0]; if(!f) return;
   var reader=new FileReader();
   reader.onload=function(){
-    try{ var data=JSON.parse(reader.result); if(!data.ingredients) throw new Error('not a Scoopies backup');
-      state=data; logCoarse('Imported a backup file'); save(); renderAll(); alert('Backup imported successfully.'); }
+    try{ var data=JSON.parse(reader.result); if(!data||!Array.isArray(data.ingredients)) throw new Error('not a Scoopies backup');
+      state=normalizeState(data); ingredientUi={search:'',category:'all'}; logCoarse('Imported a backup file'); save(); renderAll(); alert('Backup imported successfully.'); }
     catch(err){ alert('Could not read that file: '+err.message); }
     e.target.value='';
   };
@@ -752,19 +1382,20 @@ function handleFileImport(e){
 
 /* ---------- example data ---------- */
 function exampleData(){
-  var flour={id:uid(),name:'Flour',qty:1000,unit:'g',price:80};
-  var butter={id:uid(),name:'Butter',qty:500,unit:'g',price:250};
-  var sugar={id:uid(),name:'Sugar',qty:1000,unit:'g',price:60};
-  var chips={id:uid(),name:'Chocolate chips',qty:250,unit:'g',price:120};
+  var baking={id:uid(),name:'Baking ingredients'};
+  var flour={id:uid(),kind:'purchased',categoryId:baking.id,name:'Flour',qty:1000,unit:'g',price:80};
+  var butter={id:uid(),kind:'purchased',categoryId:baking.id,name:'Butter',qty:500,unit:'g',price:250};
+  var sugar={id:uid(),kind:'purchased',categoryId:baking.id,name:'Sugar',qty:1000,unit:'g',price:60};
+  var chips={id:uid(),kind:'purchased',categoryId:baking.id,name:'Chocolate chips',qty:250,unit:'g',price:120};
   var cup={id:uid(),name:'Container',qty:50,price:250};
   var sticker={id:uid(),name:'Sticker',qty:100,price:200};
   var spoon={id:uid(),name:'Spoon',qty:100,price:100};
   var recipe={id:uid(),name:'Chocolate Cookie',yield:10,lines:[
-    {ingredientId:flour.id,qty:300,unit:'g'},{ingredientId:butter.id,qty:100,unit:'g'},
-    {ingredientId:sugar.id,qty:150,unit:'g'},{ingredientId:chips.id,qty:100,unit:'g'}]};
+    {id:uid(),ingredientId:flour.id,qty:300,unit:'g'},{id:uid(),ingredientId:butter.id,qty:100,unit:'g'},
+    {id:uid(),ingredientId:sugar.id,qty:150,unit:'g'},{id:uid(),ingredientId:chips.id,qty:100,unit:'g'}]};
   var product={id:uid(),name:'Choco Chip Scoopie',recipeId:recipe.id,targetMargin:60,price:'',packLines:[
-    {packagingId:cup.id,qty:1},{packagingId:sticker.id,qty:1},{packagingId:spoon.id,qty:1}]};
-  var s={ingredients:[flour,butter,sugar,chips],packaging:[cup,sticker,spoon],recipes:[recipe],products:[product]};
+    {id:uid(),packagingId:cup.id,qty:1},{id:uid(),packagingId:sticker.id,qty:1},{id:uid(),packagingId:spoon.id,qty:1}]};
+  var s={schemaVersion:2,ingredientCategories:[baking],ingredients:[flour,butter,sugar,chips],packaging:[cup,sticker,spoon],recipes:[recipe],products:[product]};
   state=s; var c=productCost(product); var sg=suggestedPrice(c,60); product.price=isFinite(sg)?ceilTo(sg,5):'';
   return s;
 }
