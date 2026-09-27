@@ -120,6 +120,20 @@
   .draft-meta{font-size:12px;color:var(--muted);margin-top:3px}
   .draft-actions{display:flex;gap:7px;justify-content:flex-end;flex-wrap:wrap;margin-top:10px}
   .draft-saved-note{font-size:13px;color:var(--good);min-height:19px;margin-top:8px}
+  .pos-publish-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:14px;padding:11px 12px;
+    border:1px solid var(--line);border-radius:10px;background:#fffaf3}
+  .pos-publish-copy{flex:1 1 260px;min-width:0}
+  .pos-publish-title{font-size:13px;font-weight:700;color:var(--brown)}
+  .pos-publish-detail{font-size:12px;color:var(--muted);margin-top:2px}
+  .pos-state{display:inline-block;font-size:11px;font-weight:700;border-radius:999px;padding:3px 8px;
+    margin-right:6px;background:#f3eee8;color:var(--brown2);border:1px solid var(--line)}
+  .pos-state.good{background:#e9f6ea;color:var(--good);border-color:#bfe3c1}
+  .pos-state.warn{background:#fff4dd;color:#8a5a00;border-color:#efd49b}
+  .pos-state.bad{background:#fdecea;color:var(--bad);border-color:#f0c8c2}
+  .publish-summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:12px 0}
+  .publish-summary .metric{min-width:0}
+  .publish-note{font-size:13px;background:#eef7ef;border:1px solid #c9e5cb;border-radius:10px;padding:10px 12px;color:#285e2c}
+  .btn[disabled]{cursor:not-allowed;opacity:.55}
   body.modal-open{overflow:hidden}
   @media(max-width:700px){
     .component-grid{grid-template-columns:1fr 88px 82px 38px}
@@ -139,6 +153,7 @@
     .category-tools{width:100%;margin-left:0}
     .draft-card-head{display:block}
     .draft-actions .btn{flex:1 1 auto}
+    .publish-summary{grid-template-columns:1fr}
   }
   @media(max-width:480px){
     .component-grid{grid-template-columns:minmax(0,1fr) 82px 44px}
@@ -346,6 +361,12 @@ create policy "auth update" on scoopies_state for update to authenticated using 
   </div>
 </div>
 
+<div id="publishModal" class="modal-backdrop" hidden>
+  <div class="modal small" role="dialog" aria-modal="true" aria-labelledby="publishModalTitle">
+    <div id="publishModalContent"></div>
+  </div>
+</div>
+
 <script>
 /* ---------- units & money ---------- */
 var UNIT_FACTOR = {g:1, kg:1000, ml:1, l:1000, piece:1};
@@ -382,7 +403,7 @@ var DEFAULT_URL = 'https://zdhybtctoxosjddzbfzp.supabase.co';
 var DEFAULT_KEY = 'sb_publishable_0doOTYpX9SKPHNHSSHLYRg_g2lJCsAj';
 var state = loadLocal();
 var cloud = { url:'', key:'', client:null, connected:false, channel:null };
-var session = null, currentUserId = null, offlineMode = false, authMode = 'login';
+var session = null, currentUserId = null, offlineMode = false, authMode = 'login', costingCloudReady = false, costingLoadGeneration = 0, costingCloudLoading = false;
 var pendingSave = false, saveTimer = null, pendingRemote = null, saveVersion = 0, retryingDirty = false;
 var localDirty = loadLocalDirty(), syncedState = loadSyncedLocal();
 var lastState = null;  /* baseline snapshot for the activity-log diff */
@@ -392,6 +413,9 @@ var categoryModalOpen = false, categoryEditId = '', modalReturnFocus = null;
 var mixtureModalOpen = false, mixtureDraft = null, mixtureReadOnly = false, quickIngredientDraft = null, mixtureOriginalExisting = false;
 var draftsModalOpen = false, activeMixtureDraftId = '', mixtureInitialSnapshot = null;
 var mixtureSourceId = '', mixtureSourceSnapshot = null, openedMixtureDraftUpdatedAt = '', openedMixtureDraftFingerprint = '', mixtureDraftNotice = '';
+var posContext = { loaded:false, loading:false, businessId:'', businessName:'', role:'', publications:{}, error:'' };
+var posLoadGeneration = 0, posStatusGeneration = 0;
+var publishModalOpen = false, publishProductId = '', publishSnapshot = null, publishSubmitting = false, publishError = '', publishNotice = '';
 
 function blank(){ return {schemaVersion:3, ingredientCategories:[], ingredients:[], mixtureDrafts:[], packaging:[], recipes:[], products:[]}; }
 function normalizeState(raw){
@@ -607,7 +631,7 @@ async function cloudSave(s){
 }
 function hasData(s){ return !!(s && ((s.ingredientCategories&&s.ingredientCategories.length)||(s.ingredients&&s.ingredients.length)||(s.mixtureDrafts&&s.mixtureDrafts.length)||(s.packaging&&s.packaging.length)||(s.recipes&&s.recipes.length)||(s.products&&s.products.length))); }
 function appIsEditing(){
-  if(categoryModalOpen||mixtureModalOpen||draftsModalOpen) return true;
+  if(categoryModalOpen||mixtureModalOpen||draftsModalOpen||publishModalOpen) return true;
   var ae=document.activeElement;
   return !!(ae && (ae.tagName==='INPUT'||ae.tagName==='SELECT'||ae.tagName==='TEXTAREA') && ae.closest && ae.closest('.wrap'));
 }
@@ -754,11 +778,16 @@ async function handleAuth(sess){
   if(session){
     offlineMode = false; showGate(false); cloud.connected = true;
     if(session.user && session.user.id !== currentUserId){   /* first sign-in for this user → load data once */
+      resetPosContext('');
+      costingCloudReady = false;
+      costingCloudLoading = true;
       currentUserId = session.user.id;
+      var costingGeneration=++costingLoadGeneration,costingUserId=String(session.user.id||'');
       setStatus('Connecting…','');
       try{
         try{ cloud.client.realtime.setAuth(session.access_token); }catch(e){}
         var remote = await cloudLoad();
+        if(!costingRequestIsCurrent(costingGeneration,costingUserId))return;
         if(remote!==null){
           if(localDirty){
             state=mergeStates(syncedState||blank(),state,remote); rememberSynced(remote,false);
@@ -766,17 +795,27 @@ async function handleAuth(sess){
             state=remote; rememberSynced(remote,true);
           }
         }else{
-          await cloudSave(state); rememberSynced(state,true);
+          await cloudSave(state);
+          if(!costingRequestIsCurrent(costingGeneration,costingUserId))return;
+          rememberSynced(state,true);
         }
+        costingCloudReady = true;costingCloudLoading=false;
         try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){}
         lastState = snapshot(state);
         renderAll();
         if(localDirty)save();else setStatus('Saved to cloud ✓','good');
-      }catch(e){ setStatus('Signed in — cloud read failed','bad'); }
+      }catch(e){
+        if(!costingRequestIsCurrent(costingGeneration,costingUserId))return;
+        costingCloudReady=false;costingCloudLoading=false;setStatus('Signed in — cloud read failed','bad');
+      }
+      if(!costingRequestIsCurrent(costingGeneration,costingUserId))return;
       subscribeRealtime();
     }
+    if(!posContext.loaded&&!posContext.loading)await loadPosContext();
   } else {
-    cloud.connected = false; currentUserId = null;
+    cloud.connected = false; currentUserId = null; costingCloudReady=false;costingCloudLoading=false;costingLoadGeneration++;
+    if(publishModalOpen){publishSubmitting=false;closePublishProductModal();}
+    resetPosContext('');
     if(cloud.client && !offlineMode){ showGate(true); setStatus('Sign in to sync','bad'); }
     else { setStatus('Saved on device',''); }
   }
@@ -802,7 +841,7 @@ async function doLogin(){
 }
 function toggleAuthMode(){ authMode = (authMode==='login') ? 'signup' : 'login'; renderGate(); }
 function openLogin(){ offlineMode=false; authMode='login'; renderGate(); showGate(true); }
-function goOffline(){ offlineMode=true; showGate(false); setStatus('Saved on device',''); renderAll(); renderAccount(); }
+function goOffline(){ offlineMode=true; cloud.connected=false; currentUserId=null; costingCloudReady=false;costingCloudLoading=false;costingLoadGeneration++; resetPosContext('Connect to the cloud before publishing to POS.'); showGate(false); setStatus('Saved on device',''); renderAll(); renderAccount(); }
 async function doLogout(){
   try{ if(cloud.channel){ cloud.client.removeChannel(cloud.channel); cloud.channel=null; } }catch(e){}
   try{ await cloud.client.auth.signOut(); }catch(e){}
@@ -910,6 +949,431 @@ function packagingUsage(id){
 }
 function recipeUsage(id){
   return state.products.filter(function(p){return p.recipeId===id;}).map(function(p){return 'product "'+(p.name||'untitled')+'"';});
+}
+function moneyToCentavos(value){
+  var n=typeof value==='number'?value:parseFloat(value);
+  return isFinite(n)?Math.round(n*100+1e-7):NaN;
+}
+function snapshotNumber(value){
+  var n=typeof value==='number'?value:parseFloat(value);
+  return isFinite(n)?n:null;
+}
+function publicationIngredientRecord(ing){
+  if(isMixture(ing)){
+    return {
+      id:String(ing.id||''), kind:'mixture', name:String(ing.name||''),
+      batchYield:snapshotNumber(ing.batchYield), unit:String(ing.unit||''),
+      components:(ing.components||[]).map(function(c){return {
+        ingredientId:String(c.ingredientId||''), qty:snapshotNumber(c.qty), unit:String(c.unit||'')
+      };})
+    };
+  }
+  return {
+    id:String(ing.id||''), kind:'purchased', name:String(ing.name||''),
+    purchaseQty:snapshotNumber(ing.purchaseQty!=null?ing.purchaseQty:1),
+    amountPerItem:snapshotNumber(ing.amountPerItem!=null?ing.amountPerItem:ing.qty),
+    unit:String(ing.unit||''), price:snapshotNumber(ing.price)
+  };
+}
+function collectPublicationIngredient(id, found, visiting){
+  if(found[id]||visiting[id])return;
+  var ing=getById(state.ingredients,id); if(!ing)return;
+  visiting[id]=true;
+  if(isMixture(ing))(ing.components||[]).forEach(function(c){collectPublicationIngredient(c.ingredientId,found,visiting);});
+  delete visiting[id]; found[id]=publicationIngredientRecord(ing);
+}
+function buildProductCostingSnapshot(p,size){
+  var recipe=getById(state.recipes,p&&p.recipeId);
+  var ingredientCost=recipe?recipePerServing(recipe):NaN;
+  var packagingCost=productPackagingCost(p||{packLines:[]});
+  var sellingPriceCentavos=moneyToCentavos(p&&p.price);
+  var ingredientCostCentavos=moneyToCentavos(ingredientCost);
+  var packagingCostCentavos=moneyToCentavos(packagingCost);
+  var found={};
+  if(recipe)(recipe.lines||[]).forEach(function(line){collectPublicationIngredient(line.ingredientId,found,{});});
+  var packagingIds={};
+  (p&&p.packLines||[]).forEach(function(line){if(line.packagingId)packagingIds[line.packagingId]=true;});
+  var ingredients=Object.keys(found).sort().map(function(id){return found[id];});
+  var packages=Object.keys(packagingIds).sort().map(function(id){
+    var item=getById(state.packaging,id);
+    return item?{id:String(item.id||''),name:String(item.name||''),qty:snapshotNumber(item.qty),price:snapshotNumber(item.price)}:null;
+  }).filter(Boolean);
+  var normalizedSize=String(size||'').trim();
+  var snapshotData={
+    schemaVersion:1,
+    sourceProductId:String(p&&p.id||''),
+    sourceRecipeId:String(p&&p.recipeId||''),
+    name:String(p&&p.name||'').trim(),
+    size:normalizedSize||null,
+    sellingPriceCentavos:sellingPriceCentavos,
+    ingredientCostCentavos:ingredientCostCentavos,
+    packagingCostCentavos:packagingCostCentavos,
+    recipe:recipe?{
+      id:String(recipe.id||''),name:String(recipe.name||''),yield:snapshotNumber(recipe.yield),
+      lines:(recipe.lines||[]).map(function(line){return {
+        id:String(line.id||''),ingredientId:String(line.ingredientId||''),qty:snapshotNumber(line.qty),unit:String(line.unit||'')
+      };})
+    }:null,
+    ingredients:ingredients,
+    packaging:packages,
+    packagingLines:(p&&p.packLines||[]).map(function(line){return {
+      id:String(line.id||''),packagingId:String(line.packagingId||''),qty:snapshotNumber(line.qty)
+    };})
+  };
+  return {
+    snapshot:canonicalValue(snapshotData),
+    sellingPriceCentavos:sellingPriceCentavos,
+    ingredientCostCentavos:ingredientCostCentavos,
+    packagingCostCentavos:packagingCostCentavos
+  };
+}
+function validateProductForPublish(p){
+  if(!p)return {valid:false,error:'That costing product no longer exists.'};
+  var name=String(p.name||'').trim();
+  if(!name)return {valid:false,error:'Add a product name first.'};
+  if(name.length>120)return {valid:false,error:'Keep the product name under 120 characters.'};
+  if(String(p.id||'').length<1||String(p.id||'').length>200)return {valid:false,error:'This product has an invalid source ID.'};
+  if(p.price===''||p.price==null||!isFinite(parseFloat(p.price))||parseFloat(p.price)<=0)return {valid:false,error:'Enter a selling price greater than zero.'};
+  var recipe=getById(state.recipes,p.recipeId);
+  if(!recipe)return {valid:false,error:'Select a recipe first.'};
+  if(String(recipe.id||'').length<1||String(recipe.id||'').length>200)return {valid:false,error:'This recipe has an invalid source ID.'};
+  if(!(num(recipe.yield)>0))return {valid:false,error:'The recipe yield must be greater than zero.'};
+  if(!(recipe.lines||[]).length)return {valid:false,error:'Add at least one ingredient to the recipe.'};
+  for(var i=0;i<recipe.lines.length;i++){
+    var line=recipe.lines[i],ing=getById(state.ingredients,line.ingredientId);
+    if(!ing)return {valid:false,error:'A recipe ingredient is missing.'};
+    if(!(num(line.qty)>0))return {valid:false,error:'Every recipe ingredient needs a quantity greater than zero.'};
+    if(UNIT_TYPE[line.unit]!==UNIT_TYPE[ing.unit])return {valid:false,error:'A recipe ingredient uses an incompatible unit.'};
+    var info=ingredientCostInfo(ing);
+    if(!info.valid)return {valid:false,error:(ing.name||'Ingredient')+': '+info.error+'.'};
+  }
+  for(var j=0;j<(p.packLines||[]).length;j++){
+    var packLine=p.packLines[j],pack=getById(state.packaging,packLine.packagingId);
+    if(!pack)return {valid:false,error:'A packaging item is missing.'};
+    if(!(num(packLine.qty)>0))return {valid:false,error:'Every packaging item needs a quantity greater than zero.'};
+    if(!isFinite(pkgCostPerPiece(pack)))return {valid:false,error:(pack.name||'Packaging')+' needs a valid pack quantity and price.'};
+  }
+  var built=buildProductCostingSnapshot(p,'');
+  var maxCentavos=100000000000;
+  if(!Number.isSafeInteger(built.sellingPriceCentavos)||built.sellingPriceCentavos<=0||built.sellingPriceCentavos>maxCentavos)return {valid:false,error:'The selling price is outside the supported range.'};
+  if(!Number.isSafeInteger(built.ingredientCostCentavos)||built.ingredientCostCentavos<0||built.ingredientCostCentavos>maxCentavos)return {valid:false,error:'The ingredient cost is incomplete or invalid.'};
+  if(!Number.isSafeInteger(built.packagingCostCentavos)||built.packagingCostCentavos<0||built.packagingCostCentavos>maxCentavos)return {valid:false,error:'The packaging cost is incomplete or invalid.'};
+  if(built.ingredientCostCentavos+built.packagingCostCentavos>maxCentavos)return {valid:false,error:'The total cost is outside the supported range.'};
+  var serialized=JSON.stringify(built.snapshot);
+  var bytes=window.TextEncoder?new TextEncoder().encode(serialized).length:serialized.length*2;
+  if(bytes>262144)return {valid:false,error:'This costing snapshot is too large to publish safely.'};
+  return {valid:true,error:''};
+}
+function resetPosContext(message){
+  posLoadGeneration++;posStatusGeneration++;
+  posContext={loaded:!!message,loading:false,businessId:'',businessName:'',role:'',publications:{},error:message||''};
+}
+function posCanPublish(){
+  return !!(session&&cloud.connected&&costingCloudReady&&posContext.businessId&&(posContext.role==='owner'||posContext.role==='manager'));
+}
+function posFriendlyError(error){
+  if(error&&String(error.code||'')==='40001')return 'Your partner published a newer version. Close this window and review the latest POS version before trying again.';
+  if(error&&String(error.code||'')==='42501')return 'Your account does not have permission to publish POS prices.';
+  return 'Could not reach the POS database. Check your connection and try again.';
+}
+function rpcRows(result){
+  if(result&&result.error)throw result.error;
+  if(!result||result.data==null)return [];
+  return Array.isArray(result.data)?result.data:[result.data];
+}
+function posRequestIsCurrent(generation,userId,businessId){
+  return generation===posLoadGeneration&&!!session&&!!session.user&&
+    String(session.user.id||'')===String(userId||'')&&
+    (businessId==null||String(posContext.businessId||'')===String(businessId||''));
+}
+function costingRequestIsCurrent(generation,userId){
+  return generation===costingLoadGeneration&&!!session&&!!session.user&&String(session.user.id||'')===String(userId||'');
+}
+async function loadPosPublicationStatus(expectedGeneration){
+  if(!cloud.client||!session||!session.user||!posContext.businessId)return false;
+  var generation=expectedGeneration==null?posLoadGeneration:expectedGeneration;
+  var statusGeneration=++posStatusGeneration;
+  var userId=String(session.user.id||''),businessId=String(posContext.businessId||'');
+  var result=await cloud.client.rpc('pos_get_publication_status',{p_business_id:businessId});
+  var rows=rpcRows(result),publications={};
+  if(statusGeneration!==posStatusGeneration||!posRequestIsCurrent(generation,userId,businessId))return false;
+  rows.forEach(function(row){if(row&&row.source_costing_product_id)publications[String(row.source_costing_product_id)]=row;});
+  posContext.publications=publications;
+  return true;
+}
+async function loadPosContext(){
+  if(!cloud.client||!session||!session.user){resetPosContext('Sign in to publish products to the POS.');renderProducts();return false;}
+  if(posContext.loading)return false;
+  var generation=++posLoadGeneration;
+  posStatusGeneration++;
+  var userId=String(session.user.id||'');
+  posContext.loading=true;posContext.error='';renderProducts();
+  try{
+    var result=await cloud.client.rpc('pos_get_my_businesses');
+    var businesses=rpcRows(result);
+    if(!posRequestIsCurrent(generation,userId,null))return false;
+    if(!businesses.length)throw {posMessage:'Your POS workspace has not been set up yet.'};
+    if(businesses.length!==1)throw {posMessage:'More than one POS workspace was found. Workspace selection is required.'};
+    var business=businesses[0];
+    posContext.businessId=String(business.business_id||'');
+    posContext.businessName=String(business.business_name||'Scoopies');
+    posContext.role=String(business.member_role||'');
+    if(posContext.role==='owner'||posContext.role==='manager')await loadPosPublicationStatus(generation);
+    else posContext.publications={};
+    if(!posRequestIsCurrent(generation,userId,posContext.businessId))return false;
+    posContext.loaded=true;posContext.error='';
+    return true;
+  }catch(error){
+    if(!posRequestIsCurrent(generation,userId,null))return false;
+    posContext.loaded=true;posContext.businessId='';posContext.businessName='';posContext.role='';posContext.publications={};
+    posContext.error=error&&error.posMessage?error.posMessage:posFriendlyError(error);
+    return false;
+  }finally{
+    if(generation===posLoadGeneration){
+      posContext.loading=false;renderProducts();
+    }
+  }
+}
+function publicationStatusFor(p){
+  var record=posContext.publications[String(p&&p.id||'')];
+  var validation=validateProductForPublish(p);
+  if(record&&record.archived_at)return {key:'archived',label:'Archived in POS',detail:'This POS item is archived.',record:record,validation:validation};
+  if(!validation.valid)return {key:'invalid',label:'Not ready',detail:validation.error,record:record||null,validation:validation};
+  if(!record)return {key:'unpublished',label:'Not in POS',detail:'Publish when this product is ready to sell.',record:null,validation:validation};
+  var built=buildProductCostingSnapshot(p,record.size_snapshot||'');
+  var unchanged=
+    String(record.name_snapshot||'')===String(p.name||'').trim()&&
+    String(record.source_costing_recipe_id||'')===String(p.recipeId||'')&&
+    Number(record.selling_price_centavos)===built.sellingPriceCentavos&&
+    Number(record.ingredient_cost_centavos)===built.ingredientCostCentavos&&
+    Number(record.packaging_cost_centavos)===built.packagingCostCentavos&&
+    stableSerialize(record.costing_snapshot||{})===stableSerialize(built.snapshot);
+  if(unchanged){
+    var when=record.published_at?new Date(record.published_at).toLocaleString('en-PH',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}):'';
+    if(record.available===false)return {key:'unavailable',label:'Published v'+record.version_number+' · unavailable',detail:'This version is saved but hidden from the cashier menu.',record:record,validation:validation};
+    return {key:'published',label:'Published v'+record.version_number,detail:(record.category_name||'Uncategorized')+(when?' · '+when:''),record:record,validation:validation};
+  }
+  return {key:'changes',label:'Changes not published',detail:'The POS still uses version '+record.version_number+'.',record:record,validation:validation};
+}
+function posPublicationHtml(p){
+  var stateInfo=publicationStatusFor(p),badgeClass=stateInfo.key==='published'?' good':(stateInfo.key==='changes'||stateInfo.key==='unavailable'?' warn':(stateInfo.key==='invalid'||stateInfo.key==='archived'?' bad':''));
+  var readOnly=!!(posContext.businessId&&posContext.role!=='owner'&&posContext.role!=='manager');
+  var button='';
+  if(posContext.loading){
+    button='<button class="btn small secondary" disabled>Checking POS...</button>';
+  }else if(posContext.error||!posContext.businessId){
+    button=session?'<button class="btn small secondary" data-act="retryPosContext">Retry POS</button>':'<button class="btn small secondary" disabled>Sign in to publish</button>';
+  }else if(!costingCloudReady){
+    button='<button class="btn small secondary" disabled>Costing cloud unavailable</button>';
+  }else if(!posCanPublish()){
+    button='<button class="btn small secondary" disabled>Owner / manager only</button>';
+  }else if(stateInfo.key==='archived'){
+    button='<button class="btn small secondary" disabled>Archived</button>';
+  }else{
+    var disabled=stateInfo.validation.valid?'':' disabled';
+    var text=stateInfo.record?'Update POS':'Publish to POS';
+    button='<button class="btn small" data-act="openPublishModal" data-id="'+escapeHtml(p.id)+'"'+disabled+'>'+text+'</button>';
+  }
+  var label=readOnly?'POS managed by owner':(posContext.loading?'Checking POS':(posContext.error?posContext.error:stateInfo.label));
+  var detail=readOnly?'Publication details are available only to an owner or manager.':(posContext.loading?'Loading the shared menu status...':(posContext.error?'Costing still works; POS publishing is temporarily unavailable.':(!costingCloudReady?'Refresh after the costing cloud reconnects before publishing.':stateInfo.detail)));
+  var key=readOnly?'readonly':(posContext.loading?'loading':(posContext.error?'error':stateInfo.key));
+  if(readOnly)badgeClass='';
+  return '<div class="pos-publish-row" data-pos-status="'+escapeHtml(key)+'"><div class="pos-publish-copy">'+
+    '<div class="pos-publish-title"><span class="pos-state'+badgeClass+'">'+escapeHtml(label)+'</span> Shared POS menu</div>'+
+    '<div class="pos-publish-detail">'+escapeHtml(detail)+'</div></div>'+button+'</div>';
+}
+function openPublishProductModal(id){
+  if(!posCanPublish()){alert('The POS workspace is not ready, or your account cannot publish products.');return false;}
+  if(pendingRemote)consumePendingRemoteForCommit(false);
+  var p=getById(state.products,id),validation=validateProductForPublish(p);
+  if(!validation.valid){alert(validation.error);renderProducts();return false;}
+  var record=posContext.publications[String(id)]||null;
+  publishProductId=String(id);
+  publishSnapshot={
+    productId:String(id),
+    sourceFingerprint:stableSerialize(buildProductCostingSnapshot(p,'').snapshot),
+    expectedActiveVersionId:record&&record.active_version_id?String(record.active_version_id):null,
+    categoryName:String(record&&record.category_name||'Drinks'),
+    size:String(record&&record.size_snapshot||'')
+  };
+  publishSubmitting=false;publishError='';publishNotice='';publishModalOpen=true;modalReturnFocus=document.activeElement;
+  document.getElementById('publishModal').hidden=false;refreshModalBodyClass();renderPublishProductModal();
+  focusSoon('#publishCategory');
+  return true;
+}
+function closePublishProductModal(){
+  if(publishSubmitting)return false;
+  publishModalOpen=false;publishProductId='';publishSnapshot=null;publishError='';publishNotice='';
+  document.getElementById('publishModal').hidden=true;refreshModalBodyClass();
+  var target=modalReturnFocus;modalReturnFocus=null;
+  setTimeout(function(){if(target&&document.contains(target))target.focus();applyPendingAfterModal();},0);
+  return true;
+}
+function renderPublishProductModal(){
+  if(!publishModalOpen||!publishSnapshot)return;
+  var content=document.getElementById('publishModalContent'),p=getById(state.products,publishProductId);
+  if(!content||!p)return;
+  var record=posContext.publications[String(p.id)]||null;
+  var built=buildProductCostingSnapshot(p,publishSnapshot.size);
+  var totalCentavos=built.ingredientCostCentavos+built.packagingCostCentavos;
+  var profitCentavos=built.sellingPriceCentavos-totalCentavos;
+  var title=record?'Update POS product':'Publish product to POS';
+  var action=record?'Publish update':'Publish to POS';
+  var fieldDisabled=publishSubmitting?' disabled':'';
+  content.setAttribute('aria-busy',publishSubmitting?'true':'false');
+  content.innerHTML='<div class="modal-head"><div style="flex:1"><h2 id="publishModalTitle">'+escapeHtml(title)+'</h2>'+
+    '<p class="hint">Review the exact price and cost snapshot that the POS will use.</p></div>'+
+    '<button class="modal-close" data-act="closePublishModal" aria-label="Close publish dialog"'+(publishSubmitting?' disabled':'')+'>x</button></div>'+
+    '<div class="grid2"><div><label class="fld" for="publishCategory">POS category</label>'+
+    '<input id="publishCategory" data-publish-field="categoryName" maxlength="80" value="'+escapeHtml(publishSnapshot.categoryName)+'" placeholder="e.g. Matcha Drinks"'+fieldDisabled+'></div>'+
+    '<div><label class="fld" for="publishSize">Size / variant (optional)</label>'+
+    '<input id="publishSize" data-publish-field="size" maxlength="40" value="'+escapeHtml(publishSnapshot.size)+'" placeholder="e.g. 12 oz"'+fieldDisabled+'></div></div>'+
+    '<div class="publish-summary">'+
+      '<div class="metric"><div class="lbl">Selling price</div><div class="val">'+peso(built.sellingPriceCentavos/100)+'</div></div>'+
+      '<div class="metric"><div class="lbl">Ingredient cost</div><div class="val">'+peso(built.ingredientCostCentavos/100)+'</div></div>'+
+      '<div class="metric"><div class="lbl">Packaging cost</div><div class="val">'+peso(built.packagingCostCentavos/100)+'</div></div>'+
+      '<div class="metric"><div class="lbl">Estimated gross profit</div><div class="val '+(profitCentavos>=0?'good':'bad')+'">'+peso(profitCentavos/100)+'</div></div>'+
+    '</div>'+
+    '<div class="publish-note"><strong>This creates a frozen POS version.</strong> Later costing changes will not alter the live menu until you publish another update. Old sales keep their original price and cost.</div>'+
+    (publishSubmitting?'<div id="publishProgress" class="draft-saved-note" tabindex="-1" aria-live="polite">Publishing the reviewed version...</div>':'')+
+    '<div class="modal-error" aria-live="assertive">'+escapeHtml(publishError)+'</div>'+
+    (publishNotice?'<div class="draft-saved-note">'+escapeHtml(publishNotice)+'</div>':'')+
+    '<div class="modal-actions"><button class="btn secondary" data-act="closePublishModal"'+(publishSubmitting?' disabled':'')+'>Cancel</button>'+
+    '<button class="btn" data-act="publishProductToPos"'+(publishSubmitting?' disabled':'')+'>'+(publishSubmitting?'Publishing...':escapeHtml(action))+'</button></div>';
+  if(publishSubmitting)focusSoon('#publishProgress');
+}
+function waitForCostingSync(timeoutMs){
+  var started=Date.now(),limit=timeoutMs||8000;
+  return new Promise(function(resolve,reject){
+    function check(){
+      if(pendingRemote){reject({posMessage:'A partner update is waiting. Close this window, review the latest costing, then publish again.'});return;}
+      if(!pendingSave&&!saveTimer){
+        if(localDirty){reject({posMessage:'Your latest costing changes are not saved to the cloud yet. Check your connection and try again.'});return;}
+        resolve();return;
+      }
+      if(Date.now()-started>=limit){reject({posMessage:'Costing is still syncing. Wait for “Saved to cloud,” then try again.'});return;}
+      setTimeout(check,80);
+    }
+    check();
+  });
+}
+async function publishProductToPos(){
+  if(!publishModalOpen||!publishSnapshot||publishSubmitting)return false;
+  var p=getById(state.products,publishProductId),validation=validateProductForPublish(p);
+  if(!validation.valid){publishError=validation.error;renderPublishProductModal();return false;}
+  var category=String(publishSnapshot.categoryName||'').trim(),size=String(publishSnapshot.size||'').trim();
+  if(!category){publishError='Enter a POS category, such as Matcha Drinks.';renderPublishProductModal();return false;}
+  if(category.length>80){publishError='Keep the POS category under 80 characters.';renderPublishProductModal();return false;}
+  if(size.length>40){publishError='Keep the size or variant under 40 characters.';renderPublishProductModal();return false;}
+  if(stableSerialize(buildProductCostingSnapshot(p,'').snapshot)!==publishSnapshot.sourceFingerprint){
+    publishError='The costing changed after this window opened. Close it and review the updated figures before publishing.';
+    renderPublishProductModal();return false;
+  }
+  if(!posCanPublish()){publishError='The POS workspace is unavailable. Check your connection and try again.';renderPublishProductModal();return false;}
+  var requestGeneration=posLoadGeneration;
+  var requestUserId=String(session&&session.user&&session.user.id||'');
+  var requestBusinessId=String(posContext.businessId||'');
+  var requestCostingGeneration=costingLoadGeneration;
+  publishSubmitting=true;publishError='';renderPublishProductModal();
+  try{
+    await waitForCostingSync(8000);
+    if(!posRequestIsCurrent(requestGeneration,requestUserId,requestBusinessId))throw {posSessionChanged:true};
+    if(!costingRequestIsCurrent(requestCostingGeneration,requestUserId)||!costingCloudReady){
+      throw {posMessage:'The shared costing data refreshed while this product was being reviewed. Close this window, check the latest figures, then publish again.'};
+    }
+    p=getById(state.products,publishProductId);
+    validation=validateProductForPublish(p);
+    if(!validation.valid)throw {posMessage:validation.error};
+    if(stableSerialize(buildProductCostingSnapshot(p,'').snapshot)!==publishSnapshot.sourceFingerprint){
+      throw {posMessage:'The costing changed while you were publishing. Review the new figures and try again.'};
+    }
+    var built=buildProductCostingSnapshot(p,size);
+    var result=await cloud.client.rpc('pos_publish_costing_product',{
+      p_business_id:requestBusinessId,
+      p_source_costing_product_id:String(p.id),
+      p_source_costing_recipe_id:String(p.recipeId),
+      p_name:String(p.name||'').trim(),
+      p_selling_price_centavos:built.sellingPriceCentavos,
+      p_ingredient_cost_centavos:built.ingredientCostCentavos,
+      p_packaging_cost_centavos:built.packagingCostCentavos,
+      p_costing_snapshot:built.snapshot,
+      p_size:size||null,
+      p_category_name:category||null,
+      p_expected_active_version_id:publishSnapshot.expectedActiveVersionId||null
+    });
+    if(!posRequestIsCurrent(requestGeneration,requestUserId,requestBusinessId))throw {posSessionChanged:true};
+    var rows=rpcRows(result),row=rows[0];
+    if(!row||!row.version_id)throw new Error('Missing publication result');
+    posContext.publications[String(p.id)]={
+      product_id:row.product_id,
+      source_costing_product_id:String(p.id),
+      category_id:row.category_id||null,
+      category_name:row.category_name||null,
+      catalog_name:row.product_name||p.name,
+      available:row.available!==false,
+      archived_at:null,
+      active_version_id:row.version_id,
+      version_number:row.version_number,
+      name_snapshot:String(p.name||'').trim(),
+      size_snapshot:row.size_snapshot||null,
+      source_costing_recipe_id:String(p.recipeId),
+      source_costing_hash:row.source_costing_hash,
+      selling_price_centavos:Number(row.selling_price_centavos),
+      ingredient_cost_centavos:Number(row.ingredient_cost_centavos),
+      packaging_cost_centavos:Number(row.packaging_cost_centavos),
+      estimated_unit_cost_centavos:Number(row.estimated_unit_cost_centavos),
+      costing_snapshot:built.snapshot,
+      published_at:row.published_at
+    };
+    try{await loadPosPublicationStatus();}catch(refreshError){}
+    publishSubmitting=false;
+    closePublishProductModal();
+    renderProducts();
+    return true;
+  }catch(error){
+    if(error&&error.posSessionChanged)return false;
+    publishSubmitting=false;
+    publishError=error&&error.posMessage?error.posMessage:posFriendlyError(error);
+    if(error&&String(error.code||'')==='40001'){
+      try{await loadPosPublicationStatus();}catch(refreshError){}
+    }
+    renderPublishProductModal();
+    return false;
+  }
+}
+function explainPublishedProductDelete(target){
+  alert('"'+String(target&&target.name||'This product')+'" is already published in the POS. Keep its costing record for now; menu archive controls are coming in the next POS phase.');
+}
+async function deleteCostingProduct(id){
+  var target=getById(state.products,id);
+  if(!target)return false;
+  var published=posContext.publications[String(id)];
+  if(published&&!published.archived_at){explainPublishedProductDelete(target);return false;}
+  if(!TEST_MODE){
+    if(!session||!cloud.connected||!posContext.businessId){
+      alert('Connect to the shared cloud and POS before deleting a costing product, so its publication status can be checked safely.');
+      return false;
+    }
+    if(posContext.role!=='owner'&&posContext.role!=='manager'){
+      alert('Only a POS owner or manager can verify and delete a costing product.');
+      return false;
+    }
+    try{
+      var refreshed=await loadPosPublicationStatus();
+      if(!refreshed)throw new Error('stale POS status');
+    }catch(error){
+      alert('The POS publication status could not be verified. Nothing was deleted; check your connection and try again.');
+      return false;
+    }
+    target=getById(state.products,id);
+    if(!target)return false;
+    published=posContext.publications[String(id)];
+    if(published&&!published.archived_at){explainPublishedProductDelete(target);renderProducts();return false;}
+  }
+  if(!confirm('Delete "'+String(target.name||'this product')+'"?'))return false;
+  state.products=state.products.filter(function(item){return item.id!==id;});
+  logChanges();save();renderAll();
+  return true;
 }
 function ingredientDependsOn(startId,targetId,seen,lookup){
   lookup=lookup||stateIngredientLookup; seen=seen||{};
@@ -1088,11 +1552,12 @@ function renderProducts(){
         '<div class="metric"><div class="lbl">Food cost % (ingredients)</div><div class="val">'+pct(foodPct)+'</div></div>'+
         '<div class="metric"><div class="lbl">Total cost % (food + packaging)</div><div class="val">'+pct(totalPct)+'</div></div>'+
       '</div>'+
+      posPublicationHtml(p)+
       '<div class="row" style="margin-top:12px"><div class="spacer"></div><button class="btn danger" data-act="delProduct" data-id="'+p.id+'">Delete product</button></div></div>';
   }).join('');
 }
 function refreshModalBodyClass(){
-  var open=categoryModalOpen||mixtureModalOpen||draftsModalOpen; document.body.classList.toggle('modal-open',open);
+  var open=categoryModalOpen||mixtureModalOpen||draftsModalOpen||publishModalOpen; document.body.classList.toggle('modal-open',open);
   [document.querySelector('header'),document.querySelector('.wrap')].forEach(function(el){if(!el)return;el.inert=!!open;if(open)el.setAttribute('aria-hidden','true');else el.removeAttribute('aria-hidden');});
 }
 function focusSoon(selector){setTimeout(function(){var el=document.querySelector(selector);if(el)el.focus();},0);}
@@ -1444,11 +1909,15 @@ document.querySelector('nav').addEventListener('click', function(e){
   document.querySelectorAll('section').forEach(function(s){s.classList.remove('active');});
   b.classList.add('active'); document.getElementById(b.dataset.tab).classList.add('active');
   if(b.dataset.tab==='history') loadHistory();
+  if(b.dataset.tab==='products'&&session&&!publishModalOpen)loadPosContext().catch(function(){});
 });
 
 document.body.addEventListener('input', function(e){
   var el=e.target;
   if(el.id==='ingredientSearch'){ingredientUi.search=el.value||'';renderIngredients();return;}
+  if(publishModalOpen&&publishSnapshot&&el.dataset.publishField){
+    publishSnapshot[el.dataset.publishField]=el.value;return;
+  }
   if(!mixtureDraft) return;
   if(el.dataset.mixRoot){mixtureDraft[el.dataset.mixRoot]=el.value;refreshMixtureTotals();return;}
   if(el.dataset.mixField){
@@ -1461,6 +1930,7 @@ document.body.addEventListener('input', function(e){
 document.body.addEventListener('change', function(e){
   var el=e.target;
   if(el.id==='histDate'){ loadHistory(); return; }
+  if(publishModalOpen&&publishSnapshot&&el.dataset.publishField){publishSnapshot[el.dataset.publishField]=el.value;return;}
   if(mixtureDraft&&el.dataset.mixRoot){
     mixtureDraft[el.dataset.mixRoot]=el.value;
     if(el.dataset.mixRoot==='unit'){renderMixtureModal();focusSoon('#mixtureModal [data-mix-root="unit"]');}else refreshMixtureTotals(); return;
@@ -1530,6 +2000,10 @@ document.body.addEventListener('click', function(e){
     case 'closeDraftsModal': closeDraftsModal(false,false); return;
     case 'resumeMixtureDraft': resumeMixtureDraft(id); return;
     case 'deleteMixtureDraft': deleteMixtureDraft(id); return;
+    case 'openPublishModal': openPublishProductModal(id); return;
+    case 'closePublishModal': closePublishProductModal(); return;
+    case 'publishProductToPos': publishProductToPos(); return;
+    case 'retryPosContext': resetPosContext('');loadPosContext();return;
     case 'enableMixtureEdit': mixtureReadOnly=false; renderMixtureModal(); focusSoon('#mixtureName'); return;
     case 'addMixtureComponent': mixtureDraft.components.push({ingredientId:'',qty:'',unit:'g'}); renderMixtureModal(); focusLastMixtureField('ingredientId'); return;
     case 'removeMixtureComponent': {var nextIndex=Math.max(0,parseInt(idx,10)-1);mixtureDraft.components.splice(parseInt(idx,10),1);renderMixtureModal();focusSoon(mixtureDraft.components.length?'#mixtureModal [data-mix-index="'+Math.min(nextIndex,mixtureDraft.components.length-1)+'"] [data-mix-field="ingredientId"]':'#mixtureModal [data-act="addMixtureComponent"]');return;}
@@ -1561,7 +2035,7 @@ document.body.addEventListener('click', function(e){
     case 'addLine': { var r=getById(state.recipes,id); if(r) r.lines.push({id:uid(),ingredientId:'',qty:'',unit:'g'}); break; }
     case 'delLine': { var r2=getById(state.recipes,id); if(r2) r2.lines=r2.lines.filter(function(x,i){return lineId?x.id!==lineId:i!==parseInt(idx,10);}); break; }
     case 'addProduct': state.products.push({id:uid(),name:'',recipeId:'',packLines:[],targetMargin:60,price:''}); break;
-    case 'delProduct': if(confirm('Delete this product?')) state.products=state.products.filter(function(x){return x.id!==id;}); else return; break;
+    case 'delProduct': deleteCostingProduct(id);return;
     case 'addPkgLine': { var p=getById(state.products,id); if(p) p.packLines.push({id:uid(),packagingId:'',qty:1}); break; }
     case 'delPkgLine': { var p2=getById(state.products,id); if(p2) p2.packLines=p2.packLines.filter(function(x,i){return lineId?x.id!==lineId:i!==parseInt(idx,10);}); break; }
     case 'useSuggested': { var p3=getById(state.products,id); if(p3){ var c=productCost(p3); var s=suggestedPrice(c,p3.targetMargin); if(isFinite(s)) p3.price=ceilTo(s,5); } break; }
@@ -1586,14 +2060,25 @@ document.body.addEventListener('click', function(e){
   if(e.target&&e.target.id==='categoryModal') closeCategoryModal(false);
   if(e.target&&e.target.id==='mixtureModal') requestCloseMixtureModal();
   if(e.target&&e.target.id==='draftsModal') closeDraftsModal(false,false);
+  if(e.target&&e.target.id==='publishModal') closePublishProductModal();
 });
 
 /* reload from cloud when returning to the tab (picks up partner's edits) */
 /* safety net: also refresh when returning to the tab, in case a live update was missed */
 window.addEventListener('focus', function(){
-  if(!cloud.connected||pendingSave)return;
+  if(!cloud.connected||pendingSave||costingCloudLoading||publishSubmitting)return;
   if(localDirty){retryDirtySave();return;}
-  cloudLoad().then(maybeApplyRemote).catch(function(){});
+  if(!session||!session.user)return;
+  var costingGeneration=++costingLoadGeneration,costingUserId=String(session.user.id||'');
+  costingCloudReady=false;costingCloudLoading=true;renderProducts();
+  cloudLoad().then(function(remote){
+    if(!costingRequestIsCurrent(costingGeneration,costingUserId))return;
+    costingCloudReady=true;costingCloudLoading=false;maybeApplyRemote(remote);subscribeRealtime();renderProducts();
+  }).catch(function(){
+    if(!costingRequestIsCurrent(costingGeneration,costingUserId))return;
+    costingCloudReady=false;costingCloudLoading=false;renderProducts();
+  });
+  if(session&&!publishModalOpen)loadPosContext().catch(function(){});
 });
 window.addEventListener('online',retryDirtySave);
 /* if a partner update arrived while typing, apply it once they leave the field */
@@ -1604,12 +2089,13 @@ document.body.addEventListener('focusout', function(){
 /* press Enter in the login form to submit it */
 document.body.addEventListener('keydown', function(e){
   if(e.key==='Escape'){
+    if(publishModalOpen){e.preventDefault();closePublishProductModal();return;}
     if(draftsModalOpen){e.preventDefault();closeDraftsModal(false,false);return;}
     if(mixtureModalOpen){e.preventDefault();requestCloseMixtureModal();return;}
     if(categoryModalOpen){e.preventDefault();closeCategoryModal(false);return;}
   }
-  if(e.key==='Tab'&&(draftsModalOpen||mixtureModalOpen||categoryModalOpen)){
-    var selector=draftsModalOpen?'#draftsModal':(mixtureModalOpen?'#mixtureModal':'#categoryModal');
+  if(e.key==='Tab'&&(publishModalOpen||draftsModalOpen||mixtureModalOpen||categoryModalOpen)){
+    var selector=publishModalOpen?'#publishModal':(draftsModalOpen?'#draftsModal':(mixtureModalOpen?'#mixtureModal':'#categoryModal'));
     var modal=document.querySelector(selector+' .modal');
     var focusable=modal?Array.from(modal.querySelectorAll('button:not([disabled]),input:not([disabled]),select:not([disabled])')):[];
     if(focusable.length){var first=focusable[0],last=focusable[focusable.length-1];if(!modal.contains(document.activeElement)){e.preventDefault();(e.shiftKey?last:first).focus();}else if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}}

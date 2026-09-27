@@ -59,6 +59,84 @@ document.getElementById('app').addEventListener('load', async () => {
   function storedState() {
     return JSON.parse(app.localStorage.getItem(app.KEY));
   }
+  function rpcResult(data, error = null) {
+    const payload = { data, error };
+    const result = Promise.resolve(payload);
+    result.single = () => Promise.resolve(payload);
+    result.maybeSingle = () => Promise.resolve(payload);
+    result.select = () => result;
+    return result;
+  }
+  function installPublishableProduct(productOverrides = {}) {
+    const state = installState({
+      ingredients: [
+        { id: 'matcha', name: 'Matcha', kind: 'purchased', purchaseQty: 1, amountPerItem: 1, unit: 'piece', price: 62.425 },
+        { id: 'unused-ingredient', name: 'Unused ingredient', kind: 'purchased', purchaseQty: 1, amountPerItem: 1, unit: 'piece', price: 999 }
+      ],
+      packaging: [
+        { id: 'cup', name: '12oz cup set', qty: 1, price: 15.545 },
+        { id: 'unused-packaging', name: 'Unused packaging', qty: 1, price: 999 }
+      ],
+      recipes: [{
+        id: 'matcha-recipe', name: 'Matcha Latte', yield: 1,
+        lines: [{ id: 'matcha-line', ingredientId: 'matcha', qty: 1, unit: 'piece' }]
+      }],
+      products: [{
+        id: 'matcha-product', name: 'Matcha Latte 12oz', recipeId: 'matcha-recipe',
+        packLines: [{ id: 'cup-line', packagingId: 'cup', qty: 1 }],
+        targetMargin: 53, price: '170.005'
+      }]
+    });
+    Object.assign(state.products[0], productOverrides);
+    return state.products[0];
+  }
+  function installPosContext(role = 'owner', publications = {}) {
+    app.session = { user: { id: 'phase2-user', email: 'owner@example.test' } };
+    app.currentUserId = 'phase2-user';
+    app.cloud.connected = true;
+    app.costingCloudReady = true;
+    app.posContext = {
+      loaded: true,
+      loading: false,
+      businessId: '11111111-1111-4111-8111-111111111111',
+      businessName: 'Scoopies',
+      role,
+      categories: [],
+      publications,
+      error: ''
+    };
+    app.publishModalOpen = false;
+    app.publishProductId = '';
+    app.publishSnapshot = null;
+    app.publishSubmitting = false;
+    app.pendingRemote = null;
+    const modal = app.document.getElementById('publishModal');
+    if (modal) modal.hidden = true;
+    if (typeof app.refreshModalBodyClass === 'function') app.refreshModalBodyClass();
+    app.renderAll();
+  }
+  function publicationFixture(built, overrides = {}) {
+    return Object.assign({
+      source_costing_product_id: 'matcha-product',
+      product_id: '22222222-2222-4222-8222-222222222222',
+      active_version_id: '33333333-3333-4333-8333-333333333333',
+      version_id: '33333333-3333-4333-8333-333333333333',
+      version_number: 1,
+      catalog_name: 'Matcha Latte 12oz',
+      name_snapshot: 'Matcha Latte 12oz',
+      size_snapshot: null,
+      source_costing_recipe_id: 'matcha-recipe',
+      selling_price_centavos: built.sellingPriceCentavos,
+      ingredient_cost_centavos: built.ingredientCostCentavos,
+      packaging_cost_centavos: built.packagingCostCentavos,
+      costing_snapshot: built.snapshot,
+      active_costing_snapshot: built.snapshot,
+      source_costing_hash: 'phase2-fixture-hash',
+      published_at: '2026-09-27T10:00:00.000Z',
+      archived_at: null,
+      publish_result: 'created'
+    }, overrides);
+  }
   test('test mode isolates storage and disables every cloud connection', () => {
     if (!app.TEST_MODE || app.KEY !== 'scoopies_costing_test') throw new Error('test storage is not isolated');
     if (app.cloud.client || app.cloud.connected || app.session) throw new Error('cloud access is enabled in test mode');
@@ -1024,6 +1102,377 @@ document.getElementById('app').addEventListener('load', async () => {
     click(app.document.querySelector('[data-act=editMixture][data-id=a]'));
     assert(!app.document.querySelector('#mixtureModal option[value=b]'), 'dependent mixture was offered and could create a cycle');
     click(app.document.querySelector('#mixtureModal [data-act=closeMixtureModal]'));
+  });
+  test('POS context loads through narrow RPCs and never bootstraps a business automatically', async () => {
+    installPublishableProduct();
+    app.session = { user: { id: 'phase2-user', email: 'owner@example.test' } };
+    app.currentUserId = 'phase2-user';
+    app.cloud.connected = true;
+    app.posContext = { loaded: false, loading: false, businessId: '', role: '', publications: {}, error: '' };
+    const calls = [];
+    app.cloud.client = {
+      rpc(name, args) {
+        calls.push({ name, args });
+        if (name === 'pos_get_my_businesses') {
+          return rpcResult([{
+            business_id: '11111111-1111-4111-8111-111111111111',
+            business_name: 'Scoopies', member_role: 'owner'
+          }]);
+        }
+        if (name === 'pos_get_publication_status') return rpcResult([]);
+        throw new Error('unexpected RPC ' + name);
+      }
+    };
+    await app.loadPosContext();
+    assert(calls.some(call => call.name === 'pos_get_my_businesses'), 'POS memberships were not loaded through the expected RPC');
+    assert(calls.some(call => call.name === 'pos_get_publication_status'), 'publication status was not loaded through the expected RPC');
+    assert(!calls.some(call => /bootstrap/i.test(call.name)), 'loading POS context silently bootstrapped a business');
+    assert(app.posContext.loaded && app.posContext.businessId === '11111111-1111-4111-8111-111111111111', 'loaded POS membership was not retained');
+    assert(app.posContext.role === 'owner', 'loaded POS role was not retained');
+  });
+  test('costing cloud readiness is required before a product can publish', () => {
+    const product = installPublishableProduct();
+    installPosContext('owner');
+    app.costingCloudReady = false;
+    app.renderAll();
+    let publishCalls = 0;
+    app.cloud.client = {
+      rpc(name) {
+        if (name === 'pos_publish_costing_product') publishCalls++;
+        return rpcResult([]);
+      }
+    };
+    const card = app.document.querySelector('[data-entity=product][data-id=matcha-product]');
+    assert(!app.posCanPublish(), 'POS publishing remained enabled while costing cloud data was not ready');
+    assert(/costing cloud unavailable/i.test(card.textContent), 'the disabled state did not explain that costing cloud data was unavailable');
+    assert(!card.querySelector('[data-act=openPublishModal]'), 'a live publish action remained available while costing cloud data was unavailable');
+    const oldAlert = app.alert;
+    app.alert = () => {};
+    try {
+      assert(app.openPublishProductModal(product.id) === false, 'direct modal opening bypassed the costing-cloud readiness gate');
+    } finally {
+      app.alert = oldAlert;
+    }
+    assert(!app.publishModalOpen && publishCalls === 0, 'costing-cloud failure reached the publish flow');
+  });
+  test('focus cloud refresh clears readiness and ignores a response after logout', async () => {
+    installPublishableProduct();
+    installPosContext('owner');
+    const originalCloudLoad = app.cloudLoad;
+    function installContextRpcStub() {
+      app.cloud.client = {
+        rpc(name) {
+          if (name === 'pos_get_my_businesses') return rpcResult([{
+            business_id: '11111111-1111-4111-8111-111111111111',
+            business_name: 'Scoopies', member_role: 'owner'
+          }]);
+          if (name === 'pos_get_publication_status') return rpcResult([]);
+          throw new Error('unexpected RPC ' + name);
+        }
+      };
+    }
+    try {
+      let resolveStaleRefresh;
+      app.cloudLoad = () => new Promise(resolve => { resolveStaleRefresh = resolve; });
+      installContextRpcStub();
+      app.dispatchEvent(new app.Event('focus'));
+      assert(app.costingCloudReady === false, 'focus refresh did not block publishing while cloud data was pending');
+      await app.handleAuth(null);
+      resolveStaleRefresh(app.snapshot(app.state));
+      await Promise.resolve();
+      await Promise.resolve();
+      assert(!app.session && app.costingCloudReady === false, 'stale focus response restored costing readiness after logout');
+
+      installPosContext('owner');
+      let resolveCurrentRefresh;
+      app.cloudLoad = () => new Promise(resolve => { resolveCurrentRefresh = resolve; });
+      installContextRpcStub();
+      app.dispatchEvent(new app.Event('focus'));
+      assert(app.costingCloudReady === false, 'current focus refresh did not clear readiness while pending');
+      resolveCurrentRefresh(app.snapshot(app.state));
+      await Promise.resolve();
+      await Promise.resolve();
+      assert(app.session && app.costingCloudReady === true, 'current successful focus response did not restore costing readiness');
+    } finally {
+      app.cloudLoad = originalCloudLoad;
+    }
+  });
+  test('late POS membership and status responses cannot repopulate context after logout', async () => {
+    installPublishableProduct();
+    installPosContext('owner');
+    app.posContext = { loaded: false, loading: false, businessId: '', businessName: '', role: '', publications: {}, error: '' };
+    let resolveBusinesses;
+    const businessResponse = new Promise(resolve => { resolveBusinesses = resolve; });
+    app.cloud.client = {
+      rpc(name) {
+        if (name === 'pos_get_my_businesses') return businessResponse;
+        throw new Error('unexpected RPC ' + name);
+      }
+    };
+    const membershipLoad = app.loadPosContext();
+    await app.handleAuth(null);
+    resolveBusinesses({ data: [{
+      business_id: '11111111-1111-4111-8111-111111111111',
+      business_name: 'Scoopies', member_role: 'owner'
+    }], error: null });
+    await membershipLoad;
+    assert(!app.session && !app.posContext.businessId && !app.posContext.role, 'late membership response restored logged-out POS context');
+    assert(Object.keys(app.posContext.publications).length === 0, 'late membership response restored publications after logout');
+
+    installPosContext('owner');
+    let resolveStatus;
+    const statusResponse = new Promise(resolve => { resolveStatus = resolve; });
+    app.cloud.client = {
+      rpc(name) {
+        if (name === 'pos_get_publication_status') return statusResponse;
+        throw new Error('unexpected RPC ' + name);
+      }
+    };
+    const statusLoad = app.loadPosPublicationStatus();
+    await app.handleAuth(null);
+    resolveStatus({ data: [{ source_costing_product_id: 'matcha-product', version_number: 99 }], error: null });
+    await statusLoad;
+    assert(!app.session && !app.posContext.businessId, 'late status response restored a logged-out business');
+    assert(Object.keys(app.posContext.publications).length === 0, 'late status response restored publication data after logout');
+  });
+  test('cashiers see neutral owner-managed POS text without publication details', () => {
+    const product = installPublishableProduct();
+    installPosContext('cashier', { [product.id]: publicationFixture(app.buildProductCostingSnapshot(product)) });
+    const card = app.document.querySelector('[data-entity=product][data-id=matcha-product]');
+    const text = card.textContent;
+    assert(card.querySelector('[data-pos-status=readonly]'), 'cashier POS status was not marked read-only');
+    assert(/POS managed by owner/i.test(text), 'cashier did not receive the neutral owner-managed status');
+    assert(/available only to an owner or manager/i.test(text), 'cashier did not receive the neutral publication-details explanation');
+    assert(!/Published v\d|Changes not published|Not in POS/i.test(text), 'cashier UI leaked publication state');
+    assert(!card.querySelector('[data-act=openPublishModal]'), 'cashier was offered a publish action');
+  });
+  test('a known active POS publication blocks costing-product deletion without a refresh', async () => {
+    const product = installPublishableProduct();
+    const built = app.buildProductCostingSnapshot(product);
+    installPosContext('owner', { [product.id]: publicationFixture(built) });
+    let rpcCalls = 0;
+    let confirmCalls = 0;
+    const notices = [];
+    app.cloud.client = { rpc() { rpcCalls++; throw new Error('known publication should not need a refresh'); } };
+    const oldAlert = app.alert;
+    const oldConfirm = app.confirm;
+    app.alert = message => notices.push(String(message));
+    app.confirm = () => { confirmCalls++; return true; };
+    let deleted;
+    try {
+      deleted = await app.deleteCostingProduct(product.id);
+    } finally {
+      app.alert = oldAlert;
+      app.confirm = oldConfirm;
+    }
+    assert(deleted === false, 'known published deletion did not return a blocked result');
+    assert(app.getById(app.state.products, product.id), 'known active POS publication was deleted from costing');
+    assert(rpcCalls === 0, 'known published deletion made an unnecessary status request');
+    assert(confirmCalls === 0, 'known published deletion reached the destructive confirmation');
+    assert(notices.some(message => /published|POS|archive/i.test(message)), 'known published deletion was blocked without an explanation');
+  });
+  test('POS publication snapshot rounds each money component once and excludes unrelated inventory', () => {
+    const product = installPublishableProduct();
+    const validation = app.validateProductForPublish(product);
+    assert(validation && validation.valid, 'complete product was rejected: ' + (validation && validation.error));
+    const built = app.buildProductCostingSnapshot(product);
+    assert(built && built.snapshot, 'publication snapshot was not built');
+    assert(built.sellingPriceCentavos === 17001, 'selling price did not round to exact centavos');
+    assert(built.ingredientCostCentavos === 6243, 'ingredient cost did not round once to exact centavos');
+    assert(built.packagingCostCentavos === 1555, 'packaging cost did not round once to exact centavos');
+    const serialized = JSON.stringify(built.snapshot);
+    assert(serialized.includes('matcha-product') && serialized.includes('matcha-recipe'), 'snapshot omitted product or recipe identity');
+    assert(serialized.includes('matcha') && serialized.includes('cup'), 'snapshot omitted a used costing dependency');
+    assert(!serialized.includes('unused-ingredient') && !serialized.includes('unused-packaging'), 'snapshot captured unrelated inventory');
+  });
+  test('POS publication validation rejects incomplete or unsafe costing data', () => {
+    function expectInvalid(mutate, label) {
+      const product = installPublishableProduct();
+      mutate(product, app.state);
+      const result = app.validateProductForPublish(product);
+      assert(result && !result.valid && String(result.error || '').trim(), label + ' was not rejected with an explanation');
+    }
+    expectInvalid(product => { product.price = ''; }, 'blank selling price');
+    expectInvalid(product => { product.price = 0; }, 'zero selling price');
+    expectInvalid(product => { product.recipeId = ''; }, 'missing recipe');
+    expectInvalid((_product, state) => { state.recipes[0].yield = 0; }, 'zero recipe yield');
+    expectInvalid((_product, state) => { state.recipes[0].lines = []; }, 'empty recipe');
+    expectInvalid((_product, state) => { state.recipes[0].lines[0].qty = ''; }, 'blank recipe quantity');
+    expectInvalid((_product, state) => { state.ingredients[0].price = ''; }, 'incomplete supplier price');
+    expectInvalid((_product, state) => { state.packaging[0].qty = ''; }, 'incomplete packaging');
+  });
+  test('opening and dismissing the POS publish modal never publishes automatically', async () => {
+    const product = installPublishableProduct();
+    installPosContext('owner');
+    let publishCalls = 0;
+    app.cloud.client = {
+      rpc(name) {
+        if (name === 'pos_publish_costing_product') publishCalls++;
+        return rpcResult([]);
+      }
+    };
+    app.openPublishProductModal(product.id);
+    assert(app.publishModalOpen, 'publish confirmation modal did not open');
+    assert(app.publishSnapshot, 'opening the modal did not freeze the reviewed snapshot');
+    const modal = app.document.getElementById('publishModal');
+    assert(modal && !modal.hidden, 'publish modal was not visible');
+    assert(publishCalls === 0, 'opening the confirmation modal published immediately');
+    app.document.body.dispatchEvent(new app.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    await Promise.resolve();
+    assert(!app.publishModalOpen, 'Escape did not dismiss the publish modal');
+    assert(publishCalls === 0, 'dismissing the publish modal published the product');
+  });
+  test('a failed POS publish keeps the frozen modal open and preserves costing data', async () => {
+    const product = installPublishableProduct();
+    installPosContext('owner');
+    const before = app.stableSerialize(app.state);
+    let publishCalls = 0;
+    app.cloud.client = {
+      rpc(name) {
+        if (name !== 'pos_publish_costing_product') return rpcResult([]);
+        publishCalls++;
+        return rpcResult(null, { message: 'network unavailable' });
+      }
+    };
+    app.openPublishProductModal(product.id);
+    await app.publishProductToPos();
+    assert(publishCalls === 1, 'failed publish did not make exactly one RPC attempt');
+    assert(app.publishModalOpen, 'failed publish closed the confirmation modal');
+    assert(!app.posContext.publications[product.id], 'failed publish was recorded as successful');
+    assert(app.stableSerialize(app.state) === before, 'failed publish changed the costing document');
+    const modalText = app.document.getElementById('publishModal').textContent;
+    assert(/failed|could not|try again|network/i.test(modalText), 'failed publish did not show an actionable modal error');
+  });
+  test('successful POS publish sends exact RPC centavos and updates publication status', async () => {
+    const product = installPublishableProduct();
+    installPosContext('owner');
+    const built = app.buildProductCostingSnapshot(product);
+    const publication = publicationFixture(built);
+    const calls = [];
+    const before = app.stableSerialize(app.state);
+    app.cloud.client = {
+      rpc(name, args) {
+        calls.push({ name, args });
+        if (name === 'pos_publish_costing_product') return rpcResult([publication]);
+        if (name === 'pos_get_publication_status') return rpcResult([publication]);
+        if (name === 'pos_get_my_businesses') return rpcResult([{
+          business_id: app.posContext.businessId, business_name: 'Scoopies', member_role: 'owner'
+        }]);
+        throw new Error('unexpected RPC ' + name);
+      }
+    };
+    app.openPublishProductModal(product.id);
+    await app.publishProductToPos();
+    const publishCalls = calls.filter(call => call.name === 'pos_publish_costing_product');
+    assert(publishCalls.length === 1, 'successful publish did not use exactly one publish RPC');
+    const args = publishCalls[0].args || {};
+    assert(args.p_business_id === '11111111-1111-4111-8111-111111111111', 'publish RPC used the wrong business');
+    assert(args.p_source_costing_product_id === product.id, 'publish RPC omitted the costing product identity');
+    assert(args.p_source_costing_recipe_id === product.recipeId, 'publish RPC omitted the costing recipe identity');
+    assert(args.p_selling_price_centavos === 17001, 'publish RPC sent an incorrect selling price');
+    assert(args.p_ingredient_cost_centavos === 6243, 'publish RPC sent an incorrect ingredient cost');
+    assert(args.p_packaging_cost_centavos === 1555, 'publish RPC sent an incorrect packaging cost');
+    assert(app.sameDataValue(args.p_costing_snapshot, built.snapshot), 'publish RPC sent a different snapshot than the one reviewed');
+    assert(!app.publishModalOpen, 'successful publish did not close the modal');
+    assert(app.posContext.publications[product.id], 'successful publish did not update local publication status');
+    assert(app.stableSerialize(app.state) === before, 'publishing polluted the costing document with POS state');
+    const cardText = app.document.querySelector('[data-entity=product][data-id=matcha-product]').textContent;
+    assert(/published/i.test(cardText), 'product card did not show its published status');
+  });
+  test('rapid POS publish confirmation sends only one request', async () => {
+    const product = installPublishableProduct();
+    installPosContext('owner');
+    const built = app.buildProductCostingSnapshot(product);
+    const publication = publicationFixture(built);
+    let publishCalls = 0;
+    app.cloud.client = {
+      rpc(name) {
+        if (name === 'pos_publish_costing_product') {
+          publishCalls++;
+          return rpcResult([publication]);
+        }
+        if (name === 'pos_get_publication_status') return rpcResult([publication]);
+        return rpcResult([]);
+      }
+    };
+    app.openPublishProductModal(product.id);
+    const first = app.publishProductToPos();
+    const second = app.publishProductToPos();
+    await Promise.all([first, second]);
+    assert(publishCalls === 1, 'rapid confirmation sent duplicate POS publish requests');
+  });
+  test('POS publish refuses a snapshot made stale by a local or queued partner edit', async () => {
+    let product = installPublishableProduct();
+    installPosContext('owner');
+    let publishCalls = 0;
+    app.cloud.client = {
+      rpc(name) {
+        if (name === 'pos_publish_costing_product') publishCalls++;
+        return rpcResult([]);
+      }
+    };
+    app.openPublishProductModal(product.id);
+    product.price = 180;
+    await app.publishProductToPos();
+    assert(publishCalls === 0, 'a locally stale reviewed snapshot reached the publish RPC');
+    assert(app.publishModalOpen, 'local stale-snapshot warning closed the modal');
+    assert(/changed|review|refresh/i.test(app.document.getElementById('publishModal').textContent), 'local stale snapshot was not explained');
+
+    product = installPublishableProduct();
+    installPosContext('owner');
+    app.cloud.client = {
+      rpc(name) {
+        if (name === 'pos_publish_costing_product') publishCalls++;
+        return rpcResult([]);
+      }
+    };
+    app.openPublishProductModal(product.id);
+    app.pendingRemote = app.snapshot(app.state);
+    app.pendingRemote.products[0].price = 185;
+    await app.publishProductToPos();
+    assert(publishCalls === 0, 'a queued partner change allowed an unseen snapshot to publish');
+    assert(app.publishModalOpen, 'partner stale-snapshot warning closed the modal');
+    assert(/changed|partner|review|refresh/i.test(app.document.getElementById('publishModal').textContent), 'queued partner change was not explained');
+    app.pendingRemote = null;
+  });
+  test('published and changed POS statuses are derived without saving them in costing state', () => {
+    const product = installPublishableProduct();
+    const built = app.buildProductCostingSnapshot(product);
+    installPosContext('owner', { [product.id]: publicationFixture(built) });
+    let card = app.document.querySelector('[data-entity=product][data-id=matcha-product]');
+    assert(/published/i.test(card.textContent), 'matching publication was not shown as published');
+    product.price = 175;
+    app.renderAll();
+    card = app.document.querySelector('[data-entity=product][data-id=matcha-product]');
+    assert(/changes not published|update pos/i.test(card.textContent), 'a price change did not mark the POS publication stale');
+    const cached = storedState();
+    assert(!cached.posContext && !cached.publications, 'ephemeral POS status leaked into saved costing data');
+  });
+  test('cashiers cannot see publish controls and active POS products cannot be deleted', () => {
+    let product = installPublishableProduct();
+    let built = app.buildProductCostingSnapshot(product);
+    let publication = publicationFixture(built);
+    installPosContext('cashier', { [product.id]: publication });
+    let card = app.document.querySelector('[data-entity=product][data-id=matcha-product]');
+    assert(!card.querySelector('[data-act*=Publish], [data-act*=publish]'), 'cashier was shown a POS publication control');
+
+    product = installPublishableProduct();
+    built = app.buildProductCostingSnapshot(product);
+    publication = publicationFixture(built);
+    installPosContext('owner', { [product.id]: publication });
+    const notices = [];
+    const oldAlert = app.alert;
+    const oldConfirm = app.confirm;
+    app.alert = message => notices.push(String(message));
+    app.confirm = () => true;
+    try {
+      click(app.document.querySelector('[data-act=delProduct][data-id=matcha-product]'));
+    } finally {
+      app.alert = oldAlert;
+      app.confirm = oldConfirm;
+    }
+    assert(app.getById(app.state.products, 'matcha-product'), 'active published product was deleted from costing');
+    assert(notices.some(message => /POS|publish|archive/i.test(message)), 'blocked deletion did not explain the POS/archive requirement');
   });
   const failures = [];
   for (const current of tests) {

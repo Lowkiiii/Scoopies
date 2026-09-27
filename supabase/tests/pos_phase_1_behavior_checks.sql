@@ -208,7 +208,7 @@ begin
     source_costing_hash, costing_snapshot, published_by
   ) values (
     version_id, business_id, product_id, 1, 'Matcha Latte 12oz', '12oz',
-    17000, 6242, 1555, 'fixture-hash-v1', jsonb_build_object('source', 'fixture'), owner_id
+    17000, 6242, 1555, repeat('a', 64), jsonb_build_object('source', 'fixture'), owner_id
   );
 
   update public.pos_products

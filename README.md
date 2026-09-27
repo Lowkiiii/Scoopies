@@ -10,8 +10,10 @@ The production costing app is a static GitHub Pages application in
 
 ## POS implementation
 
-POS work is being delivered in verified phases. Phase 1 adds only an additive
-Supabase database foundation; it does not change the current UI or default page.
+POS work is being delivered in verified phases. Phase 1 adds the additive
+Supabase database foundation. Phase 2 adds an explicit, reviewed publication
+flow from Pricing to an immutable POS catalog; costing edits never silently
+change a published POS price.
 
 - [Phase 1 guide](docs/POS_PHASE_1.md)
 - [Phase 1 migration](supabase/migrations/202609270001_pos_phase_1_foundation.sql)
@@ -19,6 +21,13 @@ Supabase database foundation; it does not change the current UI or default page.
 - [Phase 1 behavior checks](supabase/tests/pos_phase_1_behavior_checks.sql)
 - [Phase 1 live access checks](supabase/tests/pos_phase_1_live_access_checks.sql)
 - [Phase 1 deployment record](docs/POS_PHASE_1_DEPLOYMENT.md)
+
+- [Phase 2 guide](docs/POS_PHASE_2.md)
+- [Phase 2 migration](supabase/migrations/202609270002_pos_phase_2_catalog_publication.sql)
+- [Phase 2 schema checks](supabase/tests/pos_phase_2_schema_checks.sql)
+- [Phase 2 behavior checks](supabase/tests/pos_phase_2_behavior_checks.sql)
+- [Phase 2 live access checks](supabase/tests/pos_phase_2_live_access_checks.sql)
+- [Phase 2 deployment record](docs/POS_PHASE_2_DEPLOYMENT.md)
 
 Never commit a Supabase service-role key or database password. The web app uses
 only the public project URL and publishable key; authorization is enforced by
