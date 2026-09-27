@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Scoopies — Costing Calculator</title>
+<title>Scoopies — POS &amp; Costing</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root{
@@ -133,17 +133,70 @@
   .publish-summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:12px 0}
   .publish-summary .metric{min-width:0}
   .publish-note{font-size:13px;background:#eef7ef;border:1px solid #c9e5cb;border-radius:10px;padding:10px 12px;color:#285e2c}
+  .pos-topbar{display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+  .pos-topbar h2{margin:0}
+  .pos-role{display:inline-flex;align-items:center;min-height:28px;padding:4px 10px;border-radius:999px;background:#f3eee8;border:1px solid var(--line);color:var(--brown2);font-size:12px;font-weight:700;text-transform:capitalize}
+  .pos-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:14px}
+  .pos-summary .metric{background:#fff}
+  .pos-workspace{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(310px,.8fr);gap:14px;align-items:start}
+  .pos-catalog-card,.pos-cart-card{margin:0}
+  .pos-cart-card{position:sticky;top:72px}
+  .pos-search-row{display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin:10px 0}
+  .pos-search-row>div{flex:1 1 220px}
+  .pos-category-bar{display:flex;gap:7px;overflow-x:auto;padding:1px 1px 8px;scrollbar-width:thin}
+  .pos-category-bar .category-chip{white-space:nowrap;min-height:40px}
+  .pos-product-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin-top:5px}
+  .pos-product{min-height:112px;border:1px solid var(--line);border-radius:12px;background:#fff;padding:12px;color:#2b2018;text-align:left;cursor:pointer;display:flex;flex-direction:column;justify-content:space-between;font:inherit;touch-action:manipulation}
+  .pos-product:hover,.pos-product:focus-visible{border-color:var(--accent);box-shadow:0 0 0 2px rgba(201,133,43,.14);outline:0}
+  .pos-product-name{font-weight:750;line-height:1.25}
+  .pos-product-size{font-size:12px;color:var(--muted);margin-top:3px}
+  .pos-product-price{font-size:17px;font-weight:800;color:var(--brown);margin-top:10px}
+  .pos-cart-list{display:grid;gap:8px;margin:10px 0}
+  .pos-cart-line{border:1px solid var(--line);border-radius:11px;padding:10px;background:#fff}
+  .pos-cart-line-top{display:flex;gap:8px;align-items:flex-start}
+  .pos-cart-name{font-weight:700;line-height:1.25;flex:1;min-width:0}
+  .pos-cart-price{font-weight:700;white-space:nowrap}
+  .pos-qty{display:flex;align-items:center;gap:7px;margin-top:8px}
+  .pos-qty button{width:44px;height:44px;border:1px solid var(--line);background:#fff;color:var(--brown);border-radius:9px;font-size:21px;font-weight:700;cursor:pointer;touch-action:manipulation}
+  .pos-qty-value{min-width:30px;text-align:center;font-weight:800}
+  .pos-remove{margin-left:auto;border:0;background:transparent;color:var(--bad);padding:9px;min-height:44px;cursor:pointer;font-weight:650}
+  .pos-total{display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--line);padding-top:12px;margin-top:10px}
+  .pos-total strong{font-size:24px;color:var(--brown)}
+  .pos-payment-tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin:12px 0}
+  .pos-payment-tabs button{min-height:46px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--brown);font:inherit;font-weight:700;cursor:pointer}
+  .pos-payment-tabs button.active{background:var(--brown);border-color:var(--brown);color:#fff}
+  .pos-quick-cash{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px}
+  .pos-quick-cash button{min-height:42px;padding:7px;border:1px solid var(--line);border-radius:9px;background:#fff;color:var(--brown);font-weight:700;cursor:pointer}
+  .pos-change{border-radius:10px;background:#eef7ef;border:1px solid #c9e5cb;padding:10px 12px;margin-top:9px;color:#285e2c}
+  .pos-checkout{width:100%;min-height:50px;font-size:16px;margin-top:12px}
+  .pos-error{min-height:20px;color:var(--bad);font-size:13px;margin-top:8px}
+  .pos-receipt{background:#eef7ef;border-color:#c9e5cb}
+  .pos-receipt-number{font-size:21px;font-weight:800;color:var(--good)}
+  .pos-recent-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line)}
+  .pos-recent-row:last-child{border-bottom:0}
+  .pos-recent-meta{font-size:12px;color:var(--muted)}
+  .pos-item-summary{font-size:12px;color:#4e4036;margin-top:3px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .pos-loading{padding:24px 8px;text-align:center;color:var(--muted)}
   .btn[disabled]{cursor:not-allowed;opacity:.55}
   body.modal-open{overflow:hidden}
   @media(max-width:700px){
+    .pos-summary{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .pos-workspace{grid-template-columns:1fr}
+    .pos-cart-card{position:static}
+    .pos-product-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
     .component-grid{grid-template-columns:1fr 88px 82px 38px}
     .component-grid .component-cost{grid-column:1 / -1;grid-row:2;text-align:left;padding:0 2px 6px}
     .component-grid .icon-btn{grid-column:4;grid-row:1}
     .component-grid.head{display:none}
   }
   @media(max-width:560px){
-    nav{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
+    nav{display:grid;grid-template-columns:repeat(4,minmax(0,1fr))}
     nav button{width:100%;min-width:0;font-size:12px;padding:9px 4px}
+    nav button[data-tab='pos']{grid-column:span 2}
+    .pos-topbar .btn{min-height:44px}
+    .pos-product{min-height:106px;padding:11px}
+    .pos-recent-row{grid-template-columns:minmax(0,1fr) auto}
+    .pos-recent-row .pos-recent-method{display:none}
     .ingredient-toolbar{display:grid;grid-template-columns:minmax(0,1fr)}
     .ingredient-search{grid-column:1 / -1;min-width:0}
     .ingredient-toolbar .btn{width:100%;min-width:0;padding-left:7px;padding-right:7px;white-space:normal}
@@ -156,6 +209,9 @@
     .publish-summary{grid-template-columns:1fr}
   }
   @media(max-width:480px){
+    .pos-summary{grid-template-columns:1fr 1fr}
+    .pos-product-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .pos-quick-cash{grid-template-columns:repeat(2,1fr)}
     .component-grid{grid-template-columns:minmax(0,1fr) 82px 44px}
     .component-grid [data-mix-field="ingredientId"]{grid-column:1 / -1;grid-row:1}
     .component-grid [data-mix-field="qty"]{grid-column:1;grid-row:2}
@@ -184,8 +240,8 @@
 <header>
   <div class="hwrap">
     <div style="flex:1">
-      <h1>🍪 Scoopies — Costing Calculator</h1>
-      <p>Ingredients → Recipes → Packaging → Price.</p>
+      <h1>🍪 Scoopies — POS &amp; Costing</h1>
+      <p>Sell quickly, track every payment, and keep costs accurate.</p>
     </div>
     <span id="syncStatus" class="status">Local only</span>
   </div>
@@ -193,7 +249,8 @@
 
 <div class="wrap">
   <nav>
-    <button data-tab="ingredients" class="active">1. Ingredients</button>
+    <button data-tab="pos" class="active">🛒 POS</button>
+    <button data-tab="ingredients">1. Ingredients</button>
     <button data-tab="packaging">2. Packaging</button>
     <button data-tab="recipes">3. Recipes</button>
     <button data-tab="products">4. Pricing</button>
@@ -202,8 +259,15 @@
     <button data-tab="backup">💾 Backup</button>
   </nav>
 
+  <!-- POINT OF SALE -->
+  <section id="pos" class="active">
+    <div id="posRoot" aria-live="polite">
+      <div class="card"><div class="pos-loading">Sign in to load the register.</div></div>
+    </div>
+  </section>
+
   <!-- INGREDIENTS -->
-  <section id="ingredients" class="active">
+  <section id="ingredients">
     <div class="card">
       <h2>Ingredients</h2>
       <p class="hint">Enter how many packs you buy, how much is inside each pack, and the total price paid. The app works out the cost of one gram / mL / piece for you.</p>
@@ -416,6 +480,13 @@ var mixtureSourceId = '', mixtureSourceSnapshot = null, openedMixtureDraftUpdate
 var posContext = { loaded:false, loading:false, businessId:'', businessName:'', role:'', publications:{}, error:'' };
 var posLoadGeneration = 0, posStatusGeneration = 0;
 var publishModalOpen = false, publishProductId = '', publishSnapshot = null, publishSubmitting = false, publishError = '', publishNotice = '';
+var POS_PENDING_KEY = TEST_MODE ? 'scoopies_pos_pending_test' : 'scoopies_pos_pending_v1';
+var posCheckoutLoadGeneration = 0, posCheckoutSubmitGeneration = 0;
+var posCheckout = {
+  catalog:[], catalogLoading:false, catalogError:'', search:'', category:'all', cart:{}, catalogChanged:false,
+  paymentMethod:'cash', cashReceived:'', referenceNumber:'', confirming:false, submitting:false, error:'', notice:'', pending:null,
+  lastReceipt:null, summary:null, recent:[], reportsLoading:false, reportsError:''
+};
 
 function blank(){ return {schemaVersion:3, ingredientCategories:[], ingredients:[], mixtureDrafts:[], packaging:[], recipes:[], products:[]}; }
 function normalizeState(raw){
@@ -774,11 +845,17 @@ function renderGate(){
 }
 /* called whenever the user logs in or out */
 async function handleAuth(sess){
+  var firstSignIn=!!(sess&&sess.user&&String(sess.user.id||'')!==String(currentUserId||''));
   session = sess || null;
   if(session){
     offlineMode = false; showGate(false); cloud.connected = true;
+    if(firstSignIn){
+      activateAppTab('pos',false);
+    }
     if(session.user && session.user.id !== currentUserId){   /* first sign-in for this user → load data once */
       resetPosContext('');
+      var posContextPromise=loadPosContext();
+      posContextPromise.then(function(ready){if(ready&&posContext.businessId)return loadPosCheckoutData();}).catch(function(){});
       costingCloudReady = false;
       costingCloudLoading = true;
       currentUserId = session.user.id;
@@ -811,7 +888,9 @@ async function handleAuth(sess){
       if(!costingRequestIsCurrent(costingGeneration,costingUserId))return;
       subscribeRealtime();
     }
-    if(!posContext.loaded&&!posContext.loading)await loadPosContext();
+    if(posContextPromise)await posContextPromise;
+    else if(!posContext.loaded&&!posContext.loading)await loadPosContext();
+    if(posContext.businessId&&!posCheckout.catalogLoading&&!posCheckout.catalog.length)loadPosCheckoutData().catch(function(){});
   } else {
     cloud.connected = false; currentUserId = null; costingCloudReady=false;costingCloudLoading=false;costingLoadGeneration++;
     if(publishModalOpen){publishSubmitting=false;closePublishProductModal();}
@@ -820,6 +899,7 @@ async function handleAuth(sess){
     else { setStatus('Saved on device',''); }
   }
   renderAccount();
+  renderPos();
 }
 async function doLogin(){
   if(!cloud.client){ authMsg('Cloud not ready — please refresh the page.', true); return; }
@@ -1064,9 +1144,150 @@ function validateProductForPublish(p){
   if(bytes>262144)return {valid:false,error:'This costing snapshot is too large to publish safely.'};
   return {valid:true,error:''};
 }
-function resetPosContext(message){
+function freshPosCheckout(){
+  return {catalog:[],catalogLoading:false,catalogError:'',search:'',category:'all',cart:{},catalogChanged:false,
+    paymentMethod:'cash',cashReceived:'',referenceNumber:'',confirming:false,submitting:false,error:'',notice:'',pending:null,
+    lastReceipt:null,summary:null,recent:[],reportsLoading:false,reportsError:''};
+}
+function resetPosCheckout(){
+  posCheckoutLoadGeneration++;posCheckoutSubmitGeneration++;
+  posCheckout=freshPosCheckout();
+  renderPos();
+}
+function posUuid(){
+  if(window.crypto&&typeof window.crypto.randomUUID==='function')return window.crypto.randomUUID();
+  var bytes=new Uint8Array(16);
+  if(window.crypto&&typeof window.crypto.getRandomValues==='function')window.crypto.getRandomValues(bytes);
+  else for(var i=0;i<bytes.length;i++)bytes[i]=Math.floor(Math.random()*256);
+  bytes[6]=(bytes[6]&15)|64;bytes[8]=(bytes[8]&63)|128;
+  var hex=Array.from(bytes,function(b){return b.toString(16).padStart(2,'0');}).join('');
+  return hex.slice(0,8)+'-'+hex.slice(8,12)+'-'+hex.slice(12,16)+'-'+hex.slice(16,20)+'-'+hex.slice(20);
+}
+function posCartLines(){return Object.keys(posCheckout.cart).map(function(id){return posCheckout.cart[id];}).filter(Boolean);}
+function posCartTotalCentavos(){
+  return posCartLines().reduce(function(total,line){return total+(Number(line.priceCentavos)||0)*(Number(line.quantity)||0);},0);
+}
+function posCartUnits(){return posCartLines().reduce(function(total,line){return total+(Number(line.quantity)||0);},0);}
+function strictPesoCentavos(value){
+  var text=String(value==null?'':value).trim();
+  if(!/^\d+(?:\.\d{1,2})?$/.test(text))return null;
+  var parts=text.split('.'),whole=Number(parts[0]),fraction=(parts[1]||'').padEnd(2,'0');
+  var cents=whole*100+Number(fraction||0);
+  return Number.isSafeInteger(cents)&&cents>=0&&cents<=100000000000?cents:null;
+}
+function posLoadRequestStillCurrent(generation,userId,businessId){
+  return generation===posCheckoutLoadGeneration&&!!session&&!!session.user&&
+    String(session.user.id||'')===String(userId||'')&&String(posContext.businessId||'')===String(businessId||'');
+}
+function posSubmitRequestStillCurrent(generation,userId,businessId){
+  return generation===posCheckoutSubmitGeneration&&!!session&&!!session.user&&
+    String(session.user.id||'')===String(userId||'')&&String(posContext.businessId||'')===String(businessId||'');
+}
+function posPendingScope(userId,businessId){return String(userId||'')+'|'+String(businessId||'');}
+function posPendingRecords(){
+  try{
+    var saved=JSON.parse(localStorage.getItem(POS_PENDING_KEY));
+    if(!saved||typeof saved!=='object')return {};
+    if(saved.rpcArgs&&saved.userId&&saved.businessId){var migrated={};migrated[posPendingScope(saved.userId,saved.businessId)]=saved;return migrated;}
+    return saved;
+  }catch(e){return {};}
+}
+function posSavePending(record){
+  posCheckout.pending=record;var records=posPendingRecords();
+  records[posPendingScope(record.userId,record.businessId)]=record;
+  try{localStorage.setItem(POS_PENDING_KEY,JSON.stringify(records));}catch(e){}
+}
+function posClearPending(){
+  var record=posCheckout.pending,records=posPendingRecords();
+  var userId=record&&record.userId||session&&session.user&&session.user.id||'';
+  var businessId=record&&record.businessId||posContext.businessId||'';
+  delete records[posPendingScope(userId,businessId)];posCheckout.pending=null;
+  try{if(Object.keys(records).length)localStorage.setItem(POS_PENDING_KEY,JSON.stringify(records));else localStorage.removeItem(POS_PENDING_KEY);}catch(e){}
+}
+function posStoredPending(){
+  if(!session||!session.user||!posContext.businessId)return null;
+  var record=posPendingRecords()[posPendingScope(session.user.id,posContext.businessId)];
+  return record&&record.rpcArgs&&Array.isArray(record.cartSnapshot)?record:null;
+}
+function posRestorePending(){
+  if(posCheckout.pending||!session||!session.user||!posContext.businessId)return false;
+  var record=posStoredPending();
+  if(!record||String(record.userId||'')!==String(session.user.id||'')||String(record.businessId||'')!==String(posContext.businessId||''))return false;
+  var cart={};
+  record.cartSnapshot.forEach(function(saved){
+    if(!saved||!saved.productId||!saved.productVersionId||!(Number(saved.quantity)>0))return;
+    cart[String(saved.productId)]={productId:String(saved.productId),productVersionId:String(saved.productVersionId),name:String(saved.name||'Product'),
+      size:String(saved.size||''),priceCentavos:Number(saved.priceCentavos)||0,quantity:Number(saved.quantity)||1,stale:false,latest:null};
+  });
+  if(!Object.keys(cart).length)return false;
+  posCheckout.cart=cart;posCheckout.pending=record;
+  posCheckout.paymentMethod=String(record.rpcArgs.p_payment_method||'cash');
+  posCheckout.cashReceived=record.rpcArgs.p_cash_tendered_centavos==null?'':(Number(record.rpcArgs.p_cash_tendered_centavos)/100).toFixed(2);
+  posCheckout.referenceNumber=String(record.rpcArgs.p_reference_number||'');
+  posCheckout.notice='A sale may have reached the server before the connection stopped. Retry the exact same sale to safely get its receipt.';
+  markPosCartAgainstCatalog();
+  return true;
+}
+function posLatestCatalogProduct(productId){
+  return posCheckout.catalog.find(function(item){return String(item.product_id||'')===String(productId||'');})||null;
+}
+function markPosCartAgainstCatalog(){
+  var changed=false;
+  posCartLines().forEach(function(line){
+    var latest=posLatestCatalogProduct(line.productId);
+    line.latest=latest;
+    line.stale=!latest||String(latest.active_version_id||'')!==String(line.productVersionId||'');
+    if(line.stale)changed=true;
+  });
+  if(changed){posCheckout.catalogChanged=true;posCheckout.confirming=false;}
+  return changed;
+}
+function acceptPosCatalogChanges(){
+  if(posCheckout.pending||posCheckout.submitting||posCheckout.confirming)return false;
+  var next={},removed=0,updated=0;
+  posCartLines().forEach(function(line){
+    var latest=posLatestCatalogProduct(line.productId);
+    if(!latest){removed++;return;}
+    if(String(latest.active_version_id||'')!==String(line.productVersionId||''))updated++;
+    next[String(latest.product_id)]={productId:String(latest.product_id),productVersionId:String(latest.active_version_id),
+      name:String(latest.product_name||'Product'),size:String(latest.size_snapshot||''),priceCentavos:Number(latest.selling_price_centavos)||0,
+      quantity:line.quantity,stale:false,latest:null};
+  });
+  posCheckout.cart=next;posCheckout.catalogChanged=false;posCheckout.error='';
+  posCheckout.notice=(updated?updated+' price'+(updated===1?' was':'s were')+' updated. ':'')+(removed?removed+' unavailable item'+(removed===1?' was':'s were')+' removed.':'');
+  renderPos();return true;
+}
+function addPosProduct(productId){
+  if(posCheckout.pending||posCheckout.submitting||posCheckout.confirming)return false;
+  var product=posLatestCatalogProduct(productId);if(!product)return false;
+  var key=String(product.product_id),line=posCheckout.cart[key];
+  if(line&&String(line.productVersionId)===String(product.active_version_id))line.quantity=Math.min(10000,(Number(line.quantity)||0)+1);
+  else posCheckout.cart[key]={productId:key,productVersionId:String(product.active_version_id),name:String(product.product_name||'Product'),
+    size:String(product.size_snapshot||''),priceCentavos:Number(product.selling_price_centavos)||0,quantity:1,stale:false,latest:null};
+  posCheckout.lastReceipt=null;posCheckout.error='';posCheckout.notice='';renderPos();return true;
+}
+function changePosQuantity(productId,delta){
+  if(posCheckout.pending||posCheckout.submitting||posCheckout.confirming)return false;
+  var line=posCheckout.cart[String(productId)];if(!line)return false;
+  line.quantity=(Number(line.quantity)||0)+delta;
+  if(line.quantity<=0)delete posCheckout.cart[String(productId)];
+  else line.quantity=Math.min(10000,line.quantity);
+  posCheckout.error='';posCheckout.notice='';renderPos();return true;
+}
+function removePosLine(productId){
+  if(posCheckout.pending||posCheckout.submitting||posCheckout.confirming)return false;
+  delete posCheckout.cart[String(productId)];posCheckout.error='';posCheckout.notice='';renderPos();return true;
+}
+function clearPosCart(){
+  if(posCheckout.pending||posCheckout.submitting||posCheckout.confirming||!posCartLines().length)return false;
+  if(!confirm('Clear this sale?'))return false;
+  posCheckout.cart={};posCheckout.catalogChanged=false;posCheckout.error='';posCheckout.notice='';renderPos();return true;
+}
+function resetPosContext(message,preserveCheckout){
   posLoadGeneration++;posStatusGeneration++;
   posContext={loaded:!!message,loading:false,businessId:'',businessName:'',role:'',publications:{},error:message||''};
+  if(preserveCheckout)posCheckoutLoadGeneration++;
+  else resetPosCheckout();
 }
 function posCanPublish(){
   return !!(session&&cloud.connected&&costingCloudReady&&posContext.businessId&&(posContext.role==='owner'||posContext.role==='manager'));
@@ -1102,12 +1323,12 @@ async function loadPosPublicationStatus(expectedGeneration){
   return true;
 }
 async function loadPosContext(){
-  if(!cloud.client||!session||!session.user){resetPosContext('Sign in to publish products to the POS.');renderProducts();return false;}
+  if(!cloud.client||!session||!session.user){resetPosContext('Sign in to use the POS.');renderProducts();renderPos();return false;}
   if(posContext.loading)return false;
   var generation=++posLoadGeneration;
   posStatusGeneration++;
   var userId=String(session.user.id||'');
-  posContext.loading=true;posContext.error='';renderProducts();
+  posContext.loading=true;posContext.error='';renderProducts();renderPos();
   try{
     var result=await cloud.client.rpc('pos_get_my_businesses');
     var businesses=rpcRows(result);
@@ -1130,8 +1351,129 @@ async function loadPosContext(){
     return false;
   }finally{
     if(generation===posLoadGeneration){
-      posContext.loading=false;renderProducts();
+      posContext.loading=false;renderProducts();renderPos();
     }
+  }
+}
+function posRpcErrorText(error){
+  if(error&&String(error.code||'')==='42501')return 'Your account no longer has access to this POS workspace.';
+  return 'Could not load the POS. Check your connection and try again.';
+}
+async function loadPosCheckoutData(){
+  if(!cloud.client||!session||!session.user||!posContext.businessId){renderPos();return false;}
+  if(posCheckout.submitting)return false;
+  var generation=++posCheckoutLoadGeneration,userId=String(session.user.id||''),businessId=String(posContext.businessId||'');
+  posCheckout.catalogLoading=true;posCheckout.reportsLoading=true;posCheckout.catalogError='';posCheckout.reportsError='';renderPos();
+  function request(name,args){
+    try{return Promise.resolve(cloud.client.rpc(name,args)).then(function(result){return {rows:rpcRows(result),error:null};}).catch(function(error){return {rows:[],error:error};});}
+    catch(error){return Promise.resolve({rows:[],error:error});}
+  }
+  var results=await Promise.all([
+    request('pos_get_catalog',{p_business_id:businessId}),
+    request('pos_get_today_summary',{p_business_id:businessId}),
+    request('pos_get_recent_sales',{p_business_id:businessId,p_limit:20})
+  ]);
+  if(!posLoadRequestStillCurrent(generation,userId,businessId))return false;
+  var catalogResult=results[0],summaryResult=results[1],recentResult=results[2];
+  posCheckout.catalogLoading=false;posCheckout.reportsLoading=false;
+  if(catalogResult.error)posCheckout.catalogError=posRpcErrorText(catalogResult.error);
+  else{
+    posCheckout.catalog=catalogResult.rows||[];posCheckout.catalogError='';
+    markPosCartAgainstCatalog();posRestorePending();
+  }
+  if(summaryResult.error||recentResult.error)posCheckout.reportsError='Today’s totals could not be refreshed.';
+  if(!summaryResult.error)posCheckout.summary=summaryResult.rows[0]||null;
+  if(!recentResult.error)posCheckout.recent=recentResult.rows||[];
+  renderPos();return !catalogResult.error;
+}
+async function openPosRegister(refresh){
+  if(posCheckout.submitting)return false;
+  if(!posContext.businessId){
+    var ready=await loadPosContext();if(!ready||!posContext.businessId)return false;
+  }
+  if(refresh||!posCheckout.catalog.length||posCheckout.catalogError)return loadPosCheckoutData();
+  renderPos();return true;
+}
+function posCheckoutValidation(){
+  if(posCheckout.pending)return {valid:true,error:'',cashCentavos:posCheckout.pending.rpcArgs.p_cash_tendered_centavos};
+  var lines=posCartLines(),total=posCartTotalCentavos();
+  if(!lines.length)return {valid:false,error:'Add at least one product to the sale.'};
+  if(posCheckout.catalogChanged||lines.some(function(line){return line.stale;}))return {valid:false,error:'The menu changed. Review the cart before charging the customer.'};
+  if(!Number.isSafeInteger(total)||total<=0||total>100000000000)return {valid:false,error:'This order total is outside the supported range.'};
+  var reference=String(posCheckout.referenceNumber||'').trim();
+  if(reference.length>120)return {valid:false,error:'Keep the payment reference under 120 characters.'};
+  if(posCheckout.paymentMethod==='cash'){
+    var cash=strictPesoCentavos(posCheckout.cashReceived);
+    if(cash==null)return {valid:false,error:'Enter cash received using pesos and up to 2 decimal places.'};
+    if(cash<total)return {valid:false,error:'Cash received is less than the order total.'};
+    return {valid:true,error:'',cashCentavos:cash};
+  }
+  if(posCheckout.paymentMethod!=='gcash'&&posCheckout.paymentMethod!=='gotyme')return {valid:false,error:'Choose Cash, GCash, or GoTyme.'};
+  return {valid:true,error:'',cashCentavos:null};
+}
+function buildPosPendingSale(validation){
+  var userId=String(session&&session.user&&session.user.id||''),businessId=String(posContext.businessId||'');
+  var items=posCartLines().map(function(line){return {product_id:String(line.productId),product_version_id:String(line.productVersionId),quantity:Number(line.quantity)};});
+  var args={p_business_id:businessId,p_client_sale_id:posUuid(),p_items:items,p_payment_method:posCheckout.paymentMethod,
+    p_cash_tendered_centavos:posCheckout.paymentMethod==='cash'?validation.cashCentavos:null,
+    p_reference_number:String(posCheckout.referenceNumber||'').trim()||null,p_note:null};
+  return {schemaVersion:1,userId:userId,businessId:businessId,createdAt:new Date().toISOString(),rpcArgs:args,
+    cartSnapshot:posCartLines().map(function(line){return {productId:line.productId,productVersionId:line.productVersionId,name:line.name,size:line.size,priceCentavos:line.priceCentavos,quantity:line.quantity};})};
+}
+function posDeterministicError(error){
+  var code=String(error&&error.code||'');
+  return ['40001','42501','22023','23514','23505','55000'].indexOf(code)>=0||/^PGRST/.test(code);
+}
+function posCheckoutErrorText(error){
+  var code=String(error&&error.code||'');
+  if(code==='40001')return 'The menu changed while this sale was open. Review the updated prices before trying again.';
+  if(code==='42501')return 'Your account cannot complete sales in this workspace.';
+  if(code==='23505')return 'This retry ID belongs to different sale details. Check Recent sales before starting a new checkout.';
+  if(code==='55000')return 'The register is not ready to accept sales. Ask an owner to check the POS setup.';
+  if(code==='22023'||code==='23514')return 'The sale details were rejected. Review the cart and payment, then try again.';
+  return 'The sale could not be completed. Nothing was cleared; review it and try again.';
+}
+function reviewPosSale(){
+  if(posCheckout.pending)return submitPosSale();
+  if(posCheckout.submitting)return false;
+  var validation=posCheckoutValidation();
+  if(!validation.valid){posCheckout.confirming=false;posCheckout.error=validation.error;renderPos();return false;}
+  posCheckout.confirming=true;posCheckout.error='';renderPos();return true;
+}
+function cancelPosConfirmation(){
+  if(posCheckout.submitting||posCheckout.pending)return false;
+  posCheckout.confirming=false;renderPos();return true;
+}
+async function submitPosSale(){
+  if(posCheckout.submitting||!session||!session.user||!posContext.businessId)return false;
+  var validation=posCheckoutValidation();
+  if(!validation.valid){posCheckout.confirming=false;posCheckout.error=validation.error;renderPos();return false;}
+  var record=posCheckout.pending||buildPosPendingSale(validation);
+  if(!posCheckout.pending)posSavePending(record);
+  var generation=++posCheckoutSubmitGeneration,userId=String(session.user.id||''),businessId=String(posContext.businessId||'');
+  posCheckout.confirming=false;posCheckout.submitting=true;posCheckout.error='';renderPos();
+  try{
+    var result=await cloud.client.rpc('pos_complete_sale',record.rpcArgs);
+    var rows=rpcRows(result);
+    if(!posSubmitRequestStillCurrent(generation,userId,businessId))return false;
+    var receipt=rows[0];if(!receipt||!receipt.sale_id||!receipt.receipt_number)throw new Error('Missing receipt response');
+    posCheckout.submitting=false;posClearPending();posCheckout.cart={};posCheckout.catalogChanged=false;
+    posCheckout.paymentMethod='cash';posCheckout.cashReceived='';posCheckout.referenceNumber='';posCheckout.confirming=false;posCheckout.error='';posCheckout.notice='';
+    posCheckout.lastReceipt=receipt;renderPos();
+    loadPosCheckoutData().catch(function(){});
+    return true;
+  }catch(error){
+    if(!posSubmitRequestStillCurrent(generation,userId,businessId))return false;
+    posCheckout.submitting=false;
+    if(String(error&&error.code||'')==='40001'){
+      posClearPending();posCheckout.confirming=false;posCheckout.catalogChanged=true;posCheckout.error=posCheckoutErrorText(error);renderPos();
+      loadPosCheckoutData().catch(function(){});return false;
+    }
+    if(!posDeterministicError(error)){
+      posCheckout.confirming=false;posCheckout.notice='The connection stopped before a receipt came back. Retry this exact sale safely—do not create a new sale.';
+      posCheckout.error='';renderPos();return false;
+    }
+    posClearPending();posCheckout.confirming=false;posCheckout.error=posCheckoutErrorText(error);renderPos();return false;
   }
 }
 function publicationStatusFor(p){
@@ -1900,20 +2242,134 @@ function saveMixture(){
   if(activeMixtureDraftId)state.mixtureDrafts=state.mixtureDrafts.filter(function(d){return d.id!==activeMixtureDraftId;});
   ingredientUi.category=saved.categoryId||'uncategorized'; ingredientUi.search=''; logChanges(); save(); closeMixtureModal(true); renderAll(); focusSoon('[data-act="openMixtureModal"]'); return true;
 }
-function renderAll(){ renderIngredients(); renderDraftButton(); renderPackaging(); renderRecipes(); renderProducts(); }
+function posPaymentLabel(method){return method==='gcash'?'GCash':(method==='gotyme'?'GoTyme':'Cash');}
+function posSummaryHtml(){
+  var s=posCheckout.summary;
+  if(posCheckout.reportsLoading&&!s)return '<div class="pos-summary"><div class="metric"><div class="lbl">Today</div><div class="val">Loading…</div></div></div>';
+  if(!s)return '<div class="note">Today’s sales summary will appear after the first completed sale.</div>';
+  var canView=!!s.can_view_costs;
+  return '<div class="pos-summary">'+
+    '<div class="metric"><div class="lbl">Today’s sales</div><div class="val">'+peso(Number(s.total_sales_centavos||0)/100)+'</div></div>'+
+    '<div class="metric"><div class="lbl">Orders</div><div class="val">'+Number(s.sale_count||0)+'</div></div>'+
+    '<div class="metric"><div class="lbl">Items sold</div><div class="val">'+Number(s.items_sold||0)+'</div></div>'+
+    '<div class="metric"><div class="lbl">Cash</div><div class="val">'+peso(Number(s.cash_sales_centavos||0)/100)+'</div></div>'+
+    '<div class="metric"><div class="lbl">GCash</div><div class="val">'+peso(Number(s.gcash_sales_centavos||0)/100)+'</div></div>'+
+    '<div class="metric"><div class="lbl">GoTyme</div><div class="val">'+peso(Number(s.gotyme_sales_centavos||0)/100)+'</div></div>'+
+    '<div class="metric"><div class="lbl">'+(canView?'Est. gross profit':'Cost &amp; profit')+'</div><div class="val'+(canView?' good':'')+'">'+(canView?peso(Number(s.estimated_gross_profit_centavos||0)/100):'Owner only')+'</div></div>'+
+  '</div>';
+}
+function posReceiptHtml(){
+  var r=posCheckout.lastReceipt;if(!r)return '';
+  return '<div class="card pos-receipt"><div class="pos-topbar"><div style="flex:1"><div class="hint" style="margin:0">Sale completed'+(r.is_retry?' · safely recovered':'')+'</div>'+
+    '<div class="pos-receipt-number">Receipt '+escapeHtml(r.receipt_number)+'</div><div class="hint" style="margin:4px 0 0">'+Number(r.units_sold||0)+' item'+(Number(r.units_sold||0)===1?'':'s')+' · '+escapeHtml(posPaymentLabel(r.payment_method))+'</div></div>'+
+    '<div style="text-align:right"><div class="hint" style="margin:0">Total</div><strong style="font-size:24px">'+peso(Number(r.total_centavos||0)/100)+'</strong>'+
+    (r.change_given_centavos==null?'':'<div class="hint" style="margin:2px 0 0">Change '+peso(Number(r.change_given_centavos)/100)+'</div>')+'</div></div>'+
+    '<button class="btn" data-act="posNewSale">Start new sale</button></div>';
+}
+function posCatalogHtml(){
+  if(posCheckout.catalogLoading&&!posCheckout.catalog.length)return '<div class="pos-loading">Loading the published menu…</div>';
+  if(posCheckout.catalogError)return '<div class="note"><strong>Menu unavailable.</strong> '+escapeHtml(posCheckout.catalogError)+' <button class="btn small secondary" data-act="refreshPos" style="margin-left:6px">Retry</button></div>';
+  var categories={},all=posCheckout.catalog||[];
+  all.forEach(function(item){var key=item.category_id?String(item.category_id):'other';if(!categories[key])categories[key]=String(item.category_name||'Other');});
+  var chips='<button class="category-chip'+(posCheckout.category==='all'?' active':'')+'" data-act="setPosCategory" data-id="all">All ('+all.length+')</button>';
+  Object.keys(categories).forEach(function(key){var count=all.filter(function(item){return (item.category_id?String(item.category_id):'other')===key;}).length;
+    chips+='<button class="category-chip'+(posCheckout.category===key?' active':'')+'" data-act="setPosCategory" data-id="'+escapeHtml(key)+'">'+escapeHtml(categories[key])+' ('+count+')</button>';});
+  var query=String(posCheckout.search||'').trim().toLowerCase();
+  var filtered=all.filter(function(item){var key=item.category_id?String(item.category_id):'other';return (posCheckout.category==='all'||posCheckout.category===key)&&(!query||(String(item.product_name||'')+' '+String(item.size_snapshot||'')+' '+String(item.category_name||'')).toLowerCase().indexOf(query)>=0);});
+  var products=filtered.map(function(item){return '<button class="pos-product" data-act="addPosProduct" data-id="'+escapeHtml(item.product_id)+'"'+(posCheckout.pending||posCheckout.submitting||posCheckout.confirming?' disabled':'')+'><span><span class="pos-product-name">'+escapeHtml(item.product_name||'Product')+'</span>'+
+    (item.size_snapshot?'<span class="pos-product-size">'+escapeHtml(item.size_snapshot)+'</span>':'')+'</span><span class="pos-product-price">'+peso(Number(item.selling_price_centavos||0)/100)+'</span></button>';}).join('');
+  if(!all.length)products='<div class="note" style="grid-column:1/-1"><strong>No products are ready to sell.</strong><br>Open <strong>4. Pricing</strong> and use <strong>Publish to POS</strong> on each product you want on this menu.</div>';
+  else if(!filtered.length)products='<div class="empty" style="grid-column:1/-1">No products match this search or category.</div>';
+  return '<div class="pos-search-row"><div><label class="fld" for="posSearch">Find product</label><input id="posSearch" type="search" autocomplete="off" placeholder="Search drinks…" value="'+escapeHtml(posCheckout.search)+'"></div>'+
+    '<button class="btn small secondary" data-act="refreshPos">Refresh</button></div><div class="pos-category-bar" aria-label="POS product categories">'+chips+'</div><div class="pos-product-grid">'+products+'</div>';
+}
+function posCashSuggestions(total){
+  var values=[total,Math.ceil(total/5000)*5000,10000,20000,50000,100000],seen={},out=[];
+  values.forEach(function(value){if(value>=total&&!seen[value]){seen[value]=true;out.push(value);}});return out.slice(0,4);
+}
+function updatePosPaymentPreview(){
+  var total=posCartTotalCentavos(),cash=strictPesoCentavos(posCheckout.cashReceived),change=cash==null?null:cash-total;
+  var changeEl=document.getElementById('posChangeValue');
+  if(changeEl){changeEl.className=change!=null&&change>=0?'pos-change':'';changeEl.innerHTML=change!=null&&change>=0?'<strong>Change: '+peso(change/100)+'</strong>':'';}
+  var errorEl=document.querySelector('#posCartPanel .pos-error');if(errorEl&&posCheckout.error)errorEl.textContent='';
+  var button=document.querySelector('#posCartPanel [data-act="reviewPosSale"]'),validation=posCheckoutValidation();
+  if(button)button.disabled=(!validation.valid&&!posCheckout.pending)||posCheckout.submitting;
+}
+function posCartHtml(){
+  var lines=posCartLines(),total=posCartTotalCentavos(),locked=!!(posCheckout.pending||posCheckout.submitting||posCheckout.confirming);
+  var rows=lines.map(function(line){
+    var stale='';
+    if(line.stale)stale='<div class="pos-state warn" style="margin-top:6px">'+(line.latest?'Updated menu price '+peso(Number(line.latest.selling_price_centavos||0)/100):'No longer available')+'</div>';
+    return '<div class="pos-cart-line"><div class="pos-cart-line-top"><div class="pos-cart-name">'+escapeHtml(line.name)+(line.size?'<div class="pos-recent-meta">'+escapeHtml(line.size)+'</div>':'')+stale+'</div><div class="pos-cart-price">'+peso((Number(line.priceCentavos)||0)*(Number(line.quantity)||0)/100)+'</div></div>'+
+      '<div class="pos-qty"><button data-act="posQtyDown" data-id="'+escapeHtml(line.productId)+'" aria-label="Remove one '+escapeHtml(line.name)+'"'+(locked?' disabled':'')+'>−</button><span class="pos-qty-value">'+Number(line.quantity)+'</span><button data-act="posQtyUp" data-id="'+escapeHtml(line.productId)+'" aria-label="Add one '+escapeHtml(line.name)+'"'+(locked?' disabled':'')+'>+</button><button class="pos-remove" data-act="removePosLine" data-id="'+escapeHtml(line.productId)+'"'+(locked?' disabled':'')+'>Remove</button></div></div>';
+  }).join('');
+  if(!rows)rows='<div class="empty">Tap a product to start the sale.</div>';
+  var changed=posCheckout.catalogChanged?'<div class="note"><strong>Menu changed.</strong> Review the new prices and unavailable items before checkout.'+(locked?'':'<div style="margin-top:8px"><button class="btn small secondary" data-act="acceptPosCatalogChanges">Apply updates &amp; remove unavailable</button></div>')+'</div>':'';
+  var validation=posCheckoutValidation(),cash=strictPesoCentavos(posCheckout.cashReceived),change=cash==null?null:cash-total;
+  var payment='<div class="pos-payment-tabs" aria-label="Payment method">'+['cash','gcash','gotyme'].map(function(method){return '<button data-act="setPosPayment" data-method="'+method+'" class="'+(posCheckout.paymentMethod===method?'active':'')+'"'+(locked?' disabled':'')+'>'+posPaymentLabel(method)+'</button>';}).join('')+'</div>';
+  if(posCheckout.paymentMethod==='cash'){
+    payment+='<label class="fld" for="posCashReceived">Cash received (₱)</label><input id="posCashReceived" inputmode="decimal" autocomplete="off" placeholder="0.00" value="'+escapeHtml(posCheckout.cashReceived)+'"'+(locked?' disabled':'')+'><div class="pos-quick-cash">'+posCashSuggestions(total).map(function(value){return '<button data-act="setPosCash" data-centavos="'+value+'"'+(locked?' disabled':'')+'>'+(value===total?'Exact ': '')+peso(value/100)+'</button>';}).join('')+'</div>'+
+      (change!=null&&change>=0?'<div id="posChangeValue" class="pos-change"><strong>Change: '+peso(change/100)+'</strong></div>':'<div id="posChangeValue"></div>');
+  }else payment+='<label class="fld" for="posReference">'+posPaymentLabel(posCheckout.paymentMethod)+' reference (optional)</label><input id="posReference" maxlength="120" autocomplete="off" placeholder="Transaction/reference number" value="'+escapeHtml(posCheckout.referenceNumber)+'"'+(locked?' disabled':'')+'>';
+  var buttonText=posCheckout.submitting?'Completing sale…':(posCheckout.pending?'Retry exact sale':'Complete sale · '+peso(total/100));
+  var actionHtml;
+  if(posCheckout.confirming){
+    var confirmation='Charge <strong>'+peso(total/100)+'</strong> via <strong>'+escapeHtml(posPaymentLabel(posCheckout.paymentMethod))+'</strong>';
+    if(posCheckout.paymentMethod==='cash'){var tendered=strictPesoCentavos(posCheckout.cashReceived);confirmation+=' · received '+peso(Number(tendered||0)/100)+' · change '+peso(Math.max(0,Number(tendered||0)-total)/100);}
+    actionHtml='<div class="note" style="margin-top:10px"><strong>Confirm payment</strong><br>'+confirmation+'</div><div class="row" style="margin-top:9px"><button class="btn secondary" data-act="cancelPosConfirmation">Back</button><button class="btn" data-act="confirmPosSale">Confirm &amp; complete</button></div>';
+  }else actionHtml='<button class="btn pos-checkout" data-act="'+(posCheckout.pending?'confirmPosSale':'reviewPosSale')+'"'+((!validation.valid&&!posCheckout.pending)||posCheckout.submitting?' disabled':'')+'>'+escapeHtml(buttonText)+'</button>';
+  return '<div class="row"><h2 style="margin:0">Current sale</h2><span class="spacer"></span><button class="btn small secondary" data-act="clearPosCart"'+(locked||!lines.length?' disabled':'')+'>Clear</button></div><div class="pos-cart-list">'+rows+'</div>'+changed+
+    '<div class="pos-total"><span>Total · '+posCartUnits()+' item'+(posCartUnits()===1?'':'s')+'</span><strong>'+peso(total/100)+'</strong></div>'+payment+
+    (posCheckout.notice?'<div class="note" style="margin-top:10px">'+escapeHtml(posCheckout.notice)+'</div>':'')+'<div class="pos-error" aria-live="assertive">'+escapeHtml(posCheckout.error)+'</div>'+
+    actionHtml+
+    '<p class="hint" style="margin:9px 0 0">Sales and payment totals are tracked now. The automatic shift starts with ₱0 opening cash; drawer variance will be added later.</p>';
+}
+function posRecentHtml(){
+  if(posCheckout.reportsLoading&&!posCheckout.recent.length)return '<div class="pos-loading">Loading recent sales…</div>';
+  if(!posCheckout.recent.length)return '<p class="empty">No completed sales yet.</p>';
+  return posCheckout.recent.map(function(sale){
+    var completed=sale.completed_at?new Date(sale.completed_at):null,time=completed?completed.toLocaleTimeString('en-PH',{hour:'numeric',minute:'2-digit'}):'';
+    var today=posCheckout.summary&&String(sale.business_date||'')===String(posCheckout.summary.business_date||'');
+    var when=(today?'Today':(completed?completed.toLocaleDateString('en-PH',{month:'short',day:'numeric'}):String(sale.business_date||'')))+(time?' · '+time:'');
+    return '<div class="pos-recent-row"><div><strong>'+escapeHtml(sale.receipt_number||'Receipt')+'</strong><div class="pos-recent-meta">'+escapeHtml(when)+' · '+Number(sale.units_sold||0)+' item'+(Number(sale.units_sold||0)===1?'':'s')+' · '+escapeHtml(sale.cashier_display_name||'Cashier')+(sale.can_view_costs?' · est. profit '+peso(Number(sale.estimated_gross_profit_centavos||0)/100):'')+'</div>'+(sale.item_summary?'<div class="pos-item-summary">'+escapeHtml(sale.item_summary)+'</div>':'')+'</div><span class="pos-recent-method pill">'+escapeHtml(posPaymentLabel(sale.payment_method))+'</span><strong>'+peso(Number(sale.total_centavos||0)/100)+'</strong></div>';
+  }).join('');
+}
+function renderPos(){
+  var root=document.getElementById('posRoot');if(!root)return;
+  if(!session){root.innerHTML='<div class="card"><h2>Point of sale</h2><p class="hint">The register needs a cloud connection and a signed-in account. Your costing pages remain available above.</p></div>';return;}
+  if((!posContext.loaded||posContext.loading)&&!posContext.businessId){root.innerHTML='<div class="card"><div class="pos-loading">Opening the Scoopies register…</div></div>';return;}
+  if(posContext.error||!posContext.businessId){root.innerHTML='<div class="card"><h2>Point of sale</h2><div class="note">'+escapeHtml(posContext.error||'The POS workspace is not ready.')+'</div><button class="btn secondary" data-act="retryPosContext" style="margin-top:10px">Retry POS</button></div>';return;}
+  root.innerHTML='<div class="pos-topbar"><div style="flex:1"><h2>'+escapeHtml(posContext.businessName||'Scoopies')+' register</h2><p class="hint">Fast checkout · today’s totals update after every confirmed receipt</p></div><span class="pos-role">'+escapeHtml(posContext.role||'member')+'</span><button class="btn small secondary" data-act="refreshPos">Refresh</button></div>'+
+    posReceiptHtml()+posSummaryHtml()+'<p class="hint">Estimated gross profit is sales minus published ingredient and packaging costs only. It excludes rent, labor, utilities, and payment or delivery fees.</p>'+(posCheckout.reportsError?'<p class="hint">'+escapeHtml(posCheckout.reportsError)+'</p>':'')+
+    '<div class="pos-workspace"><div class="card pos-catalog-card"><h2 style="margin:0">Menu</h2><div id="posCatalogBody">'+posCatalogHtml()+'</div></div><aside id="posCartPanel" class="card pos-cart-card">'+posCartHtml()+'</aside></div>'+
+    '<div class="card" style="margin-top:14px"><div class="row"><h2 style="margin:0">Recent sales</h2><span class="spacer"></span><span class="hint" style="margin:0">Latest 20</span></div>'+posRecentHtml()+'</div>';
+}
+function renderAll(){ renderPos(); renderIngredients(); renderDraftButton(); renderPackaging(); renderRecipes(); renderProducts(); }
 
 /* ---------- events ---------- */
-document.querySelector('nav').addEventListener('click', function(e){
-  var b=e.target.closest('button[data-tab]'); if(!b) return;
+function activateAppTab(tab,loadData){
+  var b=document.querySelector('nav button[data-tab="'+tab+'"]'),section=document.getElementById(tab);if(!b||!section)return false;
   document.querySelectorAll('nav button').forEach(function(x){x.classList.remove('active');});
   document.querySelectorAll('section').forEach(function(s){s.classList.remove('active');});
-  b.classList.add('active'); document.getElementById(b.dataset.tab).classList.add('active');
-  if(b.dataset.tab==='history') loadHistory();
-  if(b.dataset.tab==='products'&&session&&!publishModalOpen)loadPosContext().catch(function(){});
+  b.classList.add('active');section.classList.add('active');
+  if(loadData&&tab==='history')loadHistory();
+  if(loadData&&tab==='products'&&session&&!publishModalOpen)loadPosContext().catch(function(){});
+  if(loadData&&tab==='pos'&&session)openPosRegister(true).catch(function(){});
+  return true;
+}
+document.querySelector('nav').addEventListener('click', function(e){
+  var b=e.target.closest('button[data-tab]');if(!b)return;
+  activateAppTab(b.dataset.tab,true);
 });
 
 document.body.addEventListener('input', function(e){
   var el=e.target;
+  if(el.id==='posSearch'){
+    posCheckout.search=el.value||'';var body=document.getElementById('posCatalogBody');if(body)body.innerHTML=posCatalogHtml();
+    var next=document.getElementById('posSearch');if(next){next.focus();try{next.setSelectionRange(next.value.length,next.value.length);}catch(ignore){}}return;
+  }
+  if(el.id==='posCashReceived'){posCheckout.cashReceived=el.value||'';posCheckout.error='';updatePosPaymentPreview();return;}
+  if(el.id==='posReference'){posCheckout.referenceNumber=el.value||'';posCheckout.error='';return;}
   if(el.id==='ingredientSearch'){ingredientUi.search=el.value||'';renderIngredients();return;}
   if(publishModalOpen&&publishSnapshot&&el.dataset.publishField){
     publishSnapshot[el.dataset.publishField]=el.value;return;
@@ -1984,6 +2440,21 @@ document.body.addEventListener('click', function(e){
   var act=b.dataset.act, id=b.dataset.id, idx=b.dataset.idx, lineId=b.dataset.lineId;
   if(['deleteCategory','addIngredient','delIngredient','addPackaging','delPackaging','addRecipe','delRecipe','addLine','delLine','addProduct','delProduct','addPkgLine','delPkgLine','useSuggested','loadExample','clearAll'].indexOf(act)>=0)consumePendingRemoteForCommit(false);
   switch(act){
+    case 'refreshPos': openPosRegister(true).catch(function(){});return;
+    case 'setPosCategory': posCheckout.category=id||'all';renderPos();return;
+    case 'addPosProduct': addPosProduct(id);return;
+    case 'posQtyDown': changePosQuantity(id,-1);return;
+    case 'posQtyUp': changePosQuantity(id,1);return;
+    case 'removePosLine': removePosLine(id);return;
+    case 'clearPosCart': clearPosCart();return;
+    case 'setPosPayment': if(!posCheckout.pending&&!posCheckout.submitting&&!posCheckout.confirming&&['cash','gcash','gotyme'].indexOf(b.dataset.method)>=0){posCheckout.paymentMethod=b.dataset.method;posCheckout.error='';renderPos();}return;
+    case 'setPosCash': if(!posCheckout.pending&&!posCheckout.submitting&&!posCheckout.confirming){posCheckout.cashReceived=(Number(b.dataset.centavos||0)/100).toFixed(2);posCheckout.error='';renderPos();}return;
+    case 'acceptPosCatalogChanges': acceptPosCatalogChanges();return;
+    case 'reviewPosSale': reviewPosSale();return;
+    case 'confirmPosSale': submitPosSale();return;
+    case 'cancelPosConfirmation': cancelPosConfirmation();return;
+    case 'completePosSale': submitPosSale();return;
+    case 'posNewSale': posCheckout.lastReceipt=null;posCheckout.confirming=false;posCheckout.error='';posCheckout.notice='';renderPos();return;
     case 'setIngredientCategory': ingredientUi.category=id; renderIngredients(); return;
     case 'openCategoryModal': openCategoryModal(''); return;
     case 'editCategory': openCategoryModal(id); return;
@@ -2003,7 +2474,7 @@ document.body.addEventListener('click', function(e){
     case 'openPublishModal': openPublishProductModal(id); return;
     case 'closePublishModal': closePublishProductModal(); return;
     case 'publishProductToPos': publishProductToPos(); return;
-    case 'retryPosContext': resetPosContext('');loadPosContext();return;
+    case 'retryPosContext': resetPosContext('',true);openPosRegister(true).catch(function(){});return;
     case 'enableMixtureEdit': mixtureReadOnly=false; renderMixtureModal(); focusSoon('#mixtureName'); return;
     case 'addMixtureComponent': mixtureDraft.components.push({ingredientId:'',qty:'',unit:'g'}); renderMixtureModal(); focusLastMixtureField('ingredientId'); return;
     case 'removeMixtureComponent': {var nextIndex=Math.max(0,parseInt(idx,10)-1);mixtureDraft.components.splice(parseInt(idx,10),1);renderMixtureModal();focusSoon(mixtureDraft.components.length?'#mixtureModal [data-mix-index="'+Math.min(nextIndex,mixtureDraft.components.length-1)+'"] [data-mix-field="ingredientId"]':'#mixtureModal [data-act="addMixtureComponent"]');return;}
@@ -2066,7 +2537,7 @@ document.body.addEventListener('click', function(e){
 /* reload from cloud when returning to the tab (picks up partner's edits) */
 /* safety net: also refresh when returning to the tab, in case a live update was missed */
 window.addEventListener('focus', function(){
-  if(!cloud.connected||pendingSave||costingCloudLoading||publishSubmitting)return;
+  if(!cloud.connected||pendingSave||costingCloudLoading||publishSubmitting||posCheckout.submitting)return;
   if(localDirty){retryDirtySave();return;}
   if(!session||!session.user)return;
   var costingGeneration=++costingLoadGeneration,costingUserId=String(session.user.id||'');
@@ -2078,7 +2549,7 @@ window.addEventListener('focus', function(){
     if(!costingRequestIsCurrent(costingGeneration,costingUserId))return;
     costingCloudReady=false;costingCloudLoading=false;renderProducts();
   });
-  if(session&&!publishModalOpen)loadPosContext().catch(function(){});
+  if(session&&!publishModalOpen)loadPosContext().then(function(){var section=document.getElementById('pos');if(section&&section.classList.contains('active'))return openPosRegister(true);}).catch(function(){});
 });
 window.addEventListener('online',retryDirtySave);
 /* if a partner update arrived while typing, apply it once they leave the field */

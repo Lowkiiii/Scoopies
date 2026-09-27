@@ -137,6 +137,33 @@ document.getElementById('app').addEventListener('load', async () => {
       publish_result: 'created'
     }, overrides);
   }
+  function checkoutCatalogFixture(overrides = {}) {
+    return Object.assign({
+      product_id: '22222222-2222-4222-8222-222222222222',
+      active_version_id: '33333333-3333-4333-8333-333333333333',
+      category_id: '44444444-4444-4444-8444-444444444444',
+      category_name: 'Matcha', product_name: 'Matcha Latte', size_snapshot: '12 oz',
+      selling_price_centavos: 17000, product_sort_order: 0, category_sort_order: 0
+    }, overrides);
+  }
+  function installCheckout(role = 'owner', catalog = [checkoutCatalogFixture()]) {
+    app.localStorage.removeItem(app.POS_PENDING_KEY);
+    app.resetPosCheckout();
+    installPosContext(role);
+    app.posCheckout.catalog = catalog;
+    app.posCheckout.catalogLoading = false;
+    app.posCheckout.catalogError = '';
+    app.renderPos();
+    return catalog;
+  }
+  function receiptFixture(overrides = {}) {
+    return Object.assign({
+      sale_id: '55555555-5555-4555-8555-555555555555', receipt_number: 'SCP-20260927-0001',
+      business_date: '2026-09-27', completed_at: '2026-09-27T12:00:00.000Z', payment_method: 'cash',
+      item_count: 1, units_sold: 1, subtotal_centavos: 17000, total_centavos: 17000,
+      cash_tendered_centavos: 20000, change_given_centavos: 3000, is_retry: false
+    }, overrides);
+  }
   test('test mode isolates storage and disables every cloud connection', () => {
     if (!app.TEST_MODE || app.KEY !== 'scoopies_costing_test') throw new Error('test storage is not isolated');
     if (app.cloud.client || app.cloud.connected || app.session) throw new Error('cloud access is enabled in test mode');
@@ -1473,6 +1500,199 @@ document.getElementById('app').addEventListener('load', async () => {
     }
     assert(app.getById(app.state.products, 'matcha-product'), 'active published product was deleted from costing');
     assert(notices.some(message => /POS|publish|archive/i.test(message)), 'blocked deletion did not explain the POS/archive requirement');
+  });
+  test('POS is the default page while all costing tabs remain available', () => {
+    const activeSection = app.document.querySelector('section.active');
+    const activeTab = app.document.querySelector('nav button.active');
+    assert(activeSection && activeSection.id === 'pos', 'POS was not the default page');
+    assert(activeTab && activeTab.dataset.tab === 'pos', 'POS navigation was not selected by default');
+    ['ingredients', 'packaging', 'recipes', 'products'].forEach(id => {
+      assert(app.document.querySelector(`nav button[data-tab="${id}"]`), `costing tab ${id} was removed`);
+    });
+  });
+  test('POS loader uses only cashier-safe RPCs and escapes recent item summaries', async () => {
+    installCheckout('cashier', []);
+    const catalog = checkoutCatalogFixture();
+    const calls = [];
+    app.cloud.client = { rpc(name, args) {
+      calls.push({ name, args });
+      if (name === 'pos_get_catalog') return rpcResult([catalog]);
+      if (name === 'pos_get_today_summary') return rpcResult([{ business_date: '2026-09-27', sale_count: 1, items_sold: 1, total_sales_centavos: 17000, cash_sales_centavos: 17000, gcash_sales_centavos: 0, gotyme_sales_centavos: 0, estimated_cost_centavos: null, estimated_gross_profit_centavos: null, can_view_costs: false }]);
+      if (name === 'pos_get_recent_sales') return rpcResult([{ sale_id: 'sale', receipt_number: 'SCP-1', business_date: '2026-09-27', completed_at: '2026-09-27T12:00:00Z', cashier_display_name: 'Cashier', item_count: 1, units_sold: 1, item_summary: '<img id="unsafe-summary"> Matcha', total_centavos: 17000, payment_method: 'cash', can_view_costs: false }]);
+      throw new Error('unexpected RPC ' + name);
+    }};
+    assert(await app.loadPosCheckoutData(), 'cashier-safe POS data did not load');
+    assert(calls.map(call => call.name).sort().join('|') === ['pos_get_catalog', 'pos_get_recent_sales', 'pos_get_today_summary'].sort().join('|'), 'POS loader called an unexpected RPC');
+    assert(app.posCheckout.catalog[0].active_version_id === catalog.active_version_id, 'catalog version identity was not retained');
+    assert(!app.document.getElementById('unsafe-summary'), 'recent item summary was rendered as HTML');
+    assert(/<img id="unsafe-summary"> Matcha/.test(app.document.getElementById('posRoot').textContent), 'escaped item summary was not readable');
+    assert(/Owner only/.test(app.document.getElementById('posRoot').textContent), 'cashier cost/profit masking was not explained');
+  });
+  test('cash input accepts only ordinary pesos with at most two decimals', () => {
+    assert(app.strictPesoCentavos('170') === 17000, 'whole pesos were not accepted');
+    assert(app.strictPesoCentavos('170.5') === 17050, 'one decimal peso amount was not accepted');
+    assert(app.strictPesoCentavos('170.05') === 17005, 'two decimal peso amount was not accepted');
+    ['170.005', '1e3', '-1', '', 'NaN'].forEach(value => assert(app.strictPesoCentavos(value) === null, `unsafe cash input ${value} was accepted`));
+  });
+  test('cashier reviews payment before the browser sends the sale', async () => {
+    const catalog = installCheckout('owner');app.addPosProduct(catalog[0].product_id);app.posCheckout.cashReceived = '200';app.renderPos();
+    let checkoutCalls = 0;
+    app.cloud.client = { rpc(name) {
+      if (name === 'pos_complete_sale') { checkoutCalls++;return rpcResult([receiptFixture()]); }
+      return rpcResult([]);
+    }};
+    click(app.document.querySelector('[data-act=reviewPosSale]'));
+    assert(app.posCheckout.confirming && checkoutCalls === 0, 'review step sent the sale before confirmation');
+    assert(app.document.querySelector('[data-act=confirmPosSale]') && app.document.querySelector('[data-act=cancelPosConfirmation]'), 'confirmation controls were not rendered');
+    click(app.document.querySelector('[data-act=cancelPosConfirmation]'));
+    assert(!app.posCheckout.confirming && checkoutCalls === 0, 'back from confirmation sent the sale');
+    click(app.document.querySelector('[data-act=reviewPosSale]'));
+    click(app.document.querySelector('[data-act=confirmPosSale]'));
+    await new Promise(resolve => app.setTimeout(resolve, 0));
+    assert(checkoutCalls === 1 && app.posCheckout.lastReceipt, 'confirmed payment did not produce exactly one receipt');
+  });
+  test('checkout sends product version and quantity only, then trusts the server receipt', async () => {
+    const catalog = installCheckout('owner');
+    app.addPosProduct(catalog[0].product_id);
+    app.posCheckout.cashReceived = '200.00';
+    const calls = [];
+    app.cloud.client = { rpc(name, args) {
+      calls.push({ name, args });
+      if (name === 'pos_complete_sale') return rpcResult([receiptFixture({ total_centavos: 16900, change_given_centavos: 3100 })]);
+      if (name === 'pos_get_catalog') return rpcResult(catalog);
+      if (name === 'pos_get_today_summary') return rpcResult([]);
+      if (name === 'pos_get_recent_sales') return rpcResult([]);
+      throw new Error('unexpected RPC ' + name);
+    }};
+    assert(await app.submitPosSale(), 'valid sale was not completed');
+    const checkout = calls.find(call => call.name === 'pos_complete_sale');
+    assert(checkout, 'checkout did not use the atomic sale RPC');
+    assert(checkout.args.p_items.length === 1, 'checkout sent the wrong number of lines');
+    assert(app.stableSerialize(checkout.args.p_items[0]) === app.stableSerialize({ product_id: catalog[0].product_id, product_version_id: catalog[0].active_version_id, quantity: 1 }), 'checkout item did not freeze only product, version, and quantity');
+    assert(!('price' in checkout.args.p_items[0]) && !('cost' in checkout.args.p_items[0]), 'browser sent a trusted price or cost');
+    assert(checkout.args.p_cash_tendered_centavos === 20000, 'cash tender was not sent as exact centavos');
+    assert(app.posCheckout.lastReceipt.total_centavos === 16900 && app.posCheckout.lastReceipt.change_given_centavos === 3100, 'UI did not retain server-authoritative receipt totals');
+    assert(app.posCartLines().length === 0, 'confirmed sale did not clear the cart');
+  });
+  test('GCash and GoTyme checkout ignore stale cash and trim the optional reference', async () => {
+    for (const method of ['gcash', 'gotyme']) {
+      const catalog = installCheckout('owner');app.addPosProduct(catalog[0].product_id);
+      app.posCheckout.paymentMethod = method;app.posCheckout.cashReceived = '999.00';app.posCheckout.referenceNumber = `  ${method}-12345  `;
+      let checkoutArgs;
+      app.cloud.client = { rpc(name, args) {
+        if (name === 'pos_complete_sale') { checkoutArgs = app.snapshot(args);return rpcResult([receiptFixture({ payment_method: method, cash_tendered_centavos: null, change_given_centavos: null })]); }
+        return rpcResult([]);
+      }};
+      assert(await app.submitPosSale(), `valid ${method} sale did not complete`);
+      assert(checkoutArgs.p_payment_method === method, `${method} was not sent`);
+      assert(checkoutArgs.p_cash_tendered_centavos === null, `stale cash leaked into ${method}`);
+      assert(checkoutArgs.p_reference_number === `${method}-12345`, `${method} reference was not trimmed`);
+    }
+  });
+  test('ambiguous checkout keeps one client UUID and exact payload for retry', async () => {
+    const catalog = installCheckout('owner');
+    app.addPosProduct(catalog[0].product_id);app.posCheckout.cashReceived = '200';
+    const sent = [];
+    app.cloud.client = { rpc(name, args) {
+      if (name === 'pos_complete_sale') { sent.push(app.snapshot(args)); return Promise.reject(new Error('Failed to fetch')); }
+      return rpcResult([]);
+    }};
+    assert(!(await app.submitPosSale()), 'network-ambiguous sale reported success');
+    assert(app.posCheckout.pending, 'network-ambiguous sale lost its pending request');
+    const pendingId = app.posCheckout.pending.rpcArgs.p_client_sale_id;
+    const records = app.posPendingRecords();
+    assert(records[app.posPendingScope(app.session.user.id, app.posContext.businessId)], 'pending sale was not persisted under its account/workspace');
+    app.cloud.client = { rpc(name, args) {
+      if (name === 'pos_complete_sale') { sent.push(app.snapshot(args)); return rpcResult([receiptFixture({ is_retry: true })]); }
+      return rpcResult([]);
+    }};
+    assert(await app.submitPosSale(), 'exact retry did not recover a receipt');
+    assert(sent.length === 2 && sent[1].p_client_sale_id === pendingId, 'retry generated a different client sale UUID');
+    assert(app.stableSerialize(sent[0]) === app.stableSerialize(sent[1]), 'retry changed the frozen request payload');
+    assert(!app.posStoredPending(), 'confirmed retry left stale pending storage');
+  });
+  test('stale catalog rejection retains the cart until explicit price review', async () => {
+    const oldCatalog = installCheckout('owner');
+    app.addPosProduct(oldCatalog[0].product_id);app.posCheckout.cashReceived = '200';
+    const updated = checkoutCatalogFixture({ active_version_id: '66666666-6666-4666-8666-666666666666', selling_price_centavos: 18000 });
+    app.cloud.client = { rpc(name) {
+      if (name === 'pos_complete_sale') return rpcResult(null, { code: '40001', message: 'catalog changed' });
+      if (name === 'pos_get_catalog') return rpcResult([updated]);
+      if (name === 'pos_get_today_summary' || name === 'pos_get_recent_sales') return rpcResult([]);
+      throw new Error('unexpected RPC ' + name);
+    }};
+    assert(!(await app.submitPosSale()), 'stale cart unexpectedly completed');
+    await new Promise(resolve => app.setTimeout(resolve, 0));
+    const line = app.posCartLines()[0];
+    assert(line && line.productVersionId === oldCatalog[0].active_version_id, 'stale rejection silently replaced the selected version');
+    assert(line.stale && app.posCheckout.catalogChanged, 'stale line was not marked for review');
+    assert(app.acceptPosCatalogChanges(), 'explicit catalog review could not be applied');
+    assert(app.posCartLines()[0].productVersionId === updated.active_version_id && app.posCartLines()[0].priceCentavos === 18000, 'explicit review did not apply the new published price');
+  });
+  test('resolved Supabase errors become POS load errors instead of rejecting the loader', async () => {
+    installCheckout('owner', []);
+    app.cloud.client = { rpc() { return rpcResult(null, { message: 'service unavailable' }); } };
+    const result = await app.loadPosCheckoutData();
+    assert(result === false, 'failed POS loader reported success');
+    assert(app.posCheckout.catalogError, 'resolved Supabase error was not shown as a catalog error');
+    assert(!app.posCheckout.catalogLoading && !app.posCheckout.reportsLoading, 'failed loader remained stuck loading');
+  });
+  test('catalog refresh cannot invalidate an in-flight checkout response', async () => {
+    const catalog = installCheckout('owner');
+    app.addPosProduct(catalog[0].product_id);app.posCheckout.cashReceived = '200';
+    let resolveCheckout, catalogCalls = 0;
+    const response = new Promise(resolve => { resolveCheckout = resolve; });
+    app.cloud.client = { rpc(name) {
+      if (name === 'pos_complete_sale') return response;
+      if (name === 'pos_get_catalog') catalogCalls++;
+      return rpcResult([]);
+    }};
+    const submission = app.submitPosSale();
+    assert(app.posCheckout.submitting, 'checkout did not lock immediately');
+    assert((await app.loadPosCheckoutData()) === false && catalogCalls === 0, 'catalog reloaded during checkout');
+    resolveCheckout({ data: [receiptFixture()], error: null });
+    assert(await submission, 'valid in-flight receipt was discarded');
+    assert(app.posCheckout.lastReceipt && !app.posCheckout.submitting, 'checkout remained stuck after receipt');
+  });
+  test('pending retries are isolated between accounts and workspaces', () => {
+    installCheckout('owner');
+    const userA = app.session.user.id, businessA = app.posContext.businessId;
+    const makeRecord = (userId, businessId, saleId) => ({ schemaVersion: 1, userId, businessId, rpcArgs: { p_client_sale_id: saleId, p_payment_method: 'cash', p_cash_tendered_centavos: 20000 }, cartSnapshot: [{ productId: 'p', productVersionId: 'v', name: 'A', size: '', priceCentavos: 10000, quantity: 1 }] });
+    const recordA = makeRecord(userA, businessA, 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
+    app.posSavePending(recordA);
+    app.posCheckout.pending = null;app.session = { user: { id: 'other-user' } };app.posContext.businessId = 'other-business';
+    const recordB = makeRecord('other-user', 'other-business', 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb');app.posSavePending(recordB);
+    assert(Object.keys(app.posPendingRecords()).length === 2, 'second account overwrote the first pending sale');
+    app.resetPosCheckout();app.session = { user: { id: userA } };app.posContext.businessId = businessA;
+    assert(app.posRestorePending() && app.posCheckout.pending.rpcArgs.p_client_sale_id === recordA.rpcArgs.p_client_sale_id, 'first account restored another account’s pending sale');
+    app.localStorage.removeItem(app.POS_PENDING_KEY);app.resetPosCheckout();
+  });
+  test('fresh authentication opens POS but token refresh preserves manual navigation', async () => {
+    await app.handleAuth(null);
+    app.activateAppTab('ingredients', false);
+    const originalCloudLoad = app.cloudLoad, originalCloudSave = app.cloudSave;
+    app.cloudLoad = async () => app.snapshot(app.state);
+    app.cloudSave = async () => {};
+    app.cloud.client = {
+      realtime: { setAuth() {} },
+      channel() { return { on() { return this; }, subscribe() { return this; } }; },
+      removeChannel() {},
+      rpc(name) {
+        if (name === 'pos_get_my_businesses') return rpcResult([{ business_id: '11111111-1111-4111-8111-111111111111', business_name: 'Scoopies', member_role: 'owner' }]);
+        if (name === 'pos_get_publication_status' || name === 'pos_get_catalog' || name === 'pos_get_today_summary' || name === 'pos_get_recent_sales') return rpcResult([]);
+        throw new Error('unexpected RPC ' + name);
+      }
+    };
+    try {
+      const login = { user: { id: 'fresh-pos-user', email: 'owner@example.test' }, access_token: 'test-token' };
+      await app.handleAuth(login);
+      assert(app.document.querySelector('section.active').id === 'pos', 'fresh login did not open POS');
+      app.activateAppTab('ingredients', false);
+      await app.handleAuth(login);
+      assert(app.document.querySelector('section.active').id === 'ingredients', 'token refresh overrode manual navigation');
+    } finally {
+      app.cloudLoad = originalCloudLoad;app.cloudSave = originalCloudSave;
+    }
   });
   const failures = [];
   for (const current of tests) {
