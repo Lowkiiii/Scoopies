@@ -2404,7 +2404,12 @@ document.getElementById('app').addEventListener('load', async () => {
     click(app.document.querySelector('[data-act=posQtyDown]'));
     assert(app.posCartLines()[0].quantity === 1, 'cart minus did not reduce the drink count');
     assert(app.document.querySelector('.pos-product-count').textContent.includes('1'), 'card badge did not follow cart minus');
-    click(app.document.querySelector('[data-act=removePosLine]'));
+    const removeButton = app.document.querySelector('[data-act=removePosLine]');
+    const removeStyle = app.getComputedStyle(removeButton);
+    assert(removeButton.querySelector('svg[aria-hidden=true]') && !removeButton.textContent.trim(), 'cart remove control did not use a compact decorative trash icon');
+    assert(/Remove Matcha Latte from order/.test(removeButton.getAttribute('aria-label') || ''), 'trash icon did not keep an accessible drink-specific label');
+    assert(parseFloat(removeStyle.width) === 44 && parseFloat(removeStyle.height) === 44, 'trash icon lost its compact 44px touch target');
+    click(removeButton);
     assert(!app.document.querySelector('.pos-product-count'), 'removing the cart line left a selected card badge');
     click(app.document.querySelector('[data-act=addPosProduct]'));
     const originalConfirm = app.confirm;
