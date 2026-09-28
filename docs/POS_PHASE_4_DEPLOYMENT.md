@@ -29,7 +29,7 @@ Pre-deployment facts:
 - Costing checksum: eb07d3a0efc74f34c676e85b6893af9d
 - POS businesses: 1
 - POS members: 2
-- Active registers: 1
+- Registers: 1
 - Published products/versions: 0 / 0
 - Shifts/sales/payments/reversal events: 0 / 0 / 0 / 0
 
@@ -79,6 +79,17 @@ For real popup sales:
 TRAINING is owner/manager controlled, always starts at zero, and remains
 separate from LIVE receipts, cash, and reports.
 
+The POS is online-only. If checkout, open, close, or void reports an uncertain
+network result, keep that browser tab open and do not ring the action again
+with different details. Reconnect and retry or recover the exact frozen
+request. Checkout recovery survives a page reload, but close and void recovery
+does not survive closing or restarting the browser.
+
+The end-of-day estimated gross profit subtracts the published ingredient and
+packaging cost from sales. It is not take-home or net profit: labor, rent,
+utilities, payment and delivery fees, taxes, waste, and owner time remain
+outside that estimate.
+
 ## Rollback warning
 
 Do not roll back only one application layer. Follow the maintenance-window
@@ -86,3 +97,7 @@ runbook in POS_PHASE_4.md: stop all devices and pending recovery operations,
 require zero open shifts and zero reversals, coordinate the Phase 3 Pages
 commit with the database rollback, and repair the Supabase migration ledger
 only after the rollback transaction succeeds.
+
+Do not hard-reset or force-push the repository to the old Phase 3 commit, and
+do not delete migration history. Restore the Phase 3 application in a new
+commit while retaining the Phase 4 migration, rollback, tests, and runbook.
