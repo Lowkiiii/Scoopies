@@ -146,6 +146,67 @@ document.getElementById('app').addEventListener('load', async () => {
       selling_price_centavos: 17000, product_sort_order: 0, category_sort_order: 0
     }, overrides);
   }
+  function shiftStatusFixture(overrides = {}) {
+    return Object.assign({
+      business_timezone: 'Asia/Manila', current_business_date: '2026-09-28',
+      register_id: '77777777-7777-4777-8777-777777777777', register_name: 'Main register',
+      has_open_shift: true, shift_id: '88888888-8888-4888-8888-888888888888', is_training: false,
+      opening_cash_centavos: 100000, opened_at: '2026-09-28T01:00:00.000Z', opened_by_display_name: 'Owner',
+      gross_sale_count: 0, voided_sale_count: 0, net_sale_count: 0, net_items_sold: 0,
+      net_sales_centavos: 0, cash_net_centavos: 0, gcash_net_centavos: 0, gotyme_net_centavos: 0,
+      estimated_cost_centavos: 0, estimated_gross_profit_centavos: 0, can_view_costs: true,
+      can_open_live: false, can_open_training: false, can_close_shift: true, can_void_sales: true,
+      last_closed_shift_id: null, last_closed_is_training: null, last_closed_at: null, last_cash_variance_centavos: null
+    }, overrides);
+  }
+  function dayReportFixture(overrides = {}) {
+    return Object.assign({
+      business_date: '2026-09-28', business_timezone: 'Asia/Manila', is_training: false,
+      gross_sale_count: 1, voided_sale_count: 0, net_sale_count: 1,
+      gross_items_sold: 1, voided_items_sold: 0, net_items_sold: 1,
+      gross_sales_centavos: 17000, voided_sales_centavos: 0, net_sales_centavos: 17000,
+      cash_net_centavos: 17000, gcash_net_centavos: 0, gotyme_net_centavos: 0,
+      estimated_cost_centavos: 6242, estimated_gross_profit_centavos: 10758, can_view_costs: true,
+      opened_shift_count: 1, closed_shift_count: 0
+    }, overrides);
+  }
+  function recentSaleFixture(overrides = {}) {
+    return Object.assign({
+      sale_id: '55555555-5555-4555-8555-555555555555',
+      shift_id: '88888888-8888-4888-8888-888888888888', is_training: false, shift_status: 'open',
+      receipt_number: 'SCP-20260928-0001', business_date: '2026-09-28', completed_at: '2026-09-28T02:00:00.000Z',
+      cashier_display_name: 'Owner', sale_state: 'completed', item_count: 1, units_sold: 1,
+      item_summary: '1× Matcha Latte', gross_total_centavos: 17000, voided_amount_centavos: 0,
+      net_total_centavos: 17000, payment_method: 'cash', reference_number: null,
+      voided_at: null, void_reason: null, voided_by_display_name: null,
+      estimated_cost_centavos: 6242, estimated_gross_profit_centavos: 10758, can_view_costs: true, can_void: true
+    }, overrides);
+  }
+  function closeResultFixture(overrides = {}) {
+    return Object.assign({
+      shift_id: '88888888-8888-4888-8888-888888888888',
+      register_id: '77777777-7777-4777-8777-777777777777', register_name: 'Main register',
+      is_training: false, opened_at: '2026-09-28T01:00:00.000Z', closed_at: '2026-09-28T08:00:00.000Z',
+      gross_sale_count: 2, voided_sale_count: 1, net_sale_count: 1, net_items_sold: 1,
+      gross_sales_centavos: 34000, voided_sales_centavos: 17000, net_sales_centavos: 17000,
+      opening_cash_centavos: 100000, expected_cash_centavos: 117000, counted_cash_centavos: 116500,
+      cash_variance_centavos: -500, expected_gcash_centavos: 20000, verified_gcash_centavos: 20000,
+      gcash_variance_centavos: 0, expected_gotyme_centavos: 5000, verified_gotyme_centavos: 5100,
+      gotyme_variance_centavos: 100, estimated_cost_centavos: 6242,
+      estimated_gross_profit_centavos: 10758, can_view_costs: true, is_retry: false
+    }, overrides);
+  }
+  function installNoShift(role = 'owner', overrides = {}) {
+    installCheckout(role);
+    app.posCheckout.shiftStatus = shiftStatusFixture(Object.assign({
+      has_open_shift: false, shift_id: null, is_training: false, opening_cash_centavos: null,
+      opened_at: null, opened_by_display_name: null, can_open_live: true,
+      can_open_training: role !== 'cashier', can_close_shift: false, can_void_sales: role !== 'cashier'
+    }, overrides));
+    app.posCheckout.shift = null;
+    app.posCheckout.lastReceipt = null;
+    app.renderPos();
+  }
   function installCheckout(role = 'owner', catalog = [checkoutCatalogFixture()]) {
     app.localStorage.removeItem(app.POS_PENDING_KEY);
     app.resetPosCheckout();
@@ -153,12 +214,24 @@ document.getElementById('app').addEventListener('load', async () => {
     app.posCheckout.catalog = catalog;
     app.posCheckout.catalogLoading = false;
     app.posCheckout.catalogError = '';
+    app.posCheckout.shiftStatus = shiftStatusFixture({
+      can_view_costs: role !== 'cashier', can_void_sales: role !== 'cashier'
+    });
+    app.posCheckout.shift = app.posCheckout.shiftStatus;
+    app.posCheckout.reportMode = 'live';
+    app.posCheckout.summary = dayReportFixture({ can_view_costs: role !== 'cashier',
+      estimated_cost_centavos: role === 'cashier' ? null : 6242,
+      estimated_gross_profit_centavos: role === 'cashier' ? null : 10758 });
+    app.posCheckout.dailyReport = app.posCheckout.summary;
+    app.posCheckout.reportLoadedMode = 'live';
+    app.posCheckout.reportLoadedDate = '2026-09-28';
     app.renderPos();
     return catalog;
   }
   function receiptFixture(overrides = {}) {
     return Object.assign({
       sale_id: '55555555-5555-4555-8555-555555555555', receipt_number: 'SCP-20260927-0001',
+      shift_id: '88888888-8888-4888-8888-888888888888', is_training: false,
       business_date: '2026-09-27', completed_at: '2026-09-27T12:00:00.000Z', payment_method: 'cash',
       item_count: 1, units_sold: 1, subtotal_centavos: 17000, total_centavos: 17000,
       cash_tendered_centavos: 20000, change_given_centavos: 3000, is_retry: false
@@ -1517,12 +1590,13 @@ document.getElementById('app').addEventListener('load', async () => {
     app.cloud.client = { rpc(name, args) {
       calls.push({ name, args });
       if (name === 'pos_get_catalog') return rpcResult([catalog]);
-      if (name === 'pos_get_today_summary') return rpcResult([{ business_date: '2026-09-27', sale_count: 1, items_sold: 1, total_sales_centavos: 17000, cash_sales_centavos: 17000, gcash_sales_centavos: 0, gotyme_sales_centavos: 0, estimated_cost_centavos: null, estimated_gross_profit_centavos: null, can_view_costs: false }]);
-      if (name === 'pos_get_recent_sales') return rpcResult([{ sale_id: 'sale', receipt_number: 'SCP-1', business_date: '2026-09-27', completed_at: '2026-09-27T12:00:00Z', cashier_display_name: 'Cashier', item_count: 1, units_sold: 1, item_summary: '<img id="unsafe-summary"> Matcha', total_centavos: 17000, payment_method: 'cash', can_view_costs: false }]);
+      if (name === 'pos_get_shift_status') return rpcResult([shiftStatusFixture({ can_view_costs: false, can_void_sales: false })]);
+      if (name === 'pos_get_end_of_day_summary') return rpcResult([dayReportFixture({ can_view_costs: false, estimated_cost_centavos: null, estimated_gross_profit_centavos: null })]);
+      if (name === 'pos_get_recent_sales_v2') return rpcResult([recentSaleFixture({ cashier_display_name: 'Cashier', item_summary: '<img id="unsafe-summary"> Matcha', can_view_costs: false, estimated_cost_centavos: null, estimated_gross_profit_centavos: null, can_void: false })]);
       throw new Error('unexpected RPC ' + name);
     }};
     assert(await app.loadPosCheckoutData(), 'cashier-safe POS data did not load');
-    assert(calls.map(call => call.name).sort().join('|') === ['pos_get_catalog', 'pos_get_recent_sales', 'pos_get_today_summary'].sort().join('|'), 'POS loader called an unexpected RPC');
+    assert(calls.map(call => call.name).sort().join('|') === ['pos_get_catalog', 'pos_get_shift_status', 'pos_get_recent_sales_v2', 'pos_get_end_of_day_summary'].sort().join('|'), 'POS loader called an unexpected RPC');
     assert(app.posCheckout.catalog[0].active_version_id === catalog.active_version_id, 'catalog version identity was not retained');
     assert(!app.document.getElementById('unsafe-summary'), 'recent item summary was rendered as HTML');
     assert(/<img id="unsafe-summary"> Matcha/.test(app.document.getElementById('posRoot').textContent), 'escaped item summary was not readable');
@@ -1538,7 +1612,7 @@ document.getElementById('app').addEventListener('load', async () => {
     const catalog = installCheckout('owner');app.addPosProduct(catalog[0].product_id);app.posCheckout.cashReceived = '200';app.renderPos();
     let checkoutCalls = 0;
     app.cloud.client = { rpc(name) {
-      if (name === 'pos_complete_sale') { checkoutCalls++;return rpcResult([receiptFixture()]); }
+      if (name === 'pos_complete_shift_sale') { checkoutCalls++;return rpcResult([receiptFixture()]); }
       return rpcResult([]);
     }};
     click(app.document.querySelector('[data-act=reviewPosSale]'));
@@ -1558,16 +1632,18 @@ document.getElementById('app').addEventListener('load', async () => {
     const calls = [];
     app.cloud.client = { rpc(name, args) {
       calls.push({ name, args });
-      if (name === 'pos_complete_sale') return rpcResult([receiptFixture({ total_centavos: 16900, change_given_centavos: 3100 })]);
+      if (name === 'pos_complete_shift_sale') return rpcResult([receiptFixture({ total_centavos: 16900, change_given_centavos: 3100 })]);
       if (name === 'pos_get_catalog') return rpcResult(catalog);
-      if (name === 'pos_get_today_summary') return rpcResult([]);
-      if (name === 'pos_get_recent_sales') return rpcResult([]);
+      if (name === 'pos_get_shift_status') return rpcResult([shiftStatusFixture()]);
+      if (name === 'pos_get_end_of_day_summary') return rpcResult([dayReportFixture()]);
+      if (name === 'pos_get_recent_sales_v2') return rpcResult([]);
       throw new Error('unexpected RPC ' + name);
     }};
     assert(await app.submitPosSale(), 'valid sale was not completed');
-    const checkout = calls.find(call => call.name === 'pos_complete_sale');
+    const checkout = calls.find(call => call.name === 'pos_complete_shift_sale');
     assert(checkout, 'checkout did not use the atomic sale RPC');
     assert(checkout.args.p_items.length === 1, 'checkout sent the wrong number of lines');
+    assert(checkout.args.p_shift_id === app.posCheckout.shift.shift_id && checkout.args.p_is_training === false, 'checkout was not bound to the exact Live shift');
     assert(app.stableSerialize(checkout.args.p_items[0]) === app.stableSerialize({ product_id: catalog[0].product_id, product_version_id: catalog[0].active_version_id, quantity: 1 }), 'checkout item did not freeze only product, version, and quantity');
     assert(!('price' in checkout.args.p_items[0]) && !('cost' in checkout.args.p_items[0]), 'browser sent a trusted price or cost');
     assert(checkout.args.p_cash_tendered_centavos === 20000, 'cash tender was not sent as exact centavos');
@@ -1580,7 +1656,7 @@ document.getElementById('app').addEventListener('load', async () => {
       app.posCheckout.paymentMethod = method;app.posCheckout.cashReceived = '999.00';app.posCheckout.referenceNumber = `  ${method}-12345  `;
       let checkoutArgs;
       app.cloud.client = { rpc(name, args) {
-        if (name === 'pos_complete_sale') { checkoutArgs = app.snapshot(args);return rpcResult([receiptFixture({ payment_method: method, cash_tendered_centavos: null, change_given_centavos: null })]); }
+        if (name === 'pos_complete_shift_sale') { checkoutArgs = app.snapshot(args);return rpcResult([receiptFixture({ payment_method: method, cash_tendered_centavos: null, change_given_centavos: null })]); }
         return rpcResult([]);
       }};
       assert(await app.submitPosSale(), `valid ${method} sale did not complete`);
@@ -1594,7 +1670,7 @@ document.getElementById('app').addEventListener('load', async () => {
     app.addPosProduct(catalog[0].product_id);app.posCheckout.cashReceived = '200';
     const sent = [];
     app.cloud.client = { rpc(name, args) {
-      if (name === 'pos_complete_sale') { sent.push(app.snapshot(args)); return Promise.reject(new Error('Failed to fetch')); }
+      if (name === 'pos_complete_shift_sale') { sent.push(app.snapshot(args)); return Promise.reject(new Error('Failed to fetch')); }
       return rpcResult([]);
     }};
     assert(!(await app.submitPosSale()), 'network-ambiguous sale reported success');
@@ -1603,7 +1679,7 @@ document.getElementById('app').addEventListener('load', async () => {
     const records = app.posPendingRecords();
     assert(records[app.posPendingScope(app.session.user.id, app.posContext.businessId)], 'pending sale was not persisted under its account/workspace');
     app.cloud.client = { rpc(name, args) {
-      if (name === 'pos_complete_sale') { sent.push(app.snapshot(args)); return rpcResult([receiptFixture({ is_retry: true })]); }
+      if (name === 'pos_complete_shift_sale') { sent.push(app.snapshot(args)); return rpcResult([receiptFixture({ is_retry: true })]); }
       return rpcResult([]);
     }};
     assert(await app.submitPosSale(), 'exact retry did not recover a receipt');
@@ -1616,9 +1692,11 @@ document.getElementById('app').addEventListener('load', async () => {
     app.addPosProduct(oldCatalog[0].product_id);app.posCheckout.cashReceived = '200';
     const updated = checkoutCatalogFixture({ active_version_id: '66666666-6666-4666-8666-666666666666', selling_price_centavos: 18000 });
     app.cloud.client = { rpc(name) {
-      if (name === 'pos_complete_sale') return rpcResult(null, { code: '40001', message: 'catalog changed' });
+      if (name === 'pos_complete_shift_sale') return rpcResult(null, { code: '40001', message: 'catalog changed' });
       if (name === 'pos_get_catalog') return rpcResult([updated]);
-      if (name === 'pos_get_today_summary' || name === 'pos_get_recent_sales') return rpcResult([]);
+      if (name === 'pos_get_shift_status') return rpcResult([shiftStatusFixture()]);
+      if (name === 'pos_get_end_of_day_summary') return rpcResult([dayReportFixture()]);
+      if (name === 'pos_get_recent_sales_v2') return rpcResult([]);
       throw new Error('unexpected RPC ' + name);
     }};
     assert(!(await app.submitPosSale()), 'stale cart unexpectedly completed');
@@ -1643,7 +1721,7 @@ document.getElementById('app').addEventListener('load', async () => {
     let resolveCheckout, catalogCalls = 0;
     const response = new Promise(resolve => { resolveCheckout = resolve; });
     app.cloud.client = { rpc(name) {
-      if (name === 'pos_complete_sale') return response;
+      if (name === 'pos_complete_shift_sale') return response;
       if (name === 'pos_get_catalog') catalogCalls++;
       return rpcResult([]);
     }};
@@ -1679,7 +1757,10 @@ document.getElementById('app').addEventListener('load', async () => {
       removeChannel() {},
       rpc(name) {
         if (name === 'pos_get_my_businesses') return rpcResult([{ business_id: '11111111-1111-4111-8111-111111111111', business_name: 'Scoopies', member_role: 'owner' }]);
-        if (name === 'pos_get_publication_status' || name === 'pos_get_catalog' || name === 'pos_get_today_summary' || name === 'pos_get_recent_sales') return rpcResult([]);
+        if (name === 'pos_get_publication_status' || name === 'pos_get_catalog') return rpcResult([]);
+        if (name === 'pos_get_shift_status') return rpcResult([shiftStatusFixture()]);
+        if (name === 'pos_get_end_of_day_summary') return rpcResult([dayReportFixture()]);
+        if (name === 'pos_get_recent_sales_v2') return rpcResult([]);
         throw new Error('unexpected RPC ' + name);
       }
     };
@@ -1693,6 +1774,341 @@ document.getElementById('app').addEventListener('load', async () => {
     } finally {
       app.cloudLoad = originalCloudLoad;app.cloudSave = originalCloudSave;
     }
+  });
+  test('no-shift state gates checkout and opens an explicit shift modal', () => {
+    installNoShift('owner');
+    const root = app.document.getElementById('posRoot');
+    assert(/No shift is open/.test(root.textContent), 'no-shift gate was not shown');
+    assert(!root.querySelector('.pos-workspace'), 'checkout workspace was exposed without an open shift');
+    assert(root.querySelector('[data-act=openPosShift]'), 'open-shift action was missing');
+    assert(app.openPosShiftModal(), 'owner could not open the shift modal');
+    assert(app.document.querySelector('#posOpsModal [data-mode=live]'), 'Live choice was missing');
+    assert(app.document.querySelector('#posOpsModal [data-mode=training]'), 'owner Training choice was missing');
+    app.posCloseOpsModal(true);
+  });
+  test('cashier can open Live but never sees or selects Training', () => {
+    installNoShift('cashier', { can_open_training: false });
+    assert(app.openPosShiftModal(), 'cashier could not open the Live shift modal');
+    assert(app.document.querySelector('#posOpsModal [data-mode=live]'), 'cashier Live choice was missing');
+    assert(!app.document.querySelector('#posOpsModal [data-mode=training]'), 'cashier was shown Training');
+    assert(!app.setPosOpenMode('training') && app.posOpsModal.mode === 'live', 'cashier selected Training through code');
+    app.posCloseOpsModal(true);
+  });
+  test('opening a Live shift sends exact starting cash and reloads authoritative status', async () => {
+    installNoShift('cashier', { can_open_training: false });
+    app.openPosShiftModal();
+    input(app.document.getElementById('posOpeningCash'), '123.45');
+    const calls = [];
+    app.cloud.client = { rpc(name, args) {
+      calls.push({ name, args: app.snapshot(args) });
+      if (name === 'pos_open_shift') return rpcResult([{
+        shift_id: '88888888-8888-4888-8888-888888888888', register_id: '77777777-7777-4777-8777-777777777777',
+        register_name: 'Main register', is_training: false, opening_cash_centavos: 12345,
+        opened_at: '2026-09-28T01:00:00Z', opened_by_display_name: 'Cashier', is_retry: false
+      }]);
+      if (name === 'pos_get_catalog') return rpcResult([]);
+      if (name === 'pos_get_shift_status') return rpcResult([shiftStatusFixture({ opening_cash_centavos: 12345, opened_by_display_name: 'Cashier', can_view_costs: false, can_void_sales: false })]);
+      if (name === 'pos_get_end_of_day_summary') return rpcResult([dayReportFixture({ can_view_costs: false, estimated_cost_centavos: null, estimated_gross_profit_centavos: null })]);
+      if (name === 'pos_get_recent_sales_v2') return rpcResult([]);
+      throw new Error('unexpected RPC ' + name);
+    }};
+    assert(await app.submitPosOpenShift(), 'valid Live opening failed');
+    const call = calls.find(entry => entry.name === 'pos_open_shift');
+    assert(call.args.p_is_training === false && call.args.p_opening_cash_centavos === 12345, 'opening cash or mode was not sent as exact server input');
+    assert(app.posCheckout.shift && !app.posCheckout.shift.is_training, 'authoritative open shift was not loaded');
+  });
+  test('Training is persistent and every new sale freezes shift ID and mode', () => {
+    const catalog = installCheckout('owner');
+    app.posCheckout.shiftStatus = shiftStatusFixture({ is_training: true, opening_cash_centavos: 0 });
+    app.posCheckout.shift = app.posCheckout.shiftStatus;
+    app.posCheckout.reportMode = 'training';
+    app.posCheckout.summary = dayReportFixture({ is_training: true });
+    app.posCheckout.dailyReport = app.posCheckout.summary;
+    app.renderPos();
+    assert(/Training/.test(app.document.getElementById('posRoot').textContent), 'Training warning was not persistent');
+    assert(/excluded from Live/.test(app.document.getElementById('posRoot').textContent), 'Training isolation was not explained');
+    app.addPosProduct(catalog[0].product_id);app.posCheckout.cashReceived = '200';
+    const record = app.buildPosPendingSale(app.posCheckoutValidation());
+    assert(record.rpcName === 'pos_complete_shift_sale', 'new checkout used the legacy auto-shift RPC');
+    assert(record.rpcArgs.p_shift_id === app.posCheckout.shift.shift_id, 'checkout did not freeze the shift ID');
+    assert(record.rpcArgs.p_is_training === true, 'checkout did not freeze Training mode');
+  });
+  test('an active sale or uncertain retry blocks shift close without clearing it', () => {
+    const catalog = installCheckout('owner');
+    app.addPosProduct(catalog[0].product_id);
+    assert(!app.openPosCloseModal(), 'shift close opened while cart had a sale');
+    assert(app.posCartLines().length === 1, 'blocked close cleared the cart');
+    app.posCheckout.cart = {};
+    app.posCheckout.pending = { rpcArgs: { p_is_training: false }, cartSnapshot: [] };
+    assert(!app.openPosCloseModal(), 'shift close opened during an uncertain sale retry');
+    assert(app.posCheckout.pending, 'blocked close discarded pending recovery data');
+  });
+  test('Live close requires all three actuals and displays server-authoritative variance', async () => {
+    installCheckout('owner');
+    assert(app.openPosCloseModal(), 'Live close modal did not open');
+    input(app.document.getElementById('posCountedCash'), '1165');
+    assert(!app.reviewPosCloseShift(), 'close review accepted missing digital verifications');
+    input(app.document.getElementById('posVerifiedGcash'), '200');
+    input(app.document.getElementById('posVerifiedGotyme'), '51');
+    assert(app.reviewPosCloseShift(), 'valid Live close did not reach confirmation');
+    let closeArgs;
+    app.cloud.client = { rpc(name, args) {
+      if (name === 'pos_close_shift') { closeArgs = app.snapshot(args);return rpcResult([closeResultFixture()]); }
+      if (name === 'pos_get_catalog') return rpcResult([]);
+      if (name === 'pos_get_shift_status') return rpcResult([shiftStatusFixture({ has_open_shift: false, shift_id: null, can_open_live: true, can_open_training: true, can_close_shift: false })]);
+      if (name === 'pos_get_end_of_day_summary') return rpcResult([dayReportFixture()]);
+      if (name === 'pos_get_recent_sales_v2') return rpcResult([]);
+      throw new Error('unexpected RPC ' + name);
+    }};
+    assert(await app.submitPosCloseShift(), 'valid Live close failed');
+    assert(closeArgs.p_counted_cash_centavos === 116500 && closeArgs.p_verified_gcash_centavos === 20000 && closeArgs.p_verified_gotyme_centavos === 5100, 'Live actuals were not sent as exact centavos');
+    const text = app.document.getElementById('posOpsModal').textContent;
+    assert(/Expected ₱1,170\.00/.test(text) && /₱-5\.00/.test(text), 'server cash expectation/variance was not displayed');
+    assert(/Balanced/.test(text) && /₱1\.00/.test(text), 'server digital variances were not displayed');
+  });
+  test('Training close sends no physical or digital counts', async () => {
+    installCheckout('owner');
+    app.posCheckout.shiftStatus = shiftStatusFixture({ is_training: true, opening_cash_centavos: 0 });
+    app.posCheckout.shift = app.posCheckout.shiftStatus;app.posCheckout.reportMode = 'training';app.renderPos();
+    assert(app.openPosCloseModal() && app.posOpsModal.step === 'confirm', 'Training close was not one-step confirmation');
+    let closeArgs;
+    app.cloud.client = { rpc(name, args) {
+      if (name === 'pos_close_shift') { closeArgs = app.snapshot(args);return rpcResult([closeResultFixture({
+        is_training: true, opening_cash_centavos: 0, expected_cash_centavos: 0, counted_cash_centavos: 0,
+        cash_variance_centavos: 0, expected_gcash_centavos: 0, verified_gcash_centavos: 0,
+        gcash_variance_centavos: 0, expected_gotyme_centavos: 0, verified_gotyme_centavos: 0, gotyme_variance_centavos: 0
+      })]); }
+      if (name === 'pos_get_catalog') return rpcResult([]);
+      if (name === 'pos_get_shift_status') return rpcResult([shiftStatusFixture({ has_open_shift: false, shift_id: null, last_closed_is_training: true, can_open_live: true, can_open_training: true, can_close_shift: false })]);
+      if (name === 'pos_get_end_of_day_summary') return rpcResult([dayReportFixture({ is_training: true })]);
+      if (name === 'pos_get_recent_sales_v2') return rpcResult([]);
+      throw new Error('unexpected RPC ' + name);
+    }};
+    assert(await app.submitPosCloseShift(), 'Training close failed');
+    assert(closeArgs.p_counted_cash_centavos === null && closeArgs.p_verified_gcash_centavos === null && closeArgs.p_verified_gotyme_centavos === null, 'Training close sent fake physical counts');
+  });
+  test('double network failure keeps close uncertain with one frozen recovery payload', async () => {
+    installCheckout('owner');
+    app.openPosCloseModal();
+    input(app.document.getElementById('posCountedCash'), '1000');
+    input(app.document.getElementById('posVerifiedGcash'), '200');
+    input(app.document.getElementById('posVerifiedGotyme'), '50');
+    app.reviewPosCloseShift();
+    const closePayloads = [];
+    app.cloud.client = { rpc(name, args) {
+      if (name === 'pos_close_shift') closePayloads.push(app.snapshot(args));
+      return Promise.reject(new Error('Failed to fetch'));
+    }};
+    assert(!(await app.submitPosCloseShift()), 'ambiguous close reported success');
+    assert(closePayloads.length === 1, 'ambiguous close sent duplicate mutations');
+    assert(app.posOpsModal.uncertain && app.posOpsModal.rpcArgs, 'ambiguous close did not freeze exact recovery arguments');
+    assert(app.stableSerialize(closePayloads[0]) === app.stableSerialize(app.posOpsModal.rpcArgs), 'frozen close arguments changed');
+    const modalText = app.document.getElementById('posOpsModal').textContent;
+    assert(/could not be verified/i.test(modalText), 'failed verification was misread as a closed shift');
+    assert(/Recover close result|Retry exact close/.test(modalText), 'close recovery action was not clearly labeled');
+    assert(!app.posCloseOpsModal(false) && app.posOpsModal.open, 'uncertain close was dismissible through the close action');
+    app.document.body.dispatchEvent(new app.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    assert(app.posOpsModal.open && app.posOpsModal.rpcArgs, 'Escape discarded uncertain close recovery');
+    app.posCloseOpsModal(true);
+  });
+  test('void is owner-only, requires a reason, and rapid confirmation sends once', async () => {
+    installCheckout('owner');
+    app.posCheckout.recent = [recentSaleFixture()];
+    app.renderPos();
+    assert(app.openPosVoidModal('55555555-5555-4555-8555-555555555555'), 'owner could not open void modal');
+    input(app.document.getElementById('posVoidReason'), 'x');
+    assert(!app.reviewPosVoidSale(), 'too-short void reason was accepted');
+    input(app.document.getElementById('posVoidReason'), 'Customer cancelled before preparation');
+    assert(app.reviewPosVoidSale(), 'valid void reason did not reach confirmation');
+    let resolveVoid, voidCalls = 0;
+    const response = new Promise(resolve => { resolveVoid = resolve; });
+    const voided = recentSaleFixture({
+      sale_state: 'voided', voided_amount_centavos: 17000, net_total_centavos: 0,
+      void_reason: 'Customer cancelled before preparation', voided_by_display_name: 'Owner', can_void: false
+    });
+    app.cloud.client = { rpc(name) {
+      if (name === 'pos_void_sale') { voidCalls++;return response; }
+      if (name === 'pos_get_catalog') return rpcResult([]);
+      if (name === 'pos_get_shift_status') return rpcResult([shiftStatusFixture()]);
+      if (name === 'pos_get_end_of_day_summary') return rpcResult([dayReportFixture({
+        voided_sale_count: 1, net_sale_count: 0, voided_items_sold: 1, net_items_sold: 0,
+        voided_sales_centavos: 17000, net_sales_centavos: 0, cash_net_centavos: 0
+      })]);
+      if (name === 'pos_get_recent_sales_v2') return rpcResult([voided]);
+      throw new Error('unexpected RPC ' + name);
+    }};
+    const first = app.submitPosVoidSale();
+    assert(!(await app.submitPosVoidSale()), 'second rapid void was accepted while submitting');
+    resolveVoid({ data: [{
+      sale_id: voided.sale_id, shift_id: voided.shift_id, is_training: false, receipt_number: voided.receipt_number,
+      event_id: '99999999-9999-4999-8999-999999999999', voided_at: '2026-09-28T03:00:00Z',
+      payment_method: 'cash', voided_amount_centavos: 17000, reason: voided.void_reason, is_retry: false
+    }], error: null });
+    assert(await first, 'valid void did not complete');
+    assert(voidCalls === 1 && /marked VOID/.test(app.document.getElementById('posOpsModal').textContent), 'void was duplicated or not confirmed');
+    await new Promise(resolve => app.setTimeout(resolve, 0));
+    app.posCloseOpsModal(true);
+    installCheckout('cashier');
+    app.posCheckout.recent = [recentSaleFixture({ can_void: true })];app.renderPos();
+    assert(!app.document.querySelector('[data-act=openPosVoid]'), 'cashier saw a void action even when server data was overly permissive');
+    assert(!app.openPosVoidModal('55555555-5555-4555-8555-555555555555'), 'cashier opened void modal through code');
+  });
+  test('voided receipt fields are escaped and net totals remain visibly separate', () => {
+    installCheckout('owner');
+    app.posCheckout.summary = dayReportFixture({
+      gross_sales_centavos: 17000, voided_sales_centavos: 17000, net_sales_centavos: 0,
+      voided_sale_count: 1, net_sale_count: 0
+    });
+    app.posCheckout.recent = [recentSaleFixture({
+      receipt_number: '<img id="unsafe-receipt">', cashier_display_name: '<img id="unsafe-cashier">',
+      item_summary: '<img id="unsafe-item">', sale_state: 'voided', voided_amount_centavos: 17000,
+      net_total_centavos: 0, void_reason: '<img id="unsafe-reason">', voided_by_display_name: '<img id="unsafe-actor">', can_void: false
+    })];
+    app.renderPos();
+    ['unsafe-receipt','unsafe-cashier','unsafe-item','unsafe-reason','unsafe-actor'].forEach(id => assert(!app.document.getElementById(id), 'server text executed as HTML: ' + id));
+    const text = app.document.getElementById('posRoot').textContent;
+    assert(/Void/.test(text) && /Net collected/.test(text) && /₱0\.00/.test(text), 'void state or net total was not visible');
+  });
+  test('pending old-shift retry prevents auto-open and loads only its frozen mode', async () => {
+    const catalog = installCheckout('owner');
+    app.posCheckout.shift.is_training = true;app.posCheckout.shiftStatus.is_training = true;
+    app.addPosProduct(catalog[0].product_id);app.posCheckout.cashReceived = '200';
+    const pending = app.buildPosPendingSale(app.posCheckoutValidation());
+    app.posSavePending(pending);
+    app.posCheckout.shift = null;
+    const reportCalls = [];
+    app.cloud.client = { rpc(name, args) {
+      if (name === 'pos_get_catalog') return rpcResult(catalog);
+      if (name === 'pos_get_shift_status') return rpcResult([shiftStatusFixture({ has_open_shift: false, shift_id: null, can_open_live: true, can_open_training: true, can_close_shift: false })]);
+      if (name === 'pos_get_end_of_day_summary') { reportCalls.push(app.snapshot(args));return rpcResult([dayReportFixture({ is_training: true })]); }
+      if (name === 'pos_get_recent_sales_v2') { reportCalls.push(app.snapshot(args));return rpcResult([]); }
+      throw new Error('unexpected RPC ' + name);
+    }};
+    assert(await app.loadPosCheckoutData(), 'pending-retry refresh failed');
+    assert(app.posCheckout.pending === pending, 'pending sale was discarded');
+    assert(!app.posOpsModal.open && !app.document.querySelector('[data-act=openPosShift]'), 'new shift was offered before exact retry resolved');
+    assert(reportCalls.length === 2 && reportCalls.every(call => call.p_is_training === true), 'pending Training retry was mixed with Live reports');
+    assert(/Training retry/.test(app.document.getElementById('posRoot').textContent), 'frozen retry mode was not explicit');
+    app.posClearPending();app.resetPosCheckout();
+  });
+  test('failed report mode or date switches never relabel stale money', async () => {
+    installNoShift('owner');
+    app.openPosReportModal();
+    const oldReport = app.posCheckout.dailyReport;
+    app.cloud.client = { rpc(name) {
+      if (name === 'pos_get_catalog') return rpcResult([]);
+      if (name === 'pos_get_shift_status') return rpcResult([shiftStatusFixture({ has_open_shift: false, shift_id: null, can_open_live: true, can_open_training: true, can_close_shift: false })]);
+      if (name === 'pos_get_end_of_day_summary' || name === 'pos_get_recent_sales_v2') return Promise.reject(new Error('offline'));
+      throw new Error('unexpected RPC ' + name);
+    }};
+    assert(!(await app.setPosReportMode('training')), 'failed Training report switch reported success');
+    assert(oldReport && !app.posCheckout.summary && !app.posCheckout.dailyReport && app.posCheckout.recent.length === 0, 'stale Live totals survived a failed Training switch');
+    assert(app.posBuildReportCsv() === '', 'stale cross-mode report remained exportable');
+    app.posCloseOpsModal(true);
+    installNoShift('owner');
+    app.posCheckout.reportDate = '2026-09-29';
+    app.cloud.client = { rpc(name) {
+      if (name === 'pos_get_catalog') return rpcResult([]);
+      if (name === 'pos_get_shift_status') return rpcResult([shiftStatusFixture({ has_open_shift: false, shift_id: null, can_open_live: true, can_open_training: true, can_close_shift: false })]);
+      return Promise.reject(new Error('offline'));
+    }};
+    await app.loadPosCheckoutData();
+    assert(!app.posCheckout.dailyReport && !app.posCheckout.summary, 'stale prior-date totals survived a failed date switch');
+  });
+  test('failed same-mode shift refresh clears stale report and export', async () => {
+    installNoShift('owner');
+    app.openPosReportModal();
+    assert(app.posCheckout.dailyReport, 'same-mode fixture did not start with a report');
+    app.cloud.client = { rpc(name) {
+      if (name === 'pos_get_catalog') return rpcResult([]);
+      if (name === 'pos_get_shift_status') return Promise.reject(new Error('offline'));
+      throw new Error('reports must not load without authoritative shift status');
+    }};
+    assert(!(await app.loadPosCheckoutData()), 'failed same-mode refresh reported success');
+    assert(!app.posCheckout.summary && !app.posCheckout.dailyReport && app.posCheckout.recent.length === 0, 'stale same-mode report survived a failed shift-status refresh');
+    assert(app.posCheckout.reportLoadedMode === '' && app.posCheckout.reportLoadedDate === '', 'failed refresh retained stale report identity');
+    assert(app.posBuildReportCsv() === '', 'stale same-mode report remained exportable');
+    assert(/No Live report/i.test(app.document.getElementById('posOpsModal').textContent), 'report modal still presented stale totals after refresh failure');
+  });
+  test('report opening blocks during refresh and an open modal syncs the completed report', async () => {
+    installNoShift('owner');
+    app.setPosReportsLoading(true);
+    app.renderPos();
+    assert(!app.openPosReportModal() && !app.posOpsModal.open, 'report modal opened while totals were refreshing');
+    const reportButton = app.document.querySelector('[data-act=openPosReport]');
+    assert(reportButton && app.getComputedStyle(reportButton).pointerEvents === 'none' && Number(app.getComputedStyle(reportButton).opacity) < 1, 'Daily report was not visibly disabled during refresh');
+    app.setPosReportsLoading(false);
+    app.openPosReportModal();
+    const updated = dayReportFixture({
+      gross_sale_count: 2, net_sale_count: 2, gross_items_sold: 2, net_items_sold: 2,
+      gross_sales_centavos: 34000, net_sales_centavos: 34000, cash_net_centavos: 34000,
+      estimated_cost_centavos: 12484, estimated_gross_profit_centavos: 21516
+    });
+    app.cloud.client = { rpc(name) {
+      if (name === 'pos_get_catalog') return rpcResult([]);
+      if (name === 'pos_get_shift_status') return rpcResult([shiftStatusFixture({ has_open_shift: false, shift_id: null, can_open_live: true, can_open_training: true, can_close_shift: false })]);
+      if (name === 'pos_get_end_of_day_summary') return rpcResult([updated]);
+      if (name === 'pos_get_recent_sales_v2') return rpcResult([]);
+      throw new Error('unexpected RPC ' + name);
+    }};
+    assert(await app.loadPosCheckoutData(), 'authoritative report refresh failed');
+    assert(app.posOpsModal.result === app.posCheckout.dailyReport, 'open report modal did not adopt the authoritative report object');
+    assert(/340\.00/.test(app.document.getElementById('posOpsModal').textContent), 'open report modal kept the prior totals after refresh');
+    assert(app.posBuildReportCsv().includes('340.00'), 'CSV source diverged from the refreshed modal report');
+  });
+  test('EOD CSV is aggregate-only and neutralizes spreadsheet formulas', () => {
+    installCheckout('owner');
+    app.posCheckout.dailyReport = dayReportFixture({ business_timezone: '=HYPERLINK("https://bad")' });
+    app.posCheckout.recent = [recentSaleFixture({ item_summary: '=cmd|malicious receipt row' })];
+    const csv = app.posBuildReportCsv();
+    assert(csv.includes("'=HYPERLINK"), 'server text beginning with = was not neutralized');
+    ['+SUM(1,1)','-10+20','@IMPORTXML("x")'].forEach(value => assert(app.posCsvCell(value).startsWith('"\''), 'formula prefix was not neutralized: ' + value));
+    assert(!csv.includes('malicious receipt row') && !csv.includes('Receipt,Completed'), 'latest-20 receipts were misrepresented as a complete EOD export');
+    assert(csv.includes('Gross sales (PHP)') && csv.includes('Net collected (PHP)'), 'aggregate report fields were missing from CSV');
+  });
+  test('stale shift-open response cannot cross an account or workspace change', async () => {
+    installNoShift('owner');
+    app.openPosShiftModal();
+    let resolveOpen;
+    const response = new Promise(resolve => { resolveOpen = resolve; });
+    app.cloud.client = { rpc(name) {
+      if (name === 'pos_open_shift') return response;
+      return rpcResult([]);
+    }};
+    const opening = app.submitPosOpenShift();
+    assert(app.posOpsModal.submitting, 'opening did not lock immediately');
+    app.resetPosContext('');
+    resolveOpen({ data: [{
+      shift_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', register_id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+      register_name: 'Wrong workspace', is_training: false, opening_cash_centavos: 0,
+      opened_at: '2026-09-28T01:00:00Z', opened_by_display_name: 'Old user', is_retry: false
+    }], error: null });
+    assert(!(await opening), 'stale account response reported success');
+    assert(!app.posCheckout.shift, 'stale account response populated the new POS context');
+  });
+  test('missing operation IDs and checkout overflows are deterministic', () => {
+    assert(app.posOperationDeterministic({ code: 'P0002' }), 'missing shift/sale entered uncertain recovery');
+    assert(/not found/i.test(app.posOperationErrorText({ code: 'P0002' }, 'void')), 'missing ID did not ask for refresh');
+    assert(app.posDeterministicError({ code: '22003' }), 'checkout overflow entered uncertain retry');
+    assert(/range|rejected/i.test(app.posCheckoutErrorText({ code: '22003' })), 'checkout overflow message was not actionable');
+  });
+  test('deterministic error after uncertain close unlocks safe dismissal', async () => {
+    installCheckout('owner');
+    app.openPosCloseModal();
+    input(app.document.getElementById('posCountedCash'), '1000');
+    input(app.document.getElementById('posVerifiedGcash'), '0');
+    input(app.document.getElementById('posVerifiedGotyme'), '0');
+    app.reviewPosCloseShift();
+    app.posOpsModal.uncertain = true;
+    app.posOpsModal.rpcArgs = {
+      p_business_id: app.posContext.businessId, p_shift_id: app.posCheckout.shift.shift_id,
+      p_counted_cash_centavos: 100000, p_verified_gcash_centavos: 0,
+      p_verified_gotyme_centavos: 0, p_close_notes: null
+    };
+    app.cloud.client = { rpc() { return rpcResult(null, { code: 'P0002', message: 'missing' }); } };
+    assert(!(await app.submitPosCloseShift()), 'missing shift retry reported success');
+    assert(!app.posOpsModal.uncertain, 'deterministic retry left the modal trapped in uncertain mode');
+    assert(app.posCloseOpsModal(false), 'deterministic retry result could not be dismissed safely');
   });
   const failures = [];
   for (const current of tests) {

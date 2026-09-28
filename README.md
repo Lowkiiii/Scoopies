@@ -14,7 +14,9 @@ POS work is being delivered in verified phases. Phase 1 adds the additive
 Supabase database foundation. Phase 2 adds an explicit, reviewed publication
 flow from Pricing to an immutable POS catalog; costing edits never silently
 change a published POS price. Phase 3 makes POS the default signed-in page and
-adds fast checkout for Cash, GCash, and GoTyme.
+adds fast checkout for Cash, GCash, and GoTyme. Phase 4 adds explicit Live and
+Training shifts, blind close reconciliation, audited before-preparation voids,
+and business-timezone end-of-day reporting.
 
 Products must first be reviewed and published from **4. Pricing** before they
 appear in the POS menu. Checkout records freeze the product name, version,
@@ -44,6 +46,14 @@ the original receipt without creating a duplicate sale.
 - [Phase 3 live access checks](supabase/tests/pos_phase_3_live_access_checks.sql)
 - [Phase 3 concurrency checks](supabase/tests/pos_phase_3_concurrency_checks.sql)
 - [Phase 3 deployment record](docs/POS_PHASE_3_DEPLOYMENT.md)
+
+- [Phase 4 guide](docs/POS_PHASE_4.md)
+- [Phase 4 migration](supabase/migrations/202609280004_pos_phase_4_operations.sql)
+- [Phase 4 rollback](supabase/rollback/202609280004_pos_phase_4_operations.rollback.sql)
+- [Phase 4 schema checks](supabase/tests/pos_phase_4_schema_checks.sql)
+- [Phase 4 behavior checks](supabase/tests/pos_phase_4_behavior_checks.sql)
+- [Phase 4 live access checks](supabase/tests/pos_phase_4_live_access_checks.sql)
+- [Phase 4 concurrency checks](supabase/tests/pos_phase_4_concurrency_checks.sql)
 
 Never commit a Supabase service-role key or database password. The web app uses
 only the public project URL and publishable key; authorization is enforced by

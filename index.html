@@ -33,8 +33,9 @@
   .scroll{overflow-x:auto;max-width:100%;-webkit-overflow-scrolling:touch}
   th,td{padding:8px 6px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle}
   th{font-size:12px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted)}
-  input,select{font:inherit;padding:8px;border:1px solid var(--line);border-radius:8px;
+  input,select,textarea{font:inherit;padding:8px;border:1px solid var(--line);border-radius:8px;
     background:#fff;width:100%}
+  textarea{min-height:92px;resize:vertical}
   input[type=number]{width:100px}
   td .calc{font-weight:600}
   .btn{display:inline-block;padding:9px 14px;border:none;border-radius:9px;background:var(--accent);
@@ -177,6 +178,43 @@
   .pos-recent-meta{font-size:12px;color:var(--muted)}
   .pos-item-summary{font-size:12px;color:#4e4036;margin-top:3px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
   .pos-loading{padding:24px 8px;text-align:center;color:var(--muted)}
+  .pos-reports-loading [data-act='openPosReport']{pointer-events:none;cursor:not-allowed;opacity:.55}
+  .pos-mode-banner{display:flex;align-items:center;gap:10px;flex-wrap:wrap;border:2px solid #9a5a00;border-radius:12px;background:#fff3d6;color:#6f3e00;padding:11px 13px;margin-bottom:12px;font-weight:750}
+  .pos-mode-banner strong{font-size:16px;letter-spacing:.03em}
+  .pos-mode-live{display:inline-flex;align-items:center;min-height:32px;padding:5px 11px;border-radius:999px;background:#e9f6ea;border:1px solid #bfe3c1;color:#22622a;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.04em}
+  .pos-mode-training{display:inline-flex;align-items:center;min-height:32px;padding:5px 11px;border-radius:999px;background:#8b4b00;color:#fff;font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:.08em}
+  .pos-shift-bar{display:flex;align-items:center;gap:9px;flex-wrap:wrap;border:1px solid var(--line);border-radius:12px;background:#fff;padding:10px 12px;margin-bottom:12px}
+  .pos-shift-copy{flex:1 1 220px;min-width:0}
+  .pos-shift-copy strong{display:block;color:var(--brown)}
+  .pos-shift-copy span{display:block;color:var(--muted);font-size:12px;margin-top:2px}
+  .pos-gate{max-width:620px;margin:24px auto;text-align:center;padding:28px}
+  .pos-gate .pos-gate-icon{font-size:38px;margin-bottom:7px}
+  .pos-gate-actions{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-top:16px}
+  .pos-mode-choice{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:7px}
+  .pos-mode-choice button{min-height:62px;border:1px solid var(--line);border-radius:11px;background:#fff;color:var(--brown);font:inherit;font-weight:750;cursor:pointer;padding:9px}
+  .pos-mode-choice button.active{border:2px solid var(--brown);background:#f7eee5}
+  .pos-mode-choice button[data-mode='training'].active{border-color:#8b4b00;background:#fff3d6;color:#6f3e00}
+  .pos-operation-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:12px 0}
+  .pos-operation-summary .metric{background:#fff}
+  .pos-variance{font-weight:800}
+  .pos-variance.good{color:var(--good)}
+  .pos-variance.bad{color:var(--bad)}
+  .pos-danger-note{border:1px solid #e5b4ae;border-radius:10px;background:#fff0ee;color:#7d251d;padding:10px 12px;margin:10px 0}
+  .pos-report-head{display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+  .pos-report-meta{font-size:12px;color:var(--muted);margin-top:3px}
+  .pos-report-actions{display:flex;gap:7px;flex-wrap:wrap;margin-left:auto}
+  .pos-recent-row.voided{background:#faf5f2;opacity:.82}
+  .pos-void-label{display:inline-flex;align-items:center;padding:3px 7px;border-radius:999px;background:#fbe1de;color:#8d2720;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;margin-left:6px}
+  .pos-recent-actions{display:flex;align-items:center;justify-content:flex-end;gap:7px;flex-wrap:wrap}
+  .pos-closed-result{border:1px solid #c9e5cb;border-radius:11px;background:#eef7ef;padding:12px;margin:10px 0}
+  body.pos-training header{background:#6f3e00}
+  @media print{
+    body>*:not(#posOpsModal){display:none!important}
+    #posOpsModal[hidden]{display:none!important}
+    #posOpsModal{position:static!important;display:block!important;background:#fff!important;padding:0!important}
+    #posOpsModal .modal{box-shadow:none!important;border:0!important;max-width:none!important;max-height:none!important;overflow:visible!important}
+    #posOpsModal .modal-close,#posOpsModal .modal-actions,.pos-report-actions{display:none!important}
+  }
   .btn[disabled]{cursor:not-allowed;opacity:.55}
   body.modal-open{overflow:hidden}
   @media(max-width:700px){
@@ -197,6 +235,7 @@
     .pos-product{min-height:106px;padding:11px}
     .pos-recent-row{grid-template-columns:minmax(0,1fr) auto}
     .pos-recent-row .pos-recent-method{display:none}
+    .pos-operation-summary{grid-template-columns:1fr}
     .ingredient-toolbar{display:grid;grid-template-columns:minmax(0,1fr)}
     .ingredient-search{grid-column:1 / -1;min-width:0}
     .ingredient-toolbar .btn{width:100%;min-width:0;padding-left:7px;padding-right:7px;white-space:normal}
@@ -431,6 +470,12 @@ create policy "auth update" on scoopies_state for update to authenticated using 
   </div>
 </div>
 
+<div id="posOpsModal" class="modal-backdrop" hidden>
+  <div class="modal small" role="dialog" aria-modal="true" aria-labelledby="posOpsModalTitle">
+    <div id="posOpsModalContent"></div>
+  </div>
+</div>
+
 <script>
 /* ---------- units & money ---------- */
 var UNIT_FACTOR = {g:1, kg:1000, ml:1, l:1000, piece:1};
@@ -482,10 +527,14 @@ var posLoadGeneration = 0, posStatusGeneration = 0;
 var publishModalOpen = false, publishProductId = '', publishSnapshot = null, publishSubmitting = false, publishError = '', publishNotice = '';
 var POS_PENDING_KEY = TEST_MODE ? 'scoopies_pos_pending_test' : 'scoopies_pos_pending_v1';
 var posCheckoutLoadGeneration = 0, posCheckoutSubmitGeneration = 0;
+var posOpsGeneration = 0, posOpsModalReturnFocus = null;
+var posOpsModal = freshPosOpsModal();
 var posCheckout = {
   catalog:[], catalogLoading:false, catalogError:'', search:'', category:'all', cart:{}, catalogChanged:false,
   paymentMethod:'cash', cashReceived:'', referenceNumber:'', confirming:false, submitting:false, error:'', notice:'', pending:null,
-  lastReceipt:null, summary:null, recent:[], reportsLoading:false, reportsError:''
+  lastReceipt:null, summary:null, recent:[], reportsLoading:false, reportsError:'',
+  shift:null, shiftStatus:null, shiftLoading:false, shiftError:'', reportMode:'live', reportDate:'', dailyReport:null,
+  reportLoadedMode:'',reportLoadedDate:''
 };
 
 function blank(){ return {schemaVersion:3, ingredientCategories:[], ingredients:[], mixtureDrafts:[], packaging:[], recipes:[], products:[]}; }
@@ -1147,11 +1196,37 @@ function validateProductForPublish(p){
 function freshPosCheckout(){
   return {catalog:[],catalogLoading:false,catalogError:'',search:'',category:'all',cart:{},catalogChanged:false,
     paymentMethod:'cash',cashReceived:'',referenceNumber:'',confirming:false,submitting:false,error:'',notice:'',pending:null,
-    lastReceipt:null,summary:null,recent:[],reportsLoading:false,reportsError:''};
+    lastReceipt:null,summary:null,recent:[],reportsLoading:false,reportsError:'',
+    shift:null,shiftStatus:null,shiftLoading:false,shiftError:'',reportMode:'live',reportDate:'',dailyReport:null,
+    reportLoadedMode:'',reportLoadedDate:''};
+}
+function clearPosReportData(){
+  posCheckout.summary=null;posCheckout.dailyReport=null;posCheckout.recent=[];
+  posCheckout.reportLoadedMode='';posCheckout.reportLoadedDate='';
+}
+function setPosReportsLoading(loading){
+  posCheckout.reportsLoading=!!loading;
+  document.body.classList.toggle('pos-reports-loading',!!loading);
+}
+function syncOpenPosReportModal(){
+  if(!posOpsModal.open||posOpsModal.type!=='report')return false;
+  posOpsModal.result=posCheckout.dailyReport;
+  if(posCheckout.reportsLoading)posOpsModal.notice=posOpsModal.notice||'Refreshing report…';
+  else posOpsModal.notice=posCheckout.reportsError||'';
+  renderPosOpsModal();return true;
+}
+function freshPosOpsModal(){
+  return {open:false,type:'',submitting:false,error:'',notice:'',step:'edit',mode:'live',openingCash:'0.00',
+    countedCash:'',verifiedGcash:'',verifiedGotyme:'',notes:'',sale:null,reason:'',result:null,uncertain:false,rpcArgs:null};
 }
 function resetPosCheckout(){
-  posCheckoutLoadGeneration++;posCheckoutSubmitGeneration++;
+  posCheckoutLoadGeneration++;posCheckoutSubmitGeneration++;posOpsGeneration++;
   posCheckout=freshPosCheckout();
+  posOpsModal=freshPosOpsModal();
+  document.body.classList.remove('pos-training');
+  setPosReportsLoading(false);
+  document.body.classList.remove('modal-open');posOpsModalReturnFocus=null;
+  var modal=document.getElementById('posOpsModal');if(modal)modal.hidden=true;
   renderPos();
 }
 function posUuid(){
@@ -1224,6 +1299,7 @@ function posRestorePending(){
   posCheckout.paymentMethod=String(record.rpcArgs.p_payment_method||'cash');
   posCheckout.cashReceived=record.rpcArgs.p_cash_tendered_centavos==null?'':(Number(record.rpcArgs.p_cash_tendered_centavos)/100).toFixed(2);
   posCheckout.referenceNumber=String(record.rpcArgs.p_reference_number||'');
+  if(record.rpcArgs.p_is_training===true)posCheckout.reportMode='training';
   posCheckout.notice='A sale may have reached the server before the connection stopped. Retry the exact same sale to safely get its receipt.';
   markPosCartAgainstCatalog();
   return true;
@@ -1285,6 +1361,7 @@ function clearPosCart(){
 }
 function resetPosContext(message,preserveCheckout){
   posLoadGeneration++;posStatusGeneration++;
+  posOpsGeneration++;if(posOpsModal.open)posCloseOpsModal(true);
   posContext={loaded:!!message,loading:false,businessId:'',businessName:'',role:'',publications:{},error:message||''};
   if(preserveCheckout)posCheckoutLoadGeneration++;
   else resetPosCheckout();
@@ -1361,30 +1438,72 @@ function posRpcErrorText(error){
 }
 async function loadPosCheckoutData(){
   if(!cloud.client||!session||!session.user||!posContext.businessId){renderPos();return false;}
-  if(posCheckout.submitting)return false;
+  if(posCheckout.submitting||posOpsModal.submitting)return false;
   var generation=++posCheckoutLoadGeneration,userId=String(session.user.id||''),businessId=String(posContext.businessId||'');
-  posCheckout.catalogLoading=true;posCheckout.reportsLoading=true;posCheckout.catalogError='';posCheckout.reportsError='';renderPos();
+  posCheckout.catalogLoading=true;posCheckout.shiftLoading=true;setPosReportsLoading(true);
+  posCheckout.catalogError='';posCheckout.shiftError='';posCheckout.reportsError='';renderPos();
+  syncOpenPosReportModal();
   function request(name,args){
     try{return Promise.resolve(cloud.client.rpc(name,args)).then(function(result){return {rows:rpcRows(result),error:null};}).catch(function(error){return {rows:[],error:error};});}
     catch(error){return Promise.resolve({rows:[],error:error});}
   }
-  var results=await Promise.all([
+  var initial=await Promise.all([
     request('pos_get_catalog',{p_business_id:businessId}),
-    request('pos_get_today_summary',{p_business_id:businessId}),
-    request('pos_get_recent_sales',{p_business_id:businessId,p_limit:20})
+    request('pos_get_shift_status',{p_business_id:businessId})
   ]);
   if(!posLoadRequestStillCurrent(generation,userId,businessId))return false;
-  var catalogResult=results[0],summaryResult=results[1],recentResult=results[2];
-  posCheckout.catalogLoading=false;posCheckout.reportsLoading=false;
+  var catalogResult=initial[0],shiftResult=initial[1];
+  posCheckout.catalogLoading=false;posCheckout.shiftLoading=false;
   if(catalogResult.error)posCheckout.catalogError=posRpcErrorText(catalogResult.error);
   else{
     posCheckout.catalog=catalogResult.rows||[];posCheckout.catalogError='';
     markPosCartAgainstCatalog();posRestorePending();
   }
-  if(summaryResult.error||recentResult.error)posCheckout.reportsError='Today’s totals could not be refreshed.';
-  if(!summaryResult.error)posCheckout.summary=summaryResult.rows[0]||null;
+  if(shiftResult.error||!shiftResult.rows.length){
+    posCheckout.shift=null;posCheckout.shiftStatus=null;
+    clearPosReportData();
+    posCheckout.shiftError=shiftResult.error?posRpcErrorText(shiftResult.error):'No active register was found. Ask an owner to check the POS setup.';
+    setPosReportsLoading(false);posCheckout.reportsError='Shift and report totals were not loaded.';
+    document.body.classList.remove('pos-training');renderPos();syncOpenPosReportModal();return false;
+  }
+  var previousShift=posCheckout.shift;
+  posCheckout.shiftStatus=shiftResult.rows[0];
+  posCheckout.shift=posCheckout.shiftStatus.has_open_shift&&posCheckout.shiftStatus.shift_id?posCheckout.shiftStatus:null;
+  if(!posCheckout.pending&&posCheckout.lastReceipt){
+    if(!posCheckout.shift||(posCheckout.lastReceipt.shift_id&&String(posCheckout.lastReceipt.shift_id)!==String(posCheckout.shift.shift_id)))posCheckout.lastReceipt=null;
+    else if(previousShift&&String(previousShift.shift_id)!==String(posCheckout.shift.shift_id))posCheckout.lastReceipt=null;
+  }
+  if(posCheckout.shift)posCheckout.reportMode=posCheckout.shift.is_training?'training':'live';
+  else if(posCheckout.pending)posCheckout.reportMode=posModeFromPending();
+  else if(posContext.role==='cashier')posCheckout.reportMode='live';
+  document.body.classList.toggle('pos-training',!!(posCheckout.shift&&posCheckout.shift.is_training));
+  var isTraining=posCheckout.reportMode==='training';
+  var requestedMode=isTraining?'training':'live',requestedDate=String(posCheckout.reportDate||'');
+  if(posCheckout.reportLoadedMode&&
+    (posCheckout.reportLoadedMode!==requestedMode||(requestedDate&&posCheckout.reportLoadedDate!==requestedDate)))clearPosReportData();
+  var reportArgs={p_business_id:businessId,p_business_date:posCheckout.reportDate||null,p_is_training:isTraining};
+  var reports=await Promise.all([
+    request('pos_get_end_of_day_summary',reportArgs),
+    request('pos_get_recent_sales_v2',{p_business_id:businessId,p_is_training:isTraining,p_limit:20})
+  ]);
+  if(!posLoadRequestStillCurrent(generation,userId,businessId))return false;
+  setPosReportsLoading(false);
+  var summaryResult=reports[0],recentResult=reports[1];
+  if(summaryResult.error||recentResult.error)posCheckout.reportsError='The '+(isTraining?'training':'live')+' totals could not be refreshed.';
+  if(!summaryResult.error){
+    posCheckout.summary=summaryResult.rows[0]||null;
+    posCheckout.dailyReport=posCheckout.summary;
+    if(posCheckout.summary&&posCheckout.summary.business_date){
+      posCheckout.reportDate=String(posCheckout.summary.business_date);
+      posCheckout.reportLoadedDate=posCheckout.reportDate;
+    }else posCheckout.reportLoadedDate=requestedDate;
+    posCheckout.reportLoadedMode=requestedMode;
+  }else{posCheckout.summary=null;posCheckout.dailyReport=null;posCheckout.reportLoadedMode='';posCheckout.reportLoadedDate='';}
   if(!recentResult.error)posCheckout.recent=recentResult.rows||[];
-  renderPos();return !catalogResult.error;
+  else posCheckout.recent=[];
+  renderPos();syncOpenPosReportModal();
+  if(!posCheckout.shift&&!posCheckout.pending&&!posOpsModal.open)openPosShiftModal();
+  return !catalogResult.error&&!shiftResult.error;
 }
 async function openPosRegister(refresh){
   if(posCheckout.submitting)return false;
@@ -1396,6 +1515,10 @@ async function openPosRegister(refresh){
 }
 function posCheckoutValidation(){
   if(posCheckout.pending)return {valid:true,error:'',cashCentavos:posCheckout.pending.rpcArgs.p_cash_tendered_centavos};
+  var shift=posCheckout.shift;
+  if(posCheckout.shiftLoading)return {valid:false,error:'The register shift is still loading.'};
+  if(!shift||!shift.shift_id)return {valid:false,error:'Open a shift before accepting a payment.'};
+  if(String(shift.shift_id||'')!==String(posCheckout.shiftStatus&&posCheckout.shiftStatus.shift_id||''))return {valid:false,error:'The active shift changed. Refresh before accepting payment.'};
   var lines=posCartLines(),total=posCartTotalCentavos();
   if(!lines.length)return {valid:false,error:'Add at least one product to the sale.'};
   if(posCheckout.catalogChanged||lines.some(function(line){return line.stale;}))return {valid:false,error:'The menu changed. Review the cart before charging the customer.'};
@@ -1414,15 +1537,16 @@ function posCheckoutValidation(){
 function buildPosPendingSale(validation){
   var userId=String(session&&session.user&&session.user.id||''),businessId=String(posContext.businessId||'');
   var items=posCartLines().map(function(line){return {product_id:String(line.productId),product_version_id:String(line.productVersionId),quantity:Number(line.quantity)};});
-  var args={p_business_id:businessId,p_client_sale_id:posUuid(),p_items:items,p_payment_method:posCheckout.paymentMethod,
+  var args={p_business_id:businessId,p_shift_id:String(posCheckout.shift.shift_id),p_is_training:!!posCheckout.shift.is_training,
+    p_client_sale_id:posUuid(),p_items:items,p_payment_method:posCheckout.paymentMethod,
     p_cash_tendered_centavos:posCheckout.paymentMethod==='cash'?validation.cashCentavos:null,
     p_reference_number:String(posCheckout.referenceNumber||'').trim()||null,p_note:null};
-  return {schemaVersion:1,userId:userId,businessId:businessId,createdAt:new Date().toISOString(),rpcArgs:args,
+  return {schemaVersion:2,rpcName:'pos_complete_shift_sale',userId:userId,businessId:businessId,createdAt:new Date().toISOString(),rpcArgs:args,
     cartSnapshot:posCartLines().map(function(line){return {productId:line.productId,productVersionId:line.productVersionId,name:line.name,size:line.size,priceCentavos:line.priceCentavos,quantity:line.quantity};})};
 }
 function posDeterministicError(error){
   var code=String(error&&error.code||'');
-  return ['40001','42501','22023','23514','23505','55000'].indexOf(code)>=0||/^PGRST/.test(code);
+  return ['40001','42501','22003','22023','23514','23505','55000'].indexOf(code)>=0||/^PGRST/.test(code);
 }
 function posCheckoutErrorText(error){
   var code=String(error&&error.code||'');
@@ -1430,7 +1554,7 @@ function posCheckoutErrorText(error){
   if(code==='42501')return 'Your account cannot complete sales in this workspace.';
   if(code==='23505')return 'This retry ID belongs to different sale details. Check Recent sales before starting a new checkout.';
   if(code==='55000')return 'The register is not ready to accept sales. Ask an owner to check the POS setup.';
-  if(code==='22023'||code==='23514')return 'The sale details were rejected. Review the cart and payment, then try again.';
+  if(code==='22003'||code==='22023'||code==='23514')return 'The sale details were rejected or exceed the supported range. Review the cart and payment, then try again.';
   return 'The sale could not be completed. Nothing was cleared; review it and try again.';
 }
 function reviewPosSale(){
@@ -1453,7 +1577,7 @@ async function submitPosSale(){
   var generation=++posCheckoutSubmitGeneration,userId=String(session.user.id||''),businessId=String(posContext.businessId||'');
   posCheckout.confirming=false;posCheckout.submitting=true;posCheckout.error='';renderPos();
   try{
-    var result=await cloud.client.rpc('pos_complete_sale',record.rpcArgs);
+    var result=await cloud.client.rpc(record.rpcName||'pos_complete_sale',record.rpcArgs);
     var rows=rpcRows(result);
     if(!posSubmitRequestStillCurrent(generation,userId,businessId))return false;
     var receipt=rows[0];if(!receipt||!receipt.sale_id||!receipt.receipt_number)throw new Error('Missing receipt response');
@@ -1474,6 +1598,365 @@ async function submitPosSale(){
       posCheckout.error='';renderPos();return false;
     }
     posClearPending();posCheckout.confirming=false;posCheckout.error=posCheckoutErrorText(error);renderPos();return false;
+  }
+}
+function posCanManageOperations(){return posContext.role==='owner'||posContext.role==='manager';}
+function posModeName(isTraining){return isTraining?'Training':'Live';}
+function posModeFromPending(){
+  if(!posCheckout.pending)return '';
+  return posCheckout.pending.rpcArgs&&posCheckout.pending.rpcArgs.p_is_training===true?'training':'live';
+}
+function posOpsRequestStillCurrent(generation,userId,businessId){
+  return generation===posOpsGeneration&&!!session&&!!session.user&&
+    String(session.user.id||'')===String(userId||'')&&String(posContext.businessId||'')===String(businessId||'');
+}
+function posOperationErrorText(error,action){
+  var code=String(error&&error.code||'');
+  if(code==='P0002')return 'That shift or sale was not found. Refresh the POS before trying again.';
+  if(code==='42501')return 'Your account does not have permission for this '+action+'.';
+  if(code==='55000')return action==='void'?'This sale cannot be voided because its shift is already closed.':'The register shift changed. Refresh before trying again.';
+  if(code==='23505')return 'These details conflict with an operation already recorded. Refresh and review the server result.';
+  if(code==='22023'||code==='23514')return 'Review the entered amounts and required details, then try again.';
+  return 'The connection stopped before the '+action+' result came back. The server will be checked before another attempt.';
+}
+function posOperationDeterministic(error){
+  var code=String(error&&error.code||'');
+  return ['P0002','42501','55000','23505','22003','22023','23514'].indexOf(code)>=0||/^PGRST/.test(code);
+}
+function posCloseOpsModal(force){
+  if((posOpsModal.submitting||posOpsModal.uncertain)&&!force)return false;
+  posOpsModal=freshPosOpsModal();
+  var modal=document.getElementById('posOpsModal');if(modal)modal.hidden=true;
+  document.body.classList.remove('modal-open');
+  if(posOpsModalReturnFocus&&document.contains(posOpsModalReturnFocus))posOpsModalReturnFocus.focus();
+  posOpsModalReturnFocus=null;return true;
+}
+function posOpenOpsModal(type){
+  posOpsModalReturnFocus=document.activeElement;
+  posOpsModal=freshPosOpsModal();posOpsModal.open=true;posOpsModal.type=type;
+  document.body.classList.add('modal-open');renderPosOpsModal();return true;
+}
+function openPosShiftModal(){
+  if(posCheckout.shift||posCheckout.shiftLoading||posCheckout.shiftError||posCheckout.pending)return false;
+  var status=posCheckout.shiftStatus||{};
+  if(!status.can_open_live&&!status.can_open_training)return false;
+  posOpenOpsModal('openShift');
+  posOpsModal.mode=status.can_open_live?'live':'training';
+  posOpsModal.openingCash='0.00';renderPosOpsModal();focusSoon('#posOpeningCash');return true;
+}
+function setPosOpenMode(mode){
+  if(!posOpsModal.open||posOpsModal.type!=='openShift'||posOpsModal.submitting||posOpsModal.uncertain)return false;
+  var status=posCheckout.shiftStatus||{};
+  if(mode==='training'&&!status.can_open_training)return false;
+  if(mode==='live'&&!status.can_open_live)return false;
+  posOpsModal.mode=mode;posOpsModal.error='';
+  if(mode==='training')posOpsModal.openingCash='0.00';
+  renderPosOpsModal();if(mode==='live')focusSoon('#posOpeningCash');return true;
+}
+function openPosCloseModal(){
+  if(!posCheckout.shift||posCheckout.submitting||posCheckout.pending||posCheckout.confirming||posCartLines().length||posOpsModal.submitting)return false;
+  if(!(posCheckout.shiftStatus&&posCheckout.shiftStatus.can_close_shift))return false;
+  posOpenOpsModal('closeShift');
+  posOpsModal.mode=posCheckout.shift.is_training?'training':'live';
+  posOpsModal.step=posCheckout.shift.is_training?'confirm':'edit';
+  renderPosOpsModal();if(posOpsModal.mode==='live')focusSoon('#posCountedCash');return true;
+}
+function openPosVoidModal(saleId){
+  if(!posCanManageOperations()||posCheckout.submitting||posCheckout.pending)return false;
+  var sale=(posCheckout.recent||[]).find(function(row){return String(row.sale_id||'')===String(saleId||'');});
+  if(!sale||!sale.can_void||sale.sale_state==='voided')return false;
+  posOpenOpsModal('voidSale');posOpsModal.sale=sale;renderPosOpsModal();focusSoon('#posVoidReason');return true;
+}
+function openPosReportModal(){
+  if(posCheckout.reportsLoading)return false;
+  posOpenOpsModal('report');posOpsModal.result=posCheckout.dailyReport;renderPosOpsModal();return true;
+}
+function posVarianceHtml(label,expected,actual,variance){
+  var value=Number(variance||0),cls=value===0?'good':'bad',sign=value>0?'+':'';
+  return '<div class="metric"><div class="lbl">'+escapeHtml(label)+'</div><div class="val">'+peso(Number(actual||0)/100)+'</div>'+
+    '<div class="hint">Expected '+peso(Number(expected||0)/100)+'</div><div class="pos-variance '+cls+'">'+(value===0?'Balanced':sign+peso(value/100))+'</div></div>';
+}
+function posCloseResultHtml(result){
+  if(!result)return '';
+  var training=!!result.is_training;
+  return '<div class="pos-closed-result"><strong>'+escapeHtml(posModeName(training))+' shift closed'+(result.is_retry?' · recovered safely':'')+'</strong>'+
+    '<div class="pos-report-meta">'+escapeHtml(result.register_name||'Register')+' · '+escapeHtml(result.closed_at?new Date(result.closed_at).toLocaleString('en-PH'):'')+'</div></div>'+
+    '<div class="pos-operation-summary">'+
+      posVarianceHtml('Cash counted',result.expected_cash_centavos,result.counted_cash_centavos,result.cash_variance_centavos)+
+      posVarianceHtml('GCash verified',result.expected_gcash_centavos,result.verified_gcash_centavos,result.gcash_variance_centavos)+
+      posVarianceHtml('GoTyme verified',result.expected_gotyme_centavos,result.verified_gotyme_centavos,result.gotyme_variance_centavos)+
+    '</div><div class="pos-operation-summary">'+
+      '<div class="metric"><div class="lbl">Gross sales</div><div class="val">'+peso(Number(result.gross_sales_centavos||0)/100)+'</div></div>'+
+      '<div class="metric"><div class="lbl">Voids</div><div class="val">'+peso(Number(result.voided_sales_centavos||0)/100)+'</div></div>'+
+      '<div class="metric"><div class="lbl">Net collected</div><div class="val">'+peso(Number(result.net_sales_centavos||0)/100)+'</div></div>'+
+    '</div>';
+}
+function posReportHtml(report){
+  if(!report)return '<div class="note">No '+escapeHtml(posModeName(posCheckout.reportMode==='training'))+' report is available for this date yet.</div>';
+  var training=!!report.is_training,canView=!!report.can_view_costs;
+  return '<div class="pos-report-head"><div><h2 id="posOpsModalTitle">End-of-day report</h2>'+
+    '<div class="pos-report-meta">'+escapeHtml(String(report.business_date||''))+' · '+escapeHtml(report.business_timezone||'Business timezone')+' · '+escapeHtml(posModeName(training))+'</div></div>'+
+    '<div class="pos-report-actions"><button class="btn small secondary" data-act="downloadPosReport">Download CSV</button><button class="btn small secondary" data-act="printPosReport">Print</button></div></div>'+
+    (training?'<div class="pos-mode-banner"><span class="pos-mode-training">Training</span><span>Practice sales only. These totals are excluded from Live sales and cash.</span></div>':'')+
+    '<div class="pos-operation-summary">'+
+      '<div class="metric"><div class="lbl">Gross sales</div><div class="val">'+peso(Number(report.gross_sales_centavos||0)/100)+'</div></div>'+
+      '<div class="metric"><div class="lbl">Voids</div><div class="val">'+peso(Number(report.voided_sales_centavos||0)/100)+'</div></div>'+
+      '<div class="metric"><div class="lbl">Net collected</div><div class="val">'+peso(Number(report.net_sales_centavos||0)/100)+'</div></div>'+
+      '<div class="metric"><div class="lbl">Net orders</div><div class="val">'+Number(report.net_sale_count||0)+'</div></div>'+
+      '<div class="metric"><div class="lbl">Net items</div><div class="val">'+Number(report.net_items_sold||0)+'</div></div>'+
+      '<div class="metric"><div class="lbl">Estimated gross profit</div><div class="val">'+(canView?peso(Number(report.estimated_gross_profit_centavos||0)/100):'Owner only')+'</div></div>'+
+    '</div><div class="pos-operation-summary">'+
+      '<div class="metric"><div class="lbl">Cash net</div><div class="val">'+peso(Number(report.cash_net_centavos||0)/100)+'</div></div>'+
+      '<div class="metric"><div class="lbl">GCash net</div><div class="val">'+peso(Number(report.gcash_net_centavos||0)/100)+'</div></div>'+
+      '<div class="metric"><div class="lbl">GoTyme net</div><div class="val">'+peso(Number(report.gotyme_net_centavos||0)/100)+'</div></div>'+
+    '</div><p class="hint">Estimated gross profit is net sales minus published ingredient and packaging costs for non-voided items. It is not take-home profit and excludes rent, labor, utilities, spoilage, and payment or delivery fees.</p>'+
+    '<p class="hint">This report exports the database’s complete daily aggregates. The separate Recent sales list is only the latest 20 receipts and is intentionally not treated as a complete daily ledger.</p>';
+}
+function posCsvCell(value){
+  var text=String(value==null?'':value);
+  if(/^[\s]*[=+\-@]/.test(text))text="'"+text;
+  return '"'+text.replace(/"/g,'""')+'"';
+}
+function posBuildReportCsv(){
+  var report=posCheckout.dailyReport;
+  if(!report)return '';
+  var canView=!!report.can_view_costs,rows=[
+    ['Scoopies end-of-day report'],
+    ['Business date',report.business_date||''],
+    ['Business timezone',report.business_timezone||''],
+    ['Mode',posModeName(!!report.is_training)],
+    [],
+    ['Metric','Value'],
+    ['Gross orders',Number(report.gross_sale_count||0)],
+    ['Voided orders',Number(report.voided_sale_count||0)],
+    ['Net orders',Number(report.net_sale_count||0)],
+    ['Gross items',Number(report.gross_items_sold||0)],
+    ['Voided items',Number(report.voided_items_sold||0)],
+    ['Net items',Number(report.net_items_sold||0)],
+    ['Gross sales (PHP)',(Number(report.gross_sales_centavos||0)/100).toFixed(2)],
+    ['Voids (PHP)',(Number(report.voided_sales_centavos||0)/100).toFixed(2)],
+    ['Net collected (PHP)',(Number(report.net_sales_centavos||0)/100).toFixed(2)],
+    ['Cash net (PHP)',(Number(report.cash_net_centavos||0)/100).toFixed(2)],
+    ['GCash net (PHP)',(Number(report.gcash_net_centavos||0)/100).toFixed(2)],
+    ['GoTyme net (PHP)',(Number(report.gotyme_net_centavos||0)/100).toFixed(2)]
+  ];
+  if(canView){
+    rows.push(['Estimated product cost (PHP)',(Number(report.estimated_cost_centavos||0)/100).toFixed(2)]);
+    rows.push(['Estimated gross profit (PHP)',(Number(report.estimated_gross_profit_centavos||0)/100).toFixed(2)]);
+  }
+  return rows.map(function(row){return row.map(posCsvCell).join(',');}).join('\r\n');
+}
+function downloadPosReport(){
+  var csv=posBuildReportCsv();if(!csv)return false;
+  var report=posCheckout.dailyReport||{},blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
+  var link=document.createElement('a'),url=URL.createObjectURL(blob);
+  link.href=url;link.download='scoopies-'+String(report.business_date||'report')+'-'+(report.is_training?'training':'live')+'.csv';
+  document.body.appendChild(link);link.click();link.remove();URL.revokeObjectURL(url);return true;
+}
+function printPosReport(){if(!posCheckout.dailyReport)return false;window.print();return true;}
+async function setPosReportMode(mode){
+  if(['live','training'].indexOf(mode)<0||posCheckout.shift||posCheckout.reportsLoading)return false;
+  if(mode==='training'&&!posCanManageOperations())return false;
+  if(posCheckout.reportMode!==mode)clearPosReportData();
+  posCheckout.reportMode=mode;posCheckout.reportDate='';posOpsModal.notice='Loading '+posModeName(mode==='training')+' report…';renderPosOpsModal();
+  var loaded=await loadPosCheckoutData();
+  if(!posOpsModal.open||posOpsModal.type!=='report')return false;
+  posOpsModal.result=posCheckout.dailyReport;posOpsModal.notice=posCheckout.reportsError||'';renderPosOpsModal();
+  return !!(loaded&&posCheckout.dailyReport&&posCheckout.reportLoadedMode===mode);
+}
+function renderPosOpsModal(){
+  var modal=document.getElementById('posOpsModal'),content=document.getElementById('posOpsModalContent');
+  if(!modal||!content)return;
+  modal.hidden=!posOpsModal.open;if(!posOpsModal.open)return;
+  var panel=modal.querySelector('.modal');if(panel)panel.classList.toggle('small',posOpsModal.type==='openShift'||posOpsModal.type==='voidSale');
+  var disabled=posOpsModal.submitting?' disabled':'',frozen=posOpsModal.submitting||posOpsModal.uncertain?' disabled':'';
+  var close='<button class="modal-close" data-act="closePosOpsModal" aria-label="Close dialog"'+(posOpsModal.submitting||posOpsModal.uncertain?' disabled':'')+'>x</button>';
+  if(posOpsModal.type==='openShift'){
+    var status=posCheckout.shiftStatus||{},training=posOpsModal.mode==='training';
+    var modes='<div class="pos-mode-choice"><button data-act="setPosOpenMode" data-mode="live" class="'+(!training?'active':'')+'"'+(!status.can_open_live||posOpsModal.submitting||posOpsModal.uncertain?' disabled':'')+'><strong>Live</strong><br><span class="hint">Real sales and money</span></button>';
+    if(status.can_open_training)modes+='<button data-act="setPosOpenMode" data-mode="training" class="'+(training?'active':'')+'"'+frozen+'><strong>Training</strong><br><span class="hint">Practice only</span></button>';
+    modes+='</div>';
+    content.innerHTML='<div class="modal-head"><div><h2 id="posOpsModalTitle">Open shift</h2><p class="hint">'+escapeHtml(status.register_name||'Main register')+' · choose before taking orders</p></div>'+close+'</div>'+
+      modes+(training?'<div class="pos-mode-banner"><span class="pos-mode-training">Training</span><span>No real sales or money. Training totals stay separate from Live.</span></div>':'')+
+      '<label class="fld" for="posOpeningCash">Starting cash in drawer (₱)</label><input id="posOpeningCash" inputmode="decimal" autocomplete="off" value="'+escapeHtml(training?'0.00':posOpsModal.openingCash)+'"'+(training||posOpsModal.submitting||posOpsModal.uncertain?' disabled':'')+'>'+
+      '<p class="hint">'+(training?'Training always starts at ₱0.00.':'Count the drawer before opening. This becomes the cash-closing baseline.')+'</p>'+
+      '<div class="pos-error" aria-live="assertive">'+escapeHtml(posOpsModal.error)+'</div><div class="modal-actions"><button class="btn secondary" data-act="closePosOpsModal"'+(posOpsModal.uncertain?' disabled':disabled)+'>Cancel</button><button class="btn" data-act="submitPosOpenShift"'+disabled+'>'+escapeHtml(posOpsModal.submitting?'Checking…':(posOpsModal.uncertain?'Retry same opening':'Open '+posModeName(training)+' shift'))+'</button></div>';
+  }else if(posOpsModal.type==='closeShift'){
+    var shift=posCheckout.shift||{},isTraining=posOpsModal.mode==='training';
+    if(posOpsModal.step==='result'){
+      content.innerHTML='<div class="modal-head"><div><h2 id="posOpsModalTitle">Shift closed</h2></div>'+close+'</div>'+posCloseResultHtml(posOpsModal.result)+
+        '<div class="modal-actions"><button class="btn secondary" data-act="openPosReport">View daily report</button><button class="btn" data-act="closePosOpsModal">Done</button></div>';
+    }else if(posOpsModal.step==='confirm'){
+      var confirmText=isTraining?'Close this Training shift? Practice sales stay separate and fake tenders are reconciled automatically.':
+        'Close this Live shift with counted cash '+peso(Number(strictPesoCentavos(posOpsModal.countedCash)||0)/100)+', verified GCash '+peso(Number(strictPesoCentavos(posOpsModal.verifiedGcash)||0)/100)+', and verified GoTyme '+peso(Number(strictPesoCentavos(posOpsModal.verifiedGotyme)||0)/100)+'?';
+      content.innerHTML='<div class="modal-head"><div><h2 id="posOpsModalTitle">Confirm shift close</h2><p class="hint">'+escapeHtml(shift.register_name||'Register')+' · mode is locked as '+escapeHtml(posModeName(isTraining))+'</p></div>'+close+'</div>'+
+        (isTraining?'<div class="pos-mode-banner"><span class="pos-mode-training">Training</span><span>Nothing here affects Live totals or real cash.</span></div>':'')+
+        '<div class="note"><strong>'+escapeHtml(confirmText)+'</strong></div><div class="pos-error">'+escapeHtml(posOpsModal.error)+'</div>'+
+        '<div class="modal-actions">'+(!isTraining?'<button class="btn secondary" data-act="backPosCloseShift"'+frozen+'>Back</button>':'<button class="btn secondary" data-act="closePosOpsModal"'+frozen+'>Cancel</button>')+
+        '<button class="btn danger" data-act="submitPosCloseShift"'+disabled+'>'+escapeHtml(posOpsModal.submitting?'Checking…':(posOpsModal.uncertain?(posCheckout.shift?'Retry exact close':'Recover close result'):'Confirm close'))+'</button></div>';
+    }else{
+      content.innerHTML='<div class="modal-head"><div><h2 id="posOpsModalTitle">Close Live shift</h2><p class="hint">'+escapeHtml(shift.register_name||'Register')+' · enter what you actually counted</p></div>'+close+'</div>'+
+        '<div class="note"><strong>Blind close:</strong> expected amounts stay hidden until the database closes the shift and returns the official variance.</div>'+
+        '<div class="grid2"><div><label class="fld" for="posCountedCash">Cash counted (₱)</label><input id="posCountedCash" inputmode="decimal" value="'+escapeHtml(posOpsModal.countedCash)+'"'+disabled+'></div>'+
+        '<div><label class="fld" for="posVerifiedGcash">GCash verified (₱)</label><input id="posVerifiedGcash" inputmode="decimal" value="'+escapeHtml(posOpsModal.verifiedGcash)+'"'+disabled+'></div>'+
+        '<div><label class="fld" for="posVerifiedGotyme">GoTyme verified (₱)</label><input id="posVerifiedGotyme" inputmode="decimal" value="'+escapeHtml(posOpsModal.verifiedGotyme)+'"'+disabled+'></div>'+
+        '<div><label class="fld" for="posCloseNotes">Closing note (optional)</label><input id="posCloseNotes" maxlength="500" value="'+escapeHtml(posOpsModal.notes)+'"'+disabled+'></div></div>'+
+        '<p class="hint">For GCash and GoTyme, enter only the sales receipts for this shift—not the full wallet or bank balance.</p>'+
+        '<div class="pos-error">'+escapeHtml(posOpsModal.error)+'</div><div class="modal-actions"><button class="btn secondary" data-act="closePosOpsModal"'+disabled+'>Cancel</button><button class="btn" data-act="reviewPosCloseShift"'+disabled+'>Review close</button></div>';
+    }
+  }else if(posOpsModal.type==='voidSale'){
+    var sale=posOpsModal.sale||{};
+    if(posOpsModal.step==='result'){
+      content.innerHTML='<div class="modal-head"><h2 id="posOpsModalTitle">Sale voided</h2>'+close+'</div><div class="pos-closed-result"><strong>Receipt '+escapeHtml((posOpsModal.result&&posOpsModal.result.receipt_number)||sale.receipt_number||'')+' is marked VOID.</strong><p class="hint">The receipt and audit history remain. It was not deleted.</p></div><div class="modal-actions"><button class="btn" data-act="closePosOpsModal">Done</button></div>';
+    }else{
+      var reviewing=posOpsModal.step==='confirm';
+      content.innerHTML='<div class="modal-head"><div><h2 id="posOpsModalTitle">Void receipt '+escapeHtml(sale.receipt_number||'')+'</h2><p class="hint">'+escapeHtml(sale.item_summary||'')+' · '+peso(Number(sale.gross_total_centavos||0)/100)+'</p></div>'+close+'</div>'+
+        '<div class="pos-danger-note"><strong>Before continuing:</strong> only void a sale before preparation and return the customer’s '+escapeHtml(posPaymentLabel(sale.payment_method))+' payment. This cannot be done after the shift closes.</div>'+
+        (reviewing?'<div class="note"><strong>Confirm void</strong><br>Reason: '+escapeHtml(posOpsModal.reason)+'</div>':'<label class="fld" for="posVoidReason">Required reason</label><textarea id="posVoidReason" maxlength="500" placeholder="e.g. Customer cancelled before preparation"'+disabled+'>'+escapeHtml(posOpsModal.reason)+'</textarea>')+
+        '<div class="pos-error">'+escapeHtml(posOpsModal.error)+'</div><div class="modal-actions">'+
+        (reviewing?'<button class="btn secondary" data-act="backPosVoidSale"'+frozen+'>Back</button>':'<button class="btn secondary" data-act="closePosOpsModal"'+frozen+'>Cancel</button>')+
+        '<button class="btn danger" data-act="'+(reviewing?'submitPosVoidSale':'reviewPosVoidSale')+'"'+disabled+'>'+escapeHtml(posOpsModal.submitting?'Checking…':(reviewing?(posOpsModal.uncertain?'Retry exact void':'Confirm void'):'Review void'))+'</button></div>';
+    }
+  }else if(posOpsModal.type==='report'){
+    var canChoose=!posCheckout.shift&&posCanManageOperations();
+    content.innerHTML='<div class="modal-head"><div style="flex:1">'+posReportHtml(posCheckout.dailyReport)+'</div>'+close+'</div>'+
+      (canChoose?'<div class="pos-payment-tabs"><button data-act="setPosReportMode" data-mode="live" class="'+(posCheckout.reportMode==='live'?'active':'')+'">Live report</button><button data-act="setPosReportMode" data-mode="training" class="'+(posCheckout.reportMode==='training'?'active':'')+'">Training report</button></div>':'')+
+      (posOpsModal.notice?'<div class="note">'+escapeHtml(posOpsModal.notice)+'</div>':'')+'<div class="modal-actions"><button class="btn" data-act="closePosOpsModal">Close</button></div>';
+  }
+}
+async function submitPosOpenShift(){
+  if(posOpsModal.submitting||posCheckout.shift||posCheckout.pending||!session||!session.user)return false;
+  var status=posCheckout.shiftStatus||{},training=posOpsModal.mode==='training';
+  if((training&&!status.can_open_training)||(!training&&!status.can_open_live))return false;
+  var opening=training?0:strictPesoCentavos(posOpsModal.openingCash);
+  if(opening==null){posOpsModal.error='Enter starting cash using pesos and up to 2 decimal places.';renderPosOpsModal();return false;}
+  var generation=++posOpsGeneration,userId=String(session.user.id||''),businessId=String(posContext.businessId||'');
+  var args=posOpsModal.rpcArgs||{p_business_id:businessId,p_is_training:training,p_opening_cash_centavos:opening};
+  posOpsModal.rpcArgs=args;
+  posOpsModal.submitting=true;posOpsModal.error='';posOpsModal.uncertain=false;renderPosOpsModal();
+  try{
+    var rows=rpcRows(await cloud.client.rpc('pos_open_shift',args)),opened=rows[0];
+    if(!posOpsRequestStillCurrent(generation,userId,businessId))return false;
+    if(!opened||!opened.shift_id)throw new Error('Missing shift response');
+    posOpsModal.submitting=false;
+    posCheckout.shift=Object.assign({has_open_shift:true},opened);
+    posCheckout.reportMode=opened.is_training?'training':'live';
+    posCheckout.lastReceipt=null;
+    document.body.classList.toggle('pos-training',!!opened.is_training);
+    posCloseOpsModal(true);
+    await loadPosCheckoutData();return true;
+  }catch(error){
+    if(!posOpsRequestStillCurrent(generation,userId,businessId))return false;
+    posOpsModal.submitting=false;posOpsModal.error=posOperationErrorText(error,'shift opening');
+    if(posOperationDeterministic(error)){if(['22023','23514'].indexOf(String(error&&error.code||''))>=0)posOpsModal.rpcArgs=null;renderPosOpsModal();return false;}
+    posOpsModal.uncertain=true;renderPosOpsModal();
+    var verified=await loadPosCheckoutData();
+    if(!posOpsRequestStillCurrent(generation,userId,businessId)||!posOpsModal.open)return false;
+    if(!verified||posCheckout.shiftError){
+      posOpsModal.uncertain=true;posOpsModal.error='The shift opening could not be verified because the status check also failed. Keep these exact details and retry after reconnecting.';renderPosOpsModal();return false;
+    }
+    if(posCheckout.shift&&!!posCheckout.shift.is_training===training&&
+      Number(posCheckout.shift.opening_cash_centavos)===Number(args.p_opening_cash_centavos)){
+      posCloseOpsModal(true);posCheckout.notice='The '+posModeName(training)+' shift was found open after the connection recovered.';renderPos();return true;
+    }
+    if(posCheckout.shift){
+      posCloseOpsModal(true);posCheckout.notice='Another '+posModeName(!!posCheckout.shift.is_training)+' shift is already open with different opening details. The authoritative shift was loaded; review it before continuing.';renderPos();return false;
+    }
+    posOpsModal.uncertain=false;posOpsModal.rpcArgs=null;posOpsModal.error='The server check found no open shift. Review the details and try again.';renderPosOpsModal();return false;
+  }
+}
+function posCloseValidation(){
+  if(posCartLines().length||posCheckout.confirming||posCheckout.submitting||posCheckout.pending)return {valid:false,error:'Finish, retry, or clear the current sale before closing the shift.'};
+  if(posOpsModal.mode==='training')return {valid:true,cash:null,gcash:null,gotyme:null,error:''};
+  var cash=strictPesoCentavos(posOpsModal.countedCash),gcash=strictPesoCentavos(posOpsModal.verifiedGcash),gotyme=strictPesoCentavos(posOpsModal.verifiedGotyme);
+  if(cash==null||gcash==null||gotyme==null)return {valid:false,error:'Enter counted Cash, verified GCash, and verified GoTyme using pesos and up to 2 decimal places.'};
+  if(String(posOpsModal.notes||'').trim().length>500)return {valid:false,error:'Keep the closing note under 500 characters.'};
+  return {valid:true,cash:cash,gcash:gcash,gotyme:gotyme,error:''};
+}
+function reviewPosCloseShift(){
+  if(posOpsModal.type!=='closeShift'||posOpsModal.submitting)return false;
+  var validation=posCloseValidation();
+  if(!validation.valid){posOpsModal.error=validation.error;renderPosOpsModal();return false;}
+  posOpsModal.step='confirm';posOpsModal.error='';renderPosOpsModal();return true;
+}
+function backPosCloseShift(){if(posOpsModal.submitting||posOpsModal.uncertain)return false;posOpsModal.step='edit';posOpsModal.error='';renderPosOpsModal();return true;}
+async function submitPosCloseShift(){
+  if(posOpsModal.submitting||!session||!session.user||posOpsModal.type!=='closeShift')return false;
+  var validation=posCloseValidation();
+  if(!posOpsModal.rpcArgs&&!validation.valid){posOpsModal.error=validation.error;renderPosOpsModal();return false;}
+  var businessId=String(posContext.businessId||''),shiftId=String((posCheckout.shift&&posCheckout.shift.shift_id)||(posOpsModal.rpcArgs&&posOpsModal.rpcArgs.p_shift_id)||'');
+  if(!shiftId)return false;
+  var args=posOpsModal.rpcArgs||{p_business_id:businessId,p_shift_id:shiftId,p_counted_cash_centavos:validation.cash,
+    p_verified_gcash_centavos:validation.gcash,p_verified_gotyme_centavos:validation.gotyme,p_close_notes:String(posOpsModal.notes||'').trim()||null};
+  posOpsModal.rpcArgs=args;
+  var generation=++posOpsGeneration,userId=String(session.user.id||'');
+  posOpsModal.submitting=true;posOpsModal.uncertain=false;posOpsModal.error='';renderPosOpsModal();
+  try{
+    var rows=rpcRows(await cloud.client.rpc('pos_close_shift',args)),closed=rows[0];
+    if(!posOpsRequestStillCurrent(generation,userId,businessId))return false;
+    if(!closed||!closed.shift_id)throw new Error('Missing close response');
+    posOpsModal.submitting=false;posOpsModal.uncertain=false;posOpsModal.step='result';posOpsModal.result=closed;
+    posCheckout.shift=null;posCheckout.lastReceipt=null;posCheckout.reportMode=closed.is_training?'training':'live';document.body.classList.remove('pos-training');
+    renderPosOpsModal();loadPosCheckoutData().catch(function(){});return true;
+  }catch(error){
+    if(!posOpsRequestStillCurrent(generation,userId,businessId))return false;
+    posOpsModal.submitting=false;posOpsModal.error=posOperationErrorText(error,'shift close');
+    if(posOperationDeterministic(error)){
+      if(['22003','22023','23514'].indexOf(String(error&&error.code||''))>=0){posOpsModal.rpcArgs=null;posOpsModal.step='edit';}
+      renderPosOpsModal();return false;
+    }
+    posOpsModal.uncertain=true;renderPosOpsModal();
+    var verified=await loadPosCheckoutData();
+    if(!posOpsRequestStillCurrent(generation,userId,businessId)||!posOpsModal.open)return false;
+    if(!verified||posCheckout.shiftError){
+      posOpsModal.error='The shift close could not be verified because the status check also failed. Keep these exact amounts and retry after reconnecting.';renderPosOpsModal();return false;
+    }
+    posOpsModal.error=posCheckout.shift&&String(posCheckout.shift.shift_id)===shiftId?
+      'The server still shows this shift open. You may retry the exact same close details.':
+      'The server now shows this shift closed. Use Recover close result to retrieve its official variance.';
+    renderPosOpsModal();return false;
+  }
+}
+function reviewPosVoidSale(){
+  if(posOpsModal.submitting||posOpsModal.type!=='voidSale')return false;
+  var reason=String(posOpsModal.reason||'').trim();
+  if(reason.length<3||reason.length>500){posOpsModal.error='Enter a clear reason between 3 and 500 characters.';renderPosOpsModal();return false;}
+  posOpsModal.reason=reason;posOpsModal.step='confirm';posOpsModal.error='';renderPosOpsModal();return true;
+}
+function backPosVoidSale(){if(posOpsModal.submitting||posOpsModal.uncertain)return false;posOpsModal.step='edit';posOpsModal.error='';renderPosOpsModal();return true;}
+async function submitPosVoidSale(){
+  if(posOpsModal.submitting||!posCanManageOperations()||!session||!session.user||!posOpsModal.sale)return false;
+  var reason=String(posOpsModal.reason||'').trim();
+  if(reason.length<3||reason.length>500){posOpsModal.error='Enter a clear reason between 3 and 500 characters.';renderPosOpsModal();return false;}
+  var businessId=String(posContext.businessId||''),saleId=String(posOpsModal.sale.sale_id||'');
+  var args=posOpsModal.rpcArgs||{p_business_id:businessId,p_sale_id:saleId,p_reason:reason};
+  posOpsModal.rpcArgs=args;
+  var generation=++posOpsGeneration,userId=String(session.user.id||'');
+  posOpsModal.submitting=true;posOpsModal.uncertain=false;posOpsModal.error='';renderPosOpsModal();
+  try{
+    var rows=rpcRows(await cloud.client.rpc('pos_void_sale',args)),voided=rows[0];
+    if(!posOpsRequestStillCurrent(generation,userId,businessId))return false;
+    if(!voided||!voided.sale_id)throw new Error('Missing void response');
+    posOpsModal.submitting=false;posOpsModal.uncertain=false;posOpsModal.step='result';posOpsModal.result=voided;renderPosOpsModal();
+    loadPosCheckoutData().catch(function(){});return true;
+  }catch(error){
+    if(!posOpsRequestStillCurrent(generation,userId,businessId))return false;
+    posOpsModal.submitting=false;posOpsModal.error=posOperationErrorText(error,'void');
+    if(posOperationDeterministic(error)){
+      if(['22003','22023','23514'].indexOf(String(error&&error.code||''))>=0){posOpsModal.rpcArgs=null;posOpsModal.step='edit';}
+      renderPosOpsModal();return false;
+    }
+    posOpsModal.uncertain=true;renderPosOpsModal();
+    var verified=await loadPosCheckoutData();
+    if(!posOpsRequestStillCurrent(generation,userId,businessId)||!posOpsModal.open)return false;
+    if(!verified||posCheckout.shiftError||posCheckout.reportsError){
+      posOpsModal.error='The void could not be verified because the receipt check also failed. Keep this exact reason and retry after reconnecting.';renderPosOpsModal();return false;
+    }
+    var latest=(posCheckout.recent||[]).find(function(row){return String(row.sale_id||'')===saleId;});
+    if(latest&&latest.sale_state==='voided'){
+      posOpsModal.sale=latest;posOpsModal.result=latest;posOpsModal.step='result';posOpsModal.uncertain=false;posOpsModal.error='';renderPosOpsModal();return true;
+    }
+    posOpsModal.error='The server still shows this receipt completed. You may retry the exact same void reason.';renderPosOpsModal();return false;
   }
 }
 function publicationStatusFor(p){
@@ -2246,22 +2729,24 @@ function posPaymentLabel(method){return method==='gcash'?'GCash':(method==='goty
 function posSummaryHtml(){
   var s=posCheckout.summary;
   if(posCheckout.reportsLoading&&!s)return '<div class="pos-summary"><div class="metric"><div class="lbl">Today</div><div class="val">Loading…</div></div></div>';
-  if(!s)return '<div class="note">Today’s sales summary will appear after the first completed sale.</div>';
+  if(!s)return '<div class="note">No '+escapeHtml(posModeName(posCheckout.reportMode==='training'))+' totals are available for this business date.</div>';
   var canView=!!s.can_view_costs;
   return '<div class="pos-summary">'+
-    '<div class="metric"><div class="lbl">Today’s sales</div><div class="val">'+peso(Number(s.total_sales_centavos||0)/100)+'</div></div>'+
-    '<div class="metric"><div class="lbl">Orders</div><div class="val">'+Number(s.sale_count||0)+'</div></div>'+
-    '<div class="metric"><div class="lbl">Items sold</div><div class="val">'+Number(s.items_sold||0)+'</div></div>'+
-    '<div class="metric"><div class="lbl">Cash</div><div class="val">'+peso(Number(s.cash_sales_centavos||0)/100)+'</div></div>'+
-    '<div class="metric"><div class="lbl">GCash</div><div class="val">'+peso(Number(s.gcash_sales_centavos||0)/100)+'</div></div>'+
-    '<div class="metric"><div class="lbl">GoTyme</div><div class="val">'+peso(Number(s.gotyme_sales_centavos||0)/100)+'</div></div>'+
+    '<div class="metric"><div class="lbl">Gross sales</div><div class="val">'+peso(Number(s.gross_sales_centavos||0)/100)+'</div></div>'+
+    '<div class="metric"><div class="lbl">Voids</div><div class="val">'+peso(Number(s.voided_sales_centavos||0)/100)+'</div></div>'+
+    '<div class="metric"><div class="lbl">Net collected</div><div class="val">'+peso(Number(s.net_sales_centavos||0)/100)+'</div></div>'+
+    '<div class="metric"><div class="lbl">Net orders</div><div class="val">'+Number(s.net_sale_count||0)+'</div></div>'+
+    '<div class="metric"><div class="lbl">Net items</div><div class="val">'+Number(s.net_items_sold||0)+'</div></div>'+
+    '<div class="metric"><div class="lbl">Cash net</div><div class="val">'+peso(Number(s.cash_net_centavos||0)/100)+'</div></div>'+
+    '<div class="metric"><div class="lbl">GCash net</div><div class="val">'+peso(Number(s.gcash_net_centavos||0)/100)+'</div></div>'+
+    '<div class="metric"><div class="lbl">GoTyme net</div><div class="val">'+peso(Number(s.gotyme_net_centavos||0)/100)+'</div></div>'+
     '<div class="metric"><div class="lbl">'+(canView?'Est. gross profit':'Cost &amp; profit')+'</div><div class="val'+(canView?' good':'')+'">'+(canView?peso(Number(s.estimated_gross_profit_centavos||0)/100):'Owner only')+'</div></div>'+
   '</div>';
 }
 function posReceiptHtml(){
   var r=posCheckout.lastReceipt;if(!r)return '';
   return '<div class="card pos-receipt"><div class="pos-topbar"><div style="flex:1"><div class="hint" style="margin:0">Sale completed'+(r.is_retry?' · safely recovered':'')+'</div>'+
-    '<div class="pos-receipt-number">Receipt '+escapeHtml(r.receipt_number)+'</div><div class="hint" style="margin:4px 0 0">'+Number(r.units_sold||0)+' item'+(Number(r.units_sold||0)===1?'':'s')+' · '+escapeHtml(posPaymentLabel(r.payment_method))+'</div></div>'+
+    '<div class="pos-receipt-number">Receipt '+escapeHtml(r.receipt_number)+(r.is_training?' <span class="pos-mode-training">Training</span>':'')+'</div><div class="hint" style="margin:4px 0 0">'+Number(r.units_sold||0)+' item'+(Number(r.units_sold||0)===1?'':'s')+' · '+escapeHtml(posPaymentLabel(r.payment_method))+'</div></div>'+
     '<div style="text-align:right"><div class="hint" style="margin:0">Total</div><strong style="font-size:24px">'+peso(Number(r.total_centavos||0)/100)+'</strong>'+
     (r.change_given_centavos==null?'':'<div class="hint" style="margin:2px 0 0">Change '+peso(Number(r.change_given_centavos)/100)+'</div>')+'</div></div>'+
     '<button class="btn" data-act="posNewSale">Start new sale</button></div>';
@@ -2318,11 +2803,13 @@ function posCartHtml(){
     if(posCheckout.paymentMethod==='cash'){var tendered=strictPesoCentavos(posCheckout.cashReceived);confirmation+=' · received '+peso(Number(tendered||0)/100)+' · change '+peso(Math.max(0,Number(tendered||0)-total)/100);}
     actionHtml='<div class="note" style="margin-top:10px"><strong>Confirm payment</strong><br>'+confirmation+'</div><div class="row" style="margin-top:9px"><button class="btn secondary" data-act="cancelPosConfirmation">Back</button><button class="btn" data-act="confirmPosSale">Confirm &amp; complete</button></div>';
   }else actionHtml='<button class="btn pos-checkout" data-act="'+(posCheckout.pending?'confirmPosSale':'reviewPosSale')+'"'+((!validation.valid&&!posCheckout.pending)||posCheckout.submitting?' disabled':'')+'>'+escapeHtml(buttonText)+'</button>';
-  return '<div class="row"><h2 style="margin:0">Current sale</h2><span class="spacer"></span><button class="btn small secondary" data-act="clearPosCart"'+(locked||!lines.length?' disabled':'')+'>Clear</button></div><div class="pos-cart-list">'+rows+'</div>'+changed+
+  var pendingMode=posModeFromPending();
+  var pendingBanner=posCheckout.pending?'<div class="pos-mode-banner"><span class="'+(pendingMode==='training'?'pos-mode-training':'pos-mode-live')+'">'+escapeHtml(posModeName(pendingMode==='training'))+' retry</span><span>Recover this exact frozen sale before opening or changing shifts. Its original shift and mode will not be replaced.</span></div>':'';
+  return pendingBanner+'<div class="row"><h2 style="margin:0">Current sale</h2><span class="spacer"></span><button class="btn small secondary" data-act="clearPosCart"'+(locked||!lines.length?' disabled':'')+'>Clear</button></div><div class="pos-cart-list">'+rows+'</div>'+changed+
     '<div class="pos-total"><span>Total · '+posCartUnits()+' item'+(posCartUnits()===1?'':'s')+'</span><strong>'+peso(total/100)+'</strong></div>'+payment+
     (posCheckout.notice?'<div class="note" style="margin-top:10px">'+escapeHtml(posCheckout.notice)+'</div>':'')+'<div class="pos-error" aria-live="assertive">'+escapeHtml(posCheckout.error)+'</div>'+
     actionHtml+
-    '<p class="hint" style="margin:9px 0 0">Sales and payment totals are tracked now. The automatic shift starts with ₱0 opening cash; drawer variance will be added later.</p>';
+    '<p class="hint" style="margin:9px 0 0">'+(posCheckout.pending?'Only an exact retry is allowed until the server returns this receipt.':('This sale belongs to the locked '+escapeHtml(posModeName(!!(posCheckout.shift&&posCheckout.shift.is_training)))+' shift.'))+'</p>';
 }
 function posRecentHtml(){
   if(posCheckout.reportsLoading&&!posCheckout.recent.length)return '<div class="pos-loading">Loading recent sales…</div>';
@@ -2331,18 +2818,48 @@ function posRecentHtml(){
     var completed=sale.completed_at?new Date(sale.completed_at):null,time=completed?completed.toLocaleTimeString('en-PH',{hour:'numeric',minute:'2-digit'}):'';
     var today=posCheckout.summary&&String(sale.business_date||'')===String(posCheckout.summary.business_date||'');
     var when=(today?'Today':(completed?completed.toLocaleDateString('en-PH',{month:'short',day:'numeric'}):String(sale.business_date||'')))+(time?' · '+time:'');
-    return '<div class="pos-recent-row"><div><strong>'+escapeHtml(sale.receipt_number||'Receipt')+'</strong><div class="pos-recent-meta">'+escapeHtml(when)+' · '+Number(sale.units_sold||0)+' item'+(Number(sale.units_sold||0)===1?'':'s')+' · '+escapeHtml(sale.cashier_display_name||'Cashier')+(sale.can_view_costs?' · est. profit '+peso(Number(sale.estimated_gross_profit_centavos||0)/100):'')+'</div>'+(sale.item_summary?'<div class="pos-item-summary">'+escapeHtml(sale.item_summary)+'</div>':'')+'</div><span class="pos-recent-method pill">'+escapeHtml(posPaymentLabel(sale.payment_method))+'</span><strong>'+peso(Number(sale.total_centavos||0)/100)+'</strong></div>';
+    var voided=sale.sale_state==='voided';
+    var detail=escapeHtml(when)+' · '+Number(sale.units_sold||0)+' item'+(Number(sale.units_sold||0)===1?'':'s')+' · '+escapeHtml(sale.cashier_display_name||'Cashier');
+    if(sale.can_view_costs&&!voided)detail+=' · est. profit '+peso(Number(sale.estimated_gross_profit_centavos||0)/100);
+    var voidDetail=voided?'<div class="pos-recent-meta">Void reason: '+escapeHtml(sale.void_reason||'Not provided')+(sale.voided_by_display_name?' · '+escapeHtml(sale.voided_by_display_name):'')+'</div>':'';
+    var action='<div class="pos-recent-actions"><span class="pos-recent-method pill">'+escapeHtml(posPaymentLabel(sale.payment_method))+'</span><strong>'+peso(Number((voided?sale.gross_total_centavos:sale.net_total_centavos)||0)/100)+'</strong>';
+    if(sale.can_void&&posCanManageOperations())action+='<button class="btn small danger" data-act="openPosVoid" data-id="'+escapeHtml(sale.sale_id)+'">Void</button>';
+    action+='</div>';
+    return '<div class="pos-recent-row'+(voided?' voided':'')+'"><div><strong>'+escapeHtml(sale.receipt_number||'Receipt')+(voided?'<span class="pos-void-label">Void</span>':'')+'</strong><div class="pos-recent-meta">'+detail+'</div>'+voidDetail+(sale.item_summary?'<div class="pos-item-summary">'+escapeHtml(sale.item_summary)+'</div>':'')+'</div>'+action+'</div>';
   }).join('');
+}
+function posShiftBarHtml(){
+  if(posCheckout.pending&&!posCheckout.shift){
+    var pendingTraining=posModeFromPending()==='training';
+    return '<div class="pos-shift-bar"><span class="'+(pendingTraining?'pos-mode-training':'pos-mode-live')+'">'+escapeHtml(posModeName(pendingTraining))+' recovery</span><div class="pos-shift-copy"><strong>Exact sale retry required</strong><span>Do not open another shift. Recover the frozen receipt in Current sale first.</span></div></div>';
+  }
+  var shift=posCheckout.shift;if(!shift)return '';
+  var training=!!shift.is_training,blocked=!!(posCheckout.submitting||posCheckout.pending||posCheckout.confirming||posCartLines().length);
+  var opened=shift.opened_at?new Date(shift.opened_at).toLocaleString('en-PH'):'';
+  return '<div class="pos-shift-bar"><span class="'+(training?'pos-mode-training':'pos-mode-live')+'">'+escapeHtml(posModeName(training))+'</span>'+
+    '<div class="pos-shift-copy"><strong>'+escapeHtml(shift.register_name||'Register')+' · shift open</strong><span>Opened '+escapeHtml(opened)+(shift.opened_by_display_name?' by '+escapeHtml(shift.opened_by_display_name):'')+' · mode locked until close'+(blocked?' · finish or clear Current sale before closing':'')+'</span></div>'+
+    '<button class="btn small secondary" data-act="openPosClose"'+(blocked||!(posCheckout.shiftStatus&&posCheckout.shiftStatus.can_close_shift)?' disabled':'')+'>Close shift</button></div>';
+}
+function posNoShiftGateHtml(){
+  var status=posCheckout.shiftStatus||{},canOpen=!!(status.can_open_live||status.can_open_training);
+  return '<div class="card pos-gate"><div class="pos-gate-icon">🧾</div><h2>No shift is open</h2><p class="hint">Open one shift for this physical register before accepting orders. Its Live or Training mode stays locked until close.</p>'+
+    '<div class="pos-gate-actions">'+(canOpen?'<button class="btn" data-act="openPosShift">Open shift</button>':'<span class="hint">Your account cannot open a shift.</span>')+'</div></div>';
 }
 function renderPos(){
   var root=document.getElementById('posRoot');if(!root)return;
   if(!session){root.innerHTML='<div class="card"><h2>Point of sale</h2><p class="hint">The register needs a cloud connection and a signed-in account. Your costing pages remain available above.</p></div>';return;}
   if((!posContext.loaded||posContext.loading)&&!posContext.businessId){root.innerHTML='<div class="card"><div class="pos-loading">Opening the Scoopies register…</div></div>';return;}
   if(posContext.error||!posContext.businessId){root.innerHTML='<div class="card"><h2>Point of sale</h2><div class="note">'+escapeHtml(posContext.error||'The POS workspace is not ready.')+'</div><button class="btn secondary" data-act="retryPosContext" style="margin-top:10px">Retry POS</button></div>';return;}
-  root.innerHTML='<div class="pos-topbar"><div style="flex:1"><h2>'+escapeHtml(posContext.businessName||'Scoopies')+' register</h2><p class="hint">Fast checkout · today’s totals update after every confirmed receipt</p></div><span class="pos-role">'+escapeHtml(posContext.role||'member')+'</span><button class="btn small secondary" data-act="refreshPos">Refresh</button></div>'+
-    posReceiptHtml()+posSummaryHtml()+'<p class="hint">Estimated gross profit is sales minus published ingredient and packaging costs only. It excludes rent, labor, utilities, and payment or delivery fees.</p>'+(posCheckout.reportsError?'<p class="hint">'+escapeHtml(posCheckout.reportsError)+'</p>':'')+
-    '<div class="pos-workspace"><div class="card pos-catalog-card"><h2 style="margin:0">Menu</h2><div id="posCatalogBody">'+posCatalogHtml()+'</div></div><aside id="posCartPanel" class="card pos-cart-card">'+posCartHtml()+'</aside></div>'+
-    '<div class="card" style="margin-top:14px"><div class="row"><h2 style="margin:0">Recent sales</h2><span class="spacer"></span><span class="hint" style="margin:0">Latest 20</span></div>'+posRecentHtml()+'</div>';
+  var top='<div class="pos-topbar"><div style="flex:1"><h2>'+escapeHtml(posContext.businessName||'Scoopies')+' register</h2><p class="hint">Few-click checkout · database-authoritative shifts and daily totals</p></div><span class="pos-role">'+escapeHtml(posContext.role||'member')+'</span><button class="btn small secondary" data-act="openPosReport">Daily report</button><button class="btn small secondary" data-act="refreshPos">Refresh</button></div>';
+  if(posCheckout.shiftLoading){root.innerHTML=top+'<div class="card"><div class="pos-loading">Checking the active register shift…</div></div>';return;}
+  if(posCheckout.shiftError){root.innerHTML=top+'<div class="card pos-gate"><h2>Shift status unavailable</h2><div class="note">'+escapeHtml(posCheckout.shiftError)+'</div><button class="btn secondary" data-act="refreshPos" style="margin-top:10px">Retry safely</button></div>';return;}
+  var trainingView=posCheckout.reportMode==='training';
+  var modeBanner=trainingView?'<div class="pos-mode-banner"><span class="pos-mode-training">Training</span><strong>Practice only — excluded from Live sales, cash, and reports.</strong></div>':'';
+  var reports=modeBanner+posSummaryHtml()+'<p class="hint">Estimated gross profit is net sales minus published ingredient and packaging costs only. It excludes rent, labor, utilities, and payment or delivery fees.</p>'+(posCheckout.reportsError?'<p class="hint">'+escapeHtml(posCheckout.reportsError)+'</p>':'');
+  var recent='<div class="card" style="margin-top:14px"><div class="row"><h2 style="margin:0">Recent '+escapeHtml(posModeName(trainingView))+' sales</h2><span class="spacer"></span><span class="hint" style="margin:0">Latest 20 only</span></div>'+posRecentHtml()+'</div>';
+  if(!posCheckout.shift&&!posCheckout.pending){root.innerHTML=top+reports+posNoShiftGateHtml()+recent;return;}
+  root.innerHTML=top+posShiftBarHtml()+posReceiptHtml()+reports+
+    '<div class="pos-workspace"><div class="card pos-catalog-card"><h2 style="margin:0">Menu</h2><div id="posCatalogBody">'+posCatalogHtml()+'</div></div><aside id="posCartPanel" class="card pos-cart-card">'+posCartHtml()+'</aside></div>'+recent;
 }
 function renderAll(){ renderPos(); renderIngredients(); renderDraftButton(); renderPackaging(); renderRecipes(); renderProducts(); }
 
@@ -2364,6 +2881,14 @@ document.querySelector('nav').addEventListener('click', function(e){
 
 document.body.addEventListener('input', function(e){
   var el=e.target;
+  if(posOpsModal.open){
+    if(el.id==='posOpeningCash'){posOpsModal.openingCash=el.value||'';posOpsModal.error='';return;}
+    if(el.id==='posCountedCash'){posOpsModal.countedCash=el.value||'';posOpsModal.error='';return;}
+    if(el.id==='posVerifiedGcash'){posOpsModal.verifiedGcash=el.value||'';posOpsModal.error='';return;}
+    if(el.id==='posVerifiedGotyme'){posOpsModal.verifiedGotyme=el.value||'';posOpsModal.error='';return;}
+    if(el.id==='posCloseNotes'){posOpsModal.notes=el.value||'';posOpsModal.error='';return;}
+    if(el.id==='posVoidReason'){posOpsModal.reason=el.value||'';posOpsModal.error='';return;}
+  }
   if(el.id==='posSearch'){
     posCheckout.search=el.value||'';var body=document.getElementById('posCatalogBody');if(body)body.innerHTML=posCatalogHtml();
     var next=document.getElementById('posSearch');if(next){next.focus();try{next.setSelectionRange(next.value.length,next.value.length);}catch(ignore){}}return;
@@ -2441,6 +2966,22 @@ document.body.addEventListener('click', function(e){
   if(['deleteCategory','addIngredient','delIngredient','addPackaging','delPackaging','addRecipe','delRecipe','addLine','delLine','addProduct','delProduct','addPkgLine','delPkgLine','useSuggested','loadExample','clearAll'].indexOf(act)>=0)consumePendingRemoteForCommit(false);
   switch(act){
     case 'refreshPos': openPosRegister(true).catch(function(){});return;
+    case 'openPosShift': openPosShiftModal();return;
+    case 'setPosOpenMode': setPosOpenMode(b.dataset.mode);return;
+    case 'submitPosOpenShift': submitPosOpenShift().catch(function(){});return;
+    case 'openPosClose': openPosCloseModal();return;
+    case 'reviewPosCloseShift': reviewPosCloseShift();return;
+    case 'backPosCloseShift': backPosCloseShift();return;
+    case 'submitPosCloseShift': submitPosCloseShift().catch(function(){});return;
+    case 'openPosVoid': openPosVoidModal(id);return;
+    case 'reviewPosVoidSale': reviewPosVoidSale();return;
+    case 'backPosVoidSale': backPosVoidSale();return;
+    case 'submitPosVoidSale': submitPosVoidSale().catch(function(){});return;
+    case 'openPosReport': openPosReportModal();return;
+    case 'setPosReportMode': setPosReportMode(b.dataset.mode).catch(function(){});return;
+    case 'downloadPosReport': downloadPosReport();return;
+    case 'printPosReport': printPosReport();return;
+    case 'closePosOpsModal': posCloseOpsModal(false);return;
     case 'setPosCategory': posCheckout.category=id||'all';renderPos();return;
     case 'addPosProduct': addPosProduct(id);return;
     case 'posQtyDown': changePosQuantity(id,-1);return;
@@ -2532,6 +3073,7 @@ document.body.addEventListener('click', function(e){
   if(e.target&&e.target.id==='mixtureModal') requestCloseMixtureModal();
   if(e.target&&e.target.id==='draftsModal') closeDraftsModal(false,false);
   if(e.target&&e.target.id==='publishModal') closePublishProductModal();
+  if(e.target&&e.target.id==='posOpsModal') posCloseOpsModal(false);
 });
 
 /* reload from cloud when returning to the tab (picks up partner's edits) */
@@ -2560,15 +3102,16 @@ document.body.addEventListener('focusout', function(){
 /* press Enter in the login form to submit it */
 document.body.addEventListener('keydown', function(e){
   if(e.key==='Escape'){
+    if(posOpsModal.open){e.preventDefault();posCloseOpsModal(false);return;}
     if(publishModalOpen){e.preventDefault();closePublishProductModal();return;}
     if(draftsModalOpen){e.preventDefault();closeDraftsModal(false,false);return;}
     if(mixtureModalOpen){e.preventDefault();requestCloseMixtureModal();return;}
     if(categoryModalOpen){e.preventDefault();closeCategoryModal(false);return;}
   }
-  if(e.key==='Tab'&&(publishModalOpen||draftsModalOpen||mixtureModalOpen||categoryModalOpen)){
-    var selector=publishModalOpen?'#publishModal':(draftsModalOpen?'#draftsModal':(mixtureModalOpen?'#mixtureModal':'#categoryModal'));
+  if(e.key==='Tab'&&(posOpsModal.open||publishModalOpen||draftsModalOpen||mixtureModalOpen||categoryModalOpen)){
+    var selector=posOpsModal.open?'#posOpsModal':(publishModalOpen?'#publishModal':(draftsModalOpen?'#draftsModal':(mixtureModalOpen?'#mixtureModal':'#categoryModal')));
     var modal=document.querySelector(selector+' .modal');
-    var focusable=modal?Array.from(modal.querySelectorAll('button:not([disabled]),input:not([disabled]),select:not([disabled])')):[];
+    var focusable=modal?Array.from(modal.querySelectorAll('button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled])')):[];
     if(focusable.length){var first=focusable[0],last=focusable[focusable.length-1];if(!modal.contains(document.activeElement)){e.preventDefault();(e.shiftKey?last:first).focus();}else if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}}
   }
   if(e.key!=='Enter') return;
