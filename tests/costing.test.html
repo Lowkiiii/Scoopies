@@ -1448,6 +1448,7 @@ document.getElementById('app').addEventListener('load', async () => {
     installPosContext('owner');
     const built = app.buildProductCostingSnapshot(product);
     const publication = publicationFixture(built);
+    const catalog = checkoutCatalogFixture({ product_name: 'Matcha Latte 12oz', size_snapshot: null, selling_price_centavos: built.sellingPriceCentavos });
     const calls = [];
     const before = app.stableSerialize(app.state);
     app.cloud.client = {
@@ -1455,6 +1456,7 @@ document.getElementById('app').addEventListener('load', async () => {
         calls.push({ name, args });
         if (name === 'pos_publish_costing_product') return rpcResult([publication]);
         if (name === 'pos_get_publication_status') return rpcResult([publication]);
+        if (name === 'pos_get_catalog') return rpcResult([catalog]);
         if (name === 'pos_get_my_businesses') return rpcResult([{
           business_id: app.posContext.businessId, business_name: 'Scoopies', member_role: 'owner'
         }]);
@@ -1475,9 +1477,71 @@ document.getElementById('app').addEventListener('load', async () => {
     assert(app.sameDataValue(args.p_costing_snapshot, built.snapshot), 'publish RPC sent a different snapshot than the one reviewed');
     assert(!app.publishModalOpen, 'successful publish did not close the modal');
     assert(app.posContext.publications[product.id], 'successful publish did not update local publication status');
+    assert(app.posCheckout.catalog.length === 1 && app.posCheckout.catalog[0].product_id === catalog.product_id, 'successful publish did not refresh the drink cards');
+    assert(calls.filter(call => call.name === 'pos_get_catalog').length === 1, 'successful publish did not use exactly one catalog-only refresh');
+    assert(!calls.some(call => ['pos_get_shift_status','pos_get_end_of_day_summary','pos_get_recent_sales_v2'].includes(call.name)), 'publishing reloaded shifts or reports instead of only the catalog');
     assert(app.stableSerialize(app.state) === before, 'publishing polluted the costing document with POS state');
     const cardText = app.document.querySelector('[data-entity=product][data-id=matcha-product]').textContent;
     assert(/published/i.test(cardText), 'product card did not show its published status');
+  });
+  test('a post-publish catalog refresh failure keeps the successful publication', async () => {
+    const product = installPublishableProduct();
+    installPosContext('owner');
+    const publication = publicationFixture(app.buildProductCostingSnapshot(product));
+    let publishCalls = 0, catalogCalls = 0;
+    app.cloud.client = { rpc(name) {
+      if (name === 'pos_publish_costing_product') { publishCalls++; return rpcResult([publication]); }
+      if (name === 'pos_get_publication_status') return rpcResult([publication]);
+      if (name === 'pos_get_catalog') { catalogCalls++; return rpcResult(null, { message: 'catalog offline' }); }
+      throw new Error('unexpected RPC ' + name);
+    }};
+    app.openPublishProductModal(product.id);
+    assert(await app.publishProductToPos(), 'successful publication was mislabeled as failed when only card refresh failed');
+    assert(publishCalls === 1 && catalogCalls === 1, 'publication or catalog refresh was retried unexpectedly');
+    assert(!app.publishModalOpen && app.posContext.publications[product.id], 'successful publication state was discarded');
+    assert(/published.*refresh/i.test(app.posCheckout.notice), 'catalog refresh failure did not explain the safe next action');
+  });
+  test('a completed publish cannot mutate a new account modal after delayed catalog refresh', async () => {
+    const product = installPublishableProduct();
+    installPosContext('owner');
+    const publication = publicationFixture(app.buildProductCostingSnapshot(product));
+    const catalog = checkoutCatalogFixture();
+    let resolveCatalog, signalCatalogStarted;
+    const catalogStarted = new Promise(resolve => { signalCatalogStarted = resolve; });
+    app.cloud.client = { rpc(name) {
+      if (name === 'pos_publish_costing_product') return rpcResult([publication]);
+      if (name === 'pos_get_publication_status') return rpcResult([publication]);
+      if (name === 'pos_get_catalog') {
+        signalCatalogStarted();
+        return new Promise(resolve => { resolveCatalog = resolve; });
+      }
+      throw new Error('unexpected RPC ' + name);
+    }};
+    app.openPublishProductModal(product.id);
+    const oldPublish = app.publishProductToPos();
+    await catalogStarted;
+
+    app.publishSubmitting = false;
+    app.closePublishProductModal();
+    app.resetPosContext('', true);
+    app.session = { user: { id: 'new-account', email: 'new@example.test' } };
+    app.currentUserId = 'new-account';
+    app.posContext = {
+      loaded: true, loading: false, businessId: '99999999-9999-4999-8999-999999999999',
+      businessName: 'New workspace', role: 'owner', categories: [], publications: {}, error: ''
+    };
+    assert(app.openPublishProductModal(product.id), 'new account modal fixture did not open');
+    const newSnapshot = app.publishSnapshot;
+    app.publishSubmitting = true;
+    app.publishError = 'new-modal-marker';
+    app.publishNotice = 'new-modal-notice';
+    app.posCheckout.notice = 'new-session-notice';
+
+    resolveCatalog({ data: [catalog], error: null });
+    assert(!(await oldPublish), 'old publish continuation reported success in the new account');
+    assert(app.publishModalOpen && app.publishSnapshot === newSnapshot, 'old publish continuation closed or replaced the new modal');
+    assert(app.publishSubmitting && app.publishError === 'new-modal-marker' && app.publishNotice === 'new-modal-notice', 'old publish continuation mutated the new modal state');
+    assert(app.posCheckout.notice === 'new-session-notice', 'old publish continuation replaced the new account notice');
   });
   test('rapid POS publish confirmation sends only one request', async () => {
     const product = installPublishableProduct();
@@ -1600,7 +1664,9 @@ document.getElementById('app').addEventListener('load', async () => {
     assert(app.posCheckout.catalog[0].active_version_id === catalog.active_version_id, 'catalog version identity was not retained');
     assert(!app.document.getElementById('unsafe-summary'), 'recent item summary was rendered as HTML');
     assert(/<img id="unsafe-summary"> Matcha/.test(app.document.getElementById('posRoot').textContent), 'escaped item summary was not readable');
-    assert(/Owner only/.test(app.document.getElementById('posRoot').textContent), 'cashier cost/profit masking was not explained');
+    const summaryText = app.document.getElementById('posRoot').textContent;
+    assert(/Drinks sold/.test(summaryText), 'simple counter summary omitted the sold-drink count');
+    assert(!/Estimated gross profit|Owner only/.test(summaryText), 'cost or profit leaked into the cashier main screen');
   });
   test('cash input accepts only ordinary pesos with at most two decimals', () => {
     assert(app.strictPesoCentavos('170') === 17000, 'whole pesos were not accepted');
@@ -1704,8 +1770,13 @@ document.getElementById('app').addEventListener('load', async () => {
     const line = app.posCartLines()[0];
     assert(line && line.productVersionId === oldCatalog[0].active_version_id, 'stale rejection silently replaced the selected version');
     assert(line.stale && app.posCheckout.catalogChanged, 'stale line was not marked for review');
+    const reviewCard = app.document.querySelector('.pos-product.needs-review');
+    assert(reviewCard && reviewCard.disabled && /Review/.test(reviewCard.textContent), 'stale selected card did not require explicit review');
+    assert(!app.addPosProduct(updated.product_id), 'direct card action silently accepted the newer version');
+    assert(app.posCartLines()[0].productVersionId === oldCatalog[0].active_version_id, 'blocked card action replaced the frozen cart version');
     assert(app.acceptPosCatalogChanges(), 'explicit catalog review could not be applied');
     assert(app.posCartLines()[0].productVersionId === updated.active_version_id && app.posCartLines()[0].priceCentavos === 18000, 'explicit review did not apply the new published price');
+    assert(/1/.test(app.document.querySelector('.pos-product-count').textContent), 'reviewed card did not restore its selected quantity');
   });
   test('resolved Supabase errors become POS load errors instead of rejecting the loader', async () => {
     installCheckout('owner', []);
@@ -1745,6 +1816,40 @@ document.getElementById('app').addEventListener('load', async () => {
     assert(app.posRestorePending() && app.posCheckout.pending.rpcArgs.p_client_sale_id === recordA.rpcArgs.p_client_sale_id, 'first account restored another account’s pending sale');
     app.localStorage.removeItem(app.POS_PENDING_KEY);app.resetPosCheckout();
   });
+  test('overlapping full load and catalog-only refresh still restore the frozen pending order', async () => {
+    const catalog = installCheckout('owner');
+    app.addPosProduct(catalog[0].product_id);
+    app.addPosProduct(catalog[0].product_id);
+    app.posCheckout.paymentMethod = 'gcash';
+    app.posCheckout.referenceNumber = 'frozen-reference';
+    const pending = app.buildPosPendingSale(app.posCheckoutValidation());
+    app.posSavePending(pending);
+    app.resetPosCheckout();
+
+    let catalogCalls = 0, resolveFullCatalog;
+    const firstCatalog = new Promise(resolve => { resolveFullCatalog = resolve; });
+    app.cloud.client = { rpc(name) {
+      if (name === 'pos_get_catalog') {
+        catalogCalls++;
+        return catalogCalls === 1 ? firstCatalog : rpcResult(catalog);
+      }
+      if (name === 'pos_get_shift_status') return rpcResult([shiftStatusFixture()]);
+      if (name === 'pos_get_end_of_day_summary') return rpcResult([dayReportFixture()]);
+      if (name === 'pos_get_recent_sales_v2') return rpcResult([]);
+      throw new Error('unexpected RPC ' + name);
+    }};
+    const fullLoad = app.loadPosCheckoutData();
+    assert(await app.refreshPosCatalogOnly(), 'catalog-only refresh failed during the overlapping full load');
+    assert(app.posCheckout.pending && app.posCheckout.pending.rpcArgs.p_client_sale_id === pending.rpcArgs.p_client_sale_id, 'winning catalog refresh did not restore the frozen retry');
+    assert(app.posCartLines()[0].quantity === 2 && app.posCheckout.paymentMethod === 'gcash' && app.posCheckout.referenceNumber === 'frozen-reference', 'pending retry restored different cart or payment details');
+    assert(!app.addPosProduct(catalog[0].product_id) && !app.openPosShiftModal(), 'a new sale or shift opened while exact recovery was pending');
+
+    resolveFullCatalog({ data: catalog, error: null });
+    assert(await fullLoad, 'overlapping authoritative load failed after its older catalog returned');
+    assert(/Retry exact order/.test(app.document.getElementById('posRoot').textContent), 'recovered pending order was not visible after the full load completed');
+    assert(app.document.querySelector('.pos-product[disabled]'), 'drink cards were not locked during exact recovery');
+    app.posClearPending();app.resetPosCheckout();
+  });
   test('fresh authentication opens POS but token refresh preserves manual navigation', async () => {
     await app.handleAuth(null);
     app.activateAppTab('ingredients', false);
@@ -1775,16 +1880,120 @@ document.getElementById('app').addEventListener('load', async () => {
       app.cloudLoad = originalCloudLoad;app.cloudSave = originalCloudSave;
     }
   });
-  test('no-shift state gates checkout and opens an explicit shift modal', () => {
+  test('authoritative no-shift loading leaves the drink cards visible instead of auto-opening a modal', async () => {
+    const catalog = installCheckout('owner');
+    app.cloud.client = { rpc(name) {
+      if (name === 'pos_get_catalog') return rpcResult(catalog);
+      if (name === 'pos_get_shift_status') return rpcResult([shiftStatusFixture({
+        has_open_shift: false, shift_id: null, opening_cash_centavos: null, opened_at: null,
+        can_open_live: true, can_open_training: true, can_close_shift: false
+      })]);
+      if (name === 'pos_get_end_of_day_summary') return rpcResult([dayReportFixture()]);
+      if (name === 'pos_get_recent_sales_v2') return rpcResult([]);
+      throw new Error('unexpected RPC ' + name);
+    }};
+    assert(await app.loadPosCheckoutData(), 'no-shift register data did not load');
+    assert(!app.posOpsModal.open, 'no-shift load covered the menu with an automatic modal');
+    assert(app.document.querySelector('.pos-workspace .pos-product'), 'no-shift load did not leave a visible drink card');
+  });
+  test('no-shift state shows drink cards, counts taps, and gates payment behind Start selling', async () => {
     installNoShift('owner');
     const root = app.document.getElementById('posRoot');
-    assert(/No shift is open/.test(root.textContent), 'no-shift gate was not shown');
-    assert(!root.querySelector('.pos-workspace'), 'checkout workspace was exposed without an open shift');
+    assert(/Choose drinks now/.test(root.textContent), 'simple pre-shift guidance was not shown');
+    assert(root.querySelector('.pos-workspace'), 'drink cards were hidden before opening a shift');
+    assert(!root.querySelector('#posSearch'), 'search remained on the simple counter screen');
+    assert(!app.posOpsModal.open, 'loading an idle register opened a modal over the drink cards');
+    assert(!root.querySelector('.pos-quick-cash button'), 'an empty order offered an Exact zero cash shortcut');
+    click(root.querySelector('[data-act=addPosProduct]'));
+    click(app.document.querySelector('[data-act=addPosProduct]'));
+    assert(app.posCartLines()[0].quantity === 2, 'two card taps did not count two drinks');
+    assert(app.posCartTotalCentavos() === 34000, 'two card taps produced the wrong order total');
+    const card = app.document.querySelector('.pos-product');
+    assert(!card.hasAttribute('aria-pressed') && /2 in current order/.test(card.getAttribute('aria-label')), 'incremental drink card exposed incorrect toggle semantics');
+    assert(/×2/.test(app.document.querySelector('.pos-product-count').textContent), 'selected quantity was not visible on the drink card');
+    const validation = app.posCheckoutValidation();
+    assert(!validation.valid && /shift/i.test(validation.error), 'payment became valid without an authoritative shift');
+    let checkoutCalls = 0;
+    app.cloud.client = { rpc() { checkoutCalls++;return rpcResult([]); } };
+    assert(!app.reviewPosSale(), 'direct review bypassed the required authoritative shift');
+    assert(!(await app.submitPosSale()), 'direct submit bypassed the required authoritative shift');
+    assert(checkoutCalls === 0, 'pre-shift review or submit reached the sale RPC');
     assert(root.querySelector('[data-act=openPosShift]'), 'open-shift action was missing');
-    assert(app.openPosShiftModal(), 'owner could not open the shift modal');
+    click(app.document.querySelector('#posCartPanel [data-act=openPosShift]'));
+    assert(app.posOpsModal.open, 'Start selling did not open the shift modal');
     assert(app.document.querySelector('#posOpsModal [data-mode=live]'), 'Live choice was missing');
     assert(app.document.querySelector('#posOpsModal [data-mode=training]'), 'owner Training choice was missing');
+    assert(app.posCartLines()[0].quantity === 2, 'opening the shift modal cleared the prebuilt order');
     app.posCloseOpsModal(true);
+  });
+  test('drink-card quantities stay synchronized with cart controls', () => {
+    installCheckout('owner');
+    click(app.document.querySelector('[data-act=addPosProduct]'));
+    click(app.document.querySelector('[data-act=addPosProduct]'));
+    assert(app.document.querySelector('.pos-product-count').textContent.includes('2'), 'card badge did not show two selected drinks');
+    click(app.document.querySelector('[data-act=posQtyDown]'));
+    assert(app.posCartLines()[0].quantity === 1, 'cart minus did not reduce the drink count');
+    assert(app.document.querySelector('.pos-product-count').textContent.includes('1'), 'card badge did not follow cart minus');
+    click(app.document.querySelector('[data-act=removePosLine]'));
+    assert(!app.document.querySelector('.pos-product-count'), 'removing the cart line left a selected card badge');
+    click(app.document.querySelector('[data-act=addPosProduct]'));
+    const originalConfirm = app.confirm;
+    app.confirm = () => true;
+    try { click(app.document.querySelector('[data-act=clearPosCart]')); }
+    finally { app.confirm = originalConfirm; }
+    assert(!app.posCartLines().length && !app.document.querySelector('.pos-product-count'), 'clearing the order did not reset card selection');
+  });
+  test('mobile order shortcut mirrors the cart and focuses Current order', () => {
+    installCheckout('owner');
+    app.activateAppTab('pos', false);
+    assert(!app.document.querySelector('.pos-mobile-order-bar'), 'empty cart rendered a mobile order shortcut');
+    click(app.document.querySelector('[data-act=addPosProduct]'));
+    click(app.document.querySelector('[data-act=addPosProduct]'));
+    let shortcut = app.document.querySelector('[data-act=focusPosCart]');
+    assert(shortcut && /2 drinks/.test(shortcut.textContent) && /340\.00/.test(shortcut.textContent), 'mobile shortcut did not mirror two drinks and their total');
+    const panel = app.document.getElementById('posCartPanel');
+    let scrollOptions = null;
+    panel.scrollIntoView = options => { scrollOptions = options; };
+    click(shortcut);
+    assert(scrollOptions && scrollOptions.block === 'start', 'mobile shortcut did not scroll to Current order');
+    assert(app.document.activeElement === panel, 'mobile shortcut did not focus Current order');
+    click(app.document.querySelector('[data-act=posQtyDown]'));
+    shortcut = app.document.querySelector('[data-act=focusPosCart]');
+    assert(/1 drink/.test(shortcut.textContent) && /170\.00/.test(shortcut.textContent), 'mobile shortcut did not update after cart minus');
+    click(app.document.querySelector('[data-act=removePosLine]'));
+    assert(!app.document.querySelector('.pos-mobile-order-bar'), 'mobile shortcut remained after the cart became empty');
+  });
+  test('all drinks display as cards and categories remain optional filters', () => {
+    const first = checkoutCatalogFixture();
+    const second = checkoutCatalogFixture({
+      product_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      active_version_id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+      category_id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', category_name: 'Cloud Series',
+      product_name: 'Sea Salt Matcha', selling_price_centavos: 18000
+    });
+    installCheckout('owner', [first, second]);
+    let cards = app.document.querySelectorAll('.pos-product');
+    assert(cards.length === 2 && !app.document.getElementById('posSearch'), 'all drink cards were not visible without search');
+    click(app.document.querySelector('[data-act=setPosCategory][data-id="cccccccc-cccc-4ccc-8ccc-cccccccccccc"]'));
+    cards = app.document.querySelectorAll('.pos-product');
+    assert(cards.length === 1 && /Sea Salt Matcha/.test(cards[0].textContent), 'category button did not narrow the visible cards');
+    click(app.document.querySelector('[data-act=setPosCategory][data-id="all"]'));
+    assert(app.document.querySelectorAll('.pos-product').length === 2, 'All did not restore every drink card');
+  });
+  test('empty POS gives owners a setup path but never gives cashiers publishing controls', () => {
+    installPublishableProduct();
+    installCheckout('owner', []);
+    let root = app.document.getElementById('posRoot');
+    assert(app.state.products.length === 1 && !root.querySelector('.pos-product'), 'an unpublished Pricing product leaked onto the POS cards');
+    assert(/No drinks are on the POS yet/.test(root.textContent), 'empty menu was not explained');
+    const setup = root.querySelector('[data-act=managePosMenu]');
+    assert(setup, 'owner did not receive Add drinks to POS');
+    click(setup);
+    assert(app.document.querySelector('section.active').id === 'products', 'Add drinks did not open Pricing');
+    installCheckout('cashier', []);
+    root = app.document.getElementById('posRoot');
+    assert(!root.querySelector('[data-act=managePosMenu]'), 'cashier received a drink publishing control');
+    assert(/Ask an owner or manager/.test(root.textContent), 'cashier empty menu lacked setup guidance');
   });
   test('cashier can open Live but never sees or selects Training', () => {
     installNoShift('cashier', { can_open_training: false });
@@ -1796,6 +2005,12 @@ document.getElementById('app').addEventListener('load', async () => {
   });
   test('opening a Live shift sends exact starting cash and reloads authoritative status', async () => {
     installNoShift('cashier', { can_open_training: false });
+    const catalog = app.posCheckout.catalog.slice();
+    app.addPosProduct(catalog[0].product_id);
+    app.addPosProduct(catalog[0].product_id);
+    app.posCheckout.paymentMethod = 'gcash';
+    app.posCheckout.referenceNumber = 'before-open';
+    app.renderPos();
     app.openPosShiftModal();
     input(app.document.getElementById('posOpeningCash'), '123.45');
     const calls = [];
@@ -1806,7 +2021,7 @@ document.getElementById('app').addEventListener('load', async () => {
         register_name: 'Main register', is_training: false, opening_cash_centavos: 12345,
         opened_at: '2026-09-28T01:00:00Z', opened_by_display_name: 'Cashier', is_retry: false
       }]);
-      if (name === 'pos_get_catalog') return rpcResult([]);
+      if (name === 'pos_get_catalog') return rpcResult(catalog);
       if (name === 'pos_get_shift_status') return rpcResult([shiftStatusFixture({ opening_cash_centavos: 12345, opened_by_display_name: 'Cashier', can_view_costs: false, can_void_sales: false })]);
       if (name === 'pos_get_end_of_day_summary') return rpcResult([dayReportFixture({ can_view_costs: false, estimated_cost_centavos: null, estimated_gross_profit_centavos: null })]);
       if (name === 'pos_get_recent_sales_v2') return rpcResult([]);
@@ -1816,6 +2031,11 @@ document.getElementById('app').addEventListener('load', async () => {
     const call = calls.find(entry => entry.name === 'pos_open_shift');
     assert(call.args.p_is_training === false && call.args.p_opening_cash_centavos === 12345, 'opening cash or mode was not sent as exact server input');
     assert(app.posCheckout.shift && !app.posCheckout.shift.is_training, 'authoritative open shift was not loaded');
+    const preserved = app.posCartLines()[0];
+    assert(preserved && preserved.quantity === 2 && preserved.productId === catalog[0].product_id && preserved.productVersionId === catalog[0].active_version_id, 'authoritative shift refresh did not preserve the prebuilt order');
+    assert(app.posCartTotalCentavos() === 34000 && !preserved.stale && !app.posCheckout.catalogChanged, 'shift refresh changed or invalidated an unchanged prebuilt order');
+    assert(app.posCheckout.paymentMethod === 'gcash' && app.posCheckout.referenceNumber === 'before-open', 'shift refresh discarded the selected payment details');
+    assert(app.document.querySelector('[data-act=setPosPayment][data-method=gcash].active'), 'preserved GCash payment was not visible after opening the shift');
   });
   test('Training is persistent and every new sale freezes shift ID and mode', () => {
     const catalog = installCheckout('owner');
@@ -2065,6 +2285,19 @@ document.getElementById('app').addEventListener('load', async () => {
     ['+SUM(1,1)','-10+20','@IMPORTXML("x")'].forEach(value => assert(app.posCsvCell(value).startsWith('"\''), 'formula prefix was not neutralized: ' + value));
     assert(!csv.includes('malicious receipt row') && !csv.includes('Receipt,Completed'), 'latest-20 receipts were misrepresented as a complete EOD export');
     assert(csv.includes('Gross sales (PHP)') && csv.includes('Net collected (PHP)'), 'aggregate report fields were missing from CSV');
+  });
+  test('late catalog-only refresh cannot cross an account or workspace change', async () => {
+    const original = installCheckout('owner');
+    let resolveCatalog;
+    app.cloud.client = { rpc(name) {
+      if (name !== 'pos_get_catalog') throw new Error('unexpected RPC ' + name);
+      return new Promise(resolve => { resolveCatalog = resolve; });
+    }};
+    const refreshing = app.refreshPosCatalogOnly();
+    app.resetPosContext('', true);
+    resolveCatalog({ data: [checkoutCatalogFixture({ product_id: 'ffffffff-ffff-4fff-8fff-ffffffffffff' })], error: null });
+    assert(!(await refreshing), 'late catalog response reported success in a new workspace context');
+    assert(app.posCheckout.catalog[0].product_id === original[0].product_id, 'late catalog response overwrote the prior scoped catalog');
   });
   test('stale shift-open response cannot cross an account or workspace change', async () => {
     installNoShift('owner');
