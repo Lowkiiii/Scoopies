@@ -137,6 +137,13 @@
   .pos-topbar{display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:12px}
   .pos-topbar h2{margin:0}
   .pos-role{display:inline-flex;align-items:center;min-height:28px;padding:4px 10px;border-radius:999px;background:#f3eee8;border:1px solid var(--line);color:var(--brown2);font-size:12px;font-weight:700;text-transform:capitalize}
+  .pos-sync{display:inline-flex;align-items:center;gap:6px;min-height:28px;padding:4px 9px;border-radius:999px;border:1px solid #bfe3c1;background:#e9f6ea;color:#285e2c;font-size:12px;font-weight:750;white-space:nowrap}
+  .pos-sync::before{content:'';width:7px;height:7px;border-radius:50%;background:currentColor;flex:0 0 auto}
+  .pos-sync.syncing,.pos-sync.warn{border-color:#efd49b;background:#fff4dd;color:#8a5a00}
+  .pos-sync.syncing::before{animation:pos-sync-pulse 1s ease-in-out infinite}
+  .pos-sync.bad{border-color:#f0c8c2;background:#fdecea;color:var(--bad)}
+  @keyframes pos-sync-pulse{50%{opacity:.25}}
+  @media(prefers-reduced-motion:reduce){.pos-sync.syncing::before{animation:none}}
   .pos-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:14px}
   .pos-summary .metric{background:#fff}
   .pos-workspace{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(310px,.8fr);gap:14px;align-items:start}
@@ -541,7 +548,10 @@ var posContext = { loaded:false, loading:false, businessId:'', businessName:'', 
 var posLoadGeneration = 0, posStatusGeneration = 0;
 var publishModalOpen = false, publishProductId = '', publishSnapshot = null, publishSubmitting = false, publishError = '', publishNotice = '';
 var POS_PENDING_KEY = TEST_MODE ? 'scoopies_pos_pending_test' : 'scoopies_pos_pending_v1';
+var POS_CATALOG_CACHE_KEY = TEST_MODE ? 'scoopies_pos_catalog_cache_test' : 'scoopies_pos_catalog_cache_v1';
+var POS_CATALOG_CACHE_MAX_AGE_MS = 30*60*1000, POS_SILENT_REFRESH_MIN_AGE_MS = 30*1000;
 var posCheckoutLoadGeneration = 0, posCheckoutSubmitGeneration = 0, posCatalogGeneration = 0;
+var posSilentRefreshPromise = null, posLastSilentRefreshAttemptAt = 0;
 var posOpsGeneration = 0, posOpsModalReturnFocus = null;
 var posOpsModal = freshPosOpsModal();
 var posCheckout = {
@@ -549,7 +559,7 @@ var posCheckout = {
   paymentMethod:'cash', cashReceived:'', referenceNumber:'', confirming:false, submitting:false, error:'', notice:'', pending:null,
   lastReceipt:null, summary:null, recent:[], reportsLoading:false, reportsError:'',
   shift:null, shiftStatus:null, shiftLoading:false, shiftError:'', reportMode:'live', reportDate:'', dailyReport:null,
-  reportLoadedMode:'',reportLoadedDate:''
+  reportLoadedMode:'',reportLoadedDate:'',loaded:false,refreshing:false,refreshError:'',checkoutRefreshRequired:false,lastUpdatedAt:0,catalogFromCache:false,catalogVerifiedGeneration:0
 };
 
 function blank(){ return {schemaVersion:3, ingredientCategories:[], ingredients:[], mixtureDrafts:[], packaging:[], recipes:[], products:[]}; }
@@ -751,7 +761,7 @@ function initClient(url, key){
   if(!url || !key){ return false; }
   cloud.client = window.supabase.createClient(url, key, { auth:{ persistSession:true, autoRefreshToken:true } });
   cloud.url = url; cloud.key = key;
-  cloud.client.auth.onAuthStateChange(function(_event, sess){ handleAuth(sess); });
+  cloud.client.auth.onAuthStateChange(function(event, sess){ handleAuth(sess,event); });
   return true;
 }
 async function cloudLoad(){
@@ -766,7 +776,7 @@ async function cloudSave(s){
 }
 function hasData(s){ return !!(s && ((s.ingredientCategories&&s.ingredientCategories.length)||(s.ingredients&&s.ingredients.length)||(s.mixtureDrafts&&s.mixtureDrafts.length)||(s.packaging&&s.packaging.length)||(s.recipes&&s.recipes.length)||(s.products&&s.products.length))); }
 function appIsEditing(){
-  if(categoryModalOpen||mixtureModalOpen||draftsModalOpen||publishModalOpen) return true;
+  if(categoryModalOpen||mixtureModalOpen||draftsModalOpen||publishModalOpen||(posOpsModal&&posOpsModal.open)) return true;
   var ae=document.activeElement;
   return !!(ae && (ae.tagName==='INPUT'||ae.tagName==='SELECT'||ae.tagName==='TEXTAREA') && ae.closest && ae.closest('.wrap'));
 }
@@ -908,9 +918,17 @@ function renderGate(){
   authMsg('');
 }
 /* called whenever the user logs in or out */
-async function handleAuth(sess){
-  var firstSignIn=!!(sess&&sess.user&&String(sess.user.id||'')!==String(currentUserId||''));
+async function handleAuth(sess,event){
+  var nextUserId=String(sess&&sess.user&&sess.user.id||'');
+  var sameSignedInUser=!!(nextUserId&&currentUserId&&nextUserId===String(currentUserId));
+  var firstSignIn=!!(nextUserId&&nextUserId!==String(currentUserId||''));
   session = sess || null;
+  if(sameSignedInUser){
+    offlineMode=false;showGate(false);cloud.connected=true;
+    try{cloud.client.realtime.setAuth(session.access_token);}catch(e){}
+    renderAccount();
+    return true;
+  }
   if(session){
     offlineMode = false; showGate(false); cloud.connected = true;
     if(firstSignIn){
@@ -956,7 +974,7 @@ async function handleAuth(sess){
     else if(!posContext.loaded&&!posContext.loading)await loadPosContext();
     if(posContext.businessId&&!posCheckout.catalogLoading&&!posCheckout.catalog.length)loadPosCheckoutData().catch(function(){});
   } else {
-    cloud.connected = false; currentUserId = null; costingCloudReady=false;costingCloudLoading=false;costingLoadGeneration++;
+    cloud.connected = false;if(currentUserId)posClearCatalogCache();currentUserId = null; costingCloudReady=false;costingCloudLoading=false;costingLoadGeneration++;
     if(publishModalOpen){publishSubmitting=false;closePublishProductModal();}
     resetPosContext('');
     if(cloud.client && !offlineMode){ showGate(true); setStatus('Sign in to sync','bad'); }
@@ -1213,7 +1231,7 @@ function freshPosCheckout(){
     paymentMethod:'cash',cashReceived:'',referenceNumber:'',confirming:false,submitting:false,error:'',notice:'',pending:null,
     lastReceipt:null,summary:null,recent:[],reportsLoading:false,reportsError:'',
     shift:null,shiftStatus:null,shiftLoading:false,shiftError:'',reportMode:'live',reportDate:'',dailyReport:null,
-    reportLoadedMode:'',reportLoadedDate:''};
+    reportLoadedMode:'',reportLoadedDate:'',loaded:false,refreshing:false,refreshError:'',checkoutRefreshRequired:false,lastUpdatedAt:0,catalogFromCache:false,catalogVerifiedGeneration:0};
 }
 function clearPosReportData(){
   posCheckout.summary=null;posCheckout.dailyReport=null;posCheckout.recent=[];
@@ -1224,7 +1242,8 @@ function setPosReportsLoading(loading){
   document.body.classList.toggle('pos-reports-loading',!!loading);
 }
 function syncOpenPosReportModal(){
-  if(!posOpsModal.open||posOpsModal.type!=='report')return false;
+  if(!posOpsModal.open)return false;
+  if(posOpsModal.type!=='report'){renderPosOpsModal();return true;}
   posOpsModal.result=posCheckout.dailyReport;
   if(posCheckout.reportsLoading)posOpsModal.notice=posOpsModal.notice||'Refreshing report…';
   else posOpsModal.notice=posCheckout.reportsError||'';
@@ -1236,6 +1255,7 @@ function freshPosOpsModal(){
 }
 function resetPosCheckout(){
   posCheckoutLoadGeneration++;posCheckoutSubmitGeneration++;posCatalogGeneration++;posOpsGeneration++;
+  posSilentRefreshPromise=null;posLastSilentRefreshAttemptAt=0;
   posCheckout=freshPosCheckout();
   posOpsModal=freshPosOpsModal();
   document.body.classList.remove('pos-training');
@@ -1273,6 +1293,30 @@ function posCatalogRequestStillCurrent(generation,userId,businessId){
   return generation===posCatalogGeneration&&!!session&&!!session.user&&
     String(session.user.id||'')===String(userId||'')&&String(posContext.businessId||'')===String(businessId||'');
 }
+function posCatalogCacheScope(){
+  if(!session||!session.user||!posContext.businessId)return '';
+  return String(cloud.url||activeUrl()||'')+'|'+String(session.user.id||'')+'|'+String(posContext.businessId||'');
+}
+function posHydrateCatalogCache(){
+  var scope=posCatalogCacheScope();if(!scope||posCheckout.loaded||posCheckout.catalogFromCache)return false;
+  try{
+    var record=JSON.parse(sessionStorage.getItem(POS_CATALOG_CACHE_KEY));
+    if(!record||record.schemaVersion!==1||record.scope!==scope||!Array.isArray(record.catalog)||
+      !(Number(record.savedAt)>0)||Date.now()-Number(record.savedAt)>POS_CATALOG_CACHE_MAX_AGE_MS){return false;}
+    posCheckout.catalog=snapshot(record.catalog);posCheckout.catalogFromCache=true;
+    posCheckout.catalogLoading=false;posCheckout.catalogError='';normalizePosCategory();
+    if(!posRestorePending())markPosCartAgainstCatalog();
+    return true;
+  }catch(error){return false;}
+}
+function posRememberCatalogCache(){
+  var scope=posCatalogCacheScope();if(!scope||!Array.isArray(posCheckout.catalog))return false;
+  try{
+    sessionStorage.setItem(POS_CATALOG_CACHE_KEY,JSON.stringify({schemaVersion:1,scope:scope,savedAt:Date.now(),catalog:posCheckout.catalog}));
+    return true;
+  }catch(error){return false;}
+}
+function posClearCatalogCache(){try{sessionStorage.removeItem(POS_CATALOG_CACHE_KEY);}catch(error){}}
 function normalizePosCategory(){
   if(posCheckout.category==='all')return false;
   var exists=(posCheckout.catalog||[]).some(function(item){
@@ -1340,7 +1384,10 @@ function markPosCartAgainstCatalog(){
   posCartLines().forEach(function(line){
     var latest=posLatestCatalogProduct(line.productId);
     line.latest=latest;
-    line.stale=!latest||String(latest.active_version_id||'')!==String(line.productVersionId||'');
+    line.stale=!latest||String(latest.active_version_id||'')!==String(line.productVersionId||'')||
+      Number(latest.selling_price_centavos||0)!==Number(line.priceCentavos||0)||
+      String(latest.product_name||'Product')!==String(line.name||'Product')||
+      String(latest.size_snapshot||'')!==String(line.size||'');
     if(line.stale)changed=true;
   });
   if(changed){posCheckout.catalogChanged=true;posCheckout.confirming=false;}
@@ -1469,12 +1516,24 @@ function posRpcErrorText(error){
   if(error&&String(error.code||'')==='42501')return 'Your account no longer has access to this POS workspace.';
   return 'Could not load the POS. Check your connection and try again.';
 }
-async function loadPosCheckoutData(){
+function posHandleAccessDenied(error){
+  if(!error||String(error.code||'')!=='42501')return false;
+  setPosReportsLoading(false);posClearCatalogCache();
+  resetPosContext(posRpcErrorText(error));
+  renderProducts();renderPos();return true;
+}
+async function loadPosCheckoutData(options){
+  options=options||{};
   if(!cloud.client||!session||!session.user||!posContext.businessId){renderPos();return false;}
   if(posCheckout.submitting||posOpsModal.submitting)return false;
+  posLastSilentRefreshAttemptAt=Date.now();
+  var hydrated=posHydrateCatalogCache(),background=!!options.background||hydrated;
   var generation=++posCheckoutLoadGeneration,catalogGeneration=++posCatalogGeneration,userId=String(session.user.id||''),businessId=String(posContext.businessId||'');
-  posCheckout.catalogLoading=true;posCheckout.shiftLoading=true;setPosReportsLoading(true);
-  posCheckout.catalogError='';posCheckout.shiftError='';posCheckout.reportsError='';renderPos();
+  if(background){posCheckout.refreshing=true;posCheckout.refreshError='';}
+  else{posCheckout.catalogLoading=true;posCheckout.shiftLoading=true;}
+  setPosReportsLoading(true);
+  posCheckout.catalogError='';posCheckout.shiftError='';posCheckout.reportsError='';
+  if(background)renderPosPreservingInteraction();else renderPos();
   syncOpenPosReportModal();
   function request(name,args){
     try{return Promise.resolve(cloud.client.rpc(name,args)).then(function(result){return {rows:rpcRows(result),error:null};}).catch(function(error){return {rows:[],error:error};});}
@@ -1486,18 +1545,27 @@ async function loadPosCheckoutData(){
   ]);
   if(!posLoadRequestStillCurrent(generation,userId,businessId))return false;
   var catalogResult=initial[0],shiftResult=initial[1];
-  posCheckout.shiftLoading=false;
+  if(posHandleAccessDenied(catalogResult.error)||posHandleAccessDenied(shiftResult.error))return false;
+  if(!background)posCheckout.shiftLoading=false;
   if(catalogGeneration===posCatalogGeneration){
     posCheckout.catalogLoading=false;
-    if(catalogResult.error)posCheckout.catalogError=posRpcErrorText(catalogResult.error);
+    if(catalogResult.error){if(!background)posCheckout.catalogError=posRpcErrorText(catalogResult.error);}
     else{
       posCheckout.catalog=catalogResult.rows||[];posCheckout.catalogError='';normalizePosCategory();
-      markPosCartAgainstCatalog();posRestorePending();
+      posCheckout.catalogFromCache=false;posCheckout.catalogVerifiedGeneration=catalogGeneration;
+      markPosCartAgainstCatalog();posRestorePending();posRememberCatalogCache();
     }
   }
   if(shiftResult.error||!shiftResult.rows.length){
+    if(background){
+      posCheckout.refreshing=false;posCheckout.checkoutRefreshRequired=true;
+      posCheckout.refreshError='Could not verify the register. Your current screen is preserved; retry before confirming payment.';
+      setPosReportsLoading(false);posCheckout.reportsError='Sales totals were not refreshed.';
+      renderPosPreservingInteraction();syncOpenPosReportModal();return false;
+    }
     posCheckout.shift=null;posCheckout.shiftStatus=null;
     clearPosReportData();
+    posCheckout.loaded=false;posCheckout.checkoutRefreshRequired=true;
     posCheckout.shiftError=shiftResult.error?posRpcErrorText(shiftResult.error):'No active register was found. Ask an owner to check the POS setup.';
     setPosReportsLoading(false);posCheckout.reportsError='Shift and report totals were not loaded.';
     document.body.classList.remove('pos-training');renderPos();syncOpenPosReportModal();return false;
@@ -1505,13 +1573,14 @@ async function loadPosCheckoutData(){
   var previousShift=posCheckout.shift;
   posCheckout.shiftStatus=shiftResult.rows[0];
   posCheckout.shift=posCheckout.shiftStatus.has_open_shift&&posCheckout.shiftStatus.shift_id?posCheckout.shiftStatus:null;
+  posCheckout.loaded=true;posCheckout.shiftLoading=false;posCheckout.shiftError='';
   if(!posCheckout.pending&&posCheckout.lastReceipt){
     if(!posCheckout.shift||(posCheckout.lastReceipt.shift_id&&String(posCheckout.lastReceipt.shift_id)!==String(posCheckout.shift.shift_id)))posCheckout.lastReceipt=null;
     else if(previousShift&&String(previousShift.shift_id)!==String(posCheckout.shift.shift_id))posCheckout.lastReceipt=null;
   }
   if(posCheckout.shift)posCheckout.reportMode=posCheckout.shift.is_training?'training':'live';
   else if(posCheckout.pending)posCheckout.reportMode=posModeFromPending();
-  else if(posContext.role==='cashier')posCheckout.reportMode='live';
+  else if(!posStatusCanManage(posCheckout.shiftStatus))posCheckout.reportMode='live';
   document.body.classList.toggle('pos-training',!!(posCheckout.shift&&posCheckout.shift.is_training));
   var isTraining=posCheckout.reportMode==='training';
   var requestedMode=isTraining?'training':'live',requestedDate=String(posCheckout.reportDate||'');
@@ -1525,6 +1594,7 @@ async function loadPosCheckoutData(){
   if(!posLoadRequestStillCurrent(generation,userId,businessId))return false;
   setPosReportsLoading(false);
   var summaryResult=reports[0],recentResult=reports[1];
+  if(posHandleAccessDenied(summaryResult.error)||posHandleAccessDenied(recentResult.error))return false;
   if(summaryResult.error||recentResult.error)posCheckout.reportsError='The '+(isTraining?'training':'live')+' totals could not be refreshed.';
   if(!summaryResult.error){
     posCheckout.summary=summaryResult.rows[0]||null;
@@ -1534,11 +1604,43 @@ async function loadPosCheckoutData(){
       posCheckout.reportLoadedDate=posCheckout.reportDate;
     }else posCheckout.reportLoadedDate=requestedDate;
     posCheckout.reportLoadedMode=requestedMode;
-  }else{posCheckout.summary=null;posCheckout.dailyReport=null;posCheckout.reportLoadedMode='';posCheckout.reportLoadedDate='';}
+  }else if(!background){posCheckout.summary=null;posCheckout.dailyReport=null;posCheckout.reportLoadedMode='';posCheckout.reportLoadedDate='';}
   if(!recentResult.error)posCheckout.recent=recentResult.rows||[];
-  else posCheckout.recent=[];
-  renderPos();syncOpenPosReportModal();
-  return !catalogResult.error&&!shiftResult.error;
+  else if(!background)posCheckout.recent=[];
+  var catalogCurrent=catalogGeneration===posCatalogGeneration?!catalogResult.error:posCheckout.catalogVerifiedGeneration===posCatalogGeneration;
+  posCheckout.refreshing=false;posCheckout.checkoutRefreshRequired=!catalogCurrent;
+  if(!catalogCurrent)posCheckout.refreshError='Could not refresh the menu. Existing cards are preserved; retry before confirming payment.';
+  else if(summaryResult.error||recentResult.error)posCheckout.refreshError='Checkout is ready, but sales totals could not refresh.';
+  else posCheckout.refreshError='';
+  if(catalogCurrent)posCheckout.lastUpdatedAt=Date.now();
+  if(background)renderPosPreservingInteraction();else renderPos();
+  syncOpenPosReportModal();
+  return catalogCurrent&&!shiftResult.error;
+}
+function refreshPosSilently(force){
+  if(!cloud.client||!session||!session.user||!posContext.businessId)return Promise.resolve(false);
+  if(posCheckout.submitting||posOpsModal.submitting)return Promise.resolve(false);
+  if(posSilentRefreshPromise)return posSilentRefreshPromise;
+  var now=Date.now();
+  if(!force&&posLastSilentRefreshAttemptAt&&now-posLastSilentRefreshAttemptAt<POS_SILENT_REFRESH_MIN_AGE_MS)return Promise.resolve(true);
+  posLastSilentRefreshAttemptAt=now;
+  var warm=!!(posCheckout.loaded||posCheckout.catalogFromCache||posCheckout.catalog.length);
+  var task=loadPosCheckoutData({background:warm});
+  posSilentRefreshPromise=task;
+  return task.finally(function(){if(posSilentRefreshPromise===task)posSilentRefreshPromise=null;});
+}
+function refreshPosAfterMutation(){
+  var active=posSilentRefreshPromise,userId=String(session&&session.user&&session.user.id||''),businessId=String(posContext.businessId||'');
+  function stillCurrent(){
+    return !!(userId&&businessId&&session&&session.user&&String(session.user.id||'')===userId&&String(posContext.businessId||'')===businessId);
+  }
+  if(!stillCurrent())return Promise.resolve(false);
+  if(!active)return refreshPosSilently(true);
+  return Promise.resolve(active).catch(function(){return false;}).then(function(){
+    if(!stillCurrent())return false;
+    if(posSilentRefreshPromise===active)posSilentRefreshPromise=null;
+    return refreshPosSilently(true);
+  });
 }
 async function refreshPosCatalogOnly(){
   if(!cloud.client||!session||!session.user||!posContext.businessId)return false;
@@ -1548,12 +1650,15 @@ async function refreshPosCatalogOnly(){
   try{
     var rows=rpcRows(await cloud.client.rpc('pos_get_catalog',{p_business_id:businessId}));
     if(!posCatalogRequestStillCurrent(generation,userId,businessId))return false;
-    posCheckout.catalog=rows||[];posCheckout.catalogLoading=false;posCheckout.catalogError='';normalizePosCategory();
-    markPosCartAgainstCatalog();posRestorePending();renderPos();return true;
+    posCheckout.catalog=rows||[];posCheckout.catalogLoading=false;posCheckout.catalogError='';posCheckout.catalogFromCache=false;posCheckout.catalogVerifiedGeneration=generation;normalizePosCategory();
+    markPosCartAgainstCatalog();posRestorePending();posRememberCatalogCache();
+    renderPos();return true;
   }catch(error){
     if(!posCatalogRequestStillCurrent(generation,userId,businessId))return false;
+    if(posHandleAccessDenied(error))return false;
     posCheckout.catalogLoading=false;
     if(!posCheckout.catalog.length)posCheckout.catalogError=posRpcErrorText(error);
+    if(!posCheckout.refreshing&&posCheckout.loaded){posCheckout.checkoutRefreshRequired=true;posCheckout.refreshError='Could not refresh the menu. Retry before confirming payment.';}
     renderPos();return false;
   }
 }
@@ -1562,12 +1667,15 @@ async function openPosRegister(refresh){
   if(!posContext.businessId){
     var ready=await loadPosContext();if(!ready||!posContext.businessId)return false;
   }
-  if(refresh||!posCheckout.catalog.length||posCheckout.catalogError)return loadPosCheckoutData();
+  if(refresh&&(posCheckout.loaded||posCheckout.catalogFromCache||posCheckout.catalog.length))return refreshPosSilently(true);
+  if(refresh||(!posCheckout.loaded&&!posCheckout.catalog.length)||posCheckout.catalogError)return loadPosCheckoutData();
   renderPos();return true;
 }
 function posCheckoutValidation(){
   if(posCheckout.pending)return {valid:true,error:'',cashCentavos:posCheckout.pending.rpcArgs.p_cash_tendered_centavos};
   var shift=posCheckout.shift;
+  if(posCheckout.refreshing)return {valid:false,error:'The register is syncing. Wait for the latest shift check before confirming payment.'};
+  if(posCheckout.checkoutRefreshRequired)return {valid:false,error:'Refresh the register before confirming payment.'};
   if(posCheckout.shiftLoading)return {valid:false,error:'The register shift is still loading.'};
   if(!shift||!shift.shift_id)return {valid:false,error:'Open a shift before accepting a payment.'};
   if(String(shift.shift_id||'')!==String(posCheckout.shiftStatus&&posCheckout.shiftStatus.shift_id||''))return {valid:false,error:'The active shift changed. Refresh before accepting payment.'};
@@ -1636,14 +1744,14 @@ async function submitPosSale(){
     posCheckout.submitting=false;posClearPending();posCheckout.cart={};posCheckout.catalogChanged=false;
     posCheckout.paymentMethod='cash';posCheckout.cashReceived='';posCheckout.referenceNumber='';posCheckout.confirming=false;posCheckout.error='';posCheckout.notice='';
     posCheckout.lastReceipt=receipt;renderPos();
-    loadPosCheckoutData().catch(function(){});
+    refreshPosAfterMutation().catch(function(){});
     return true;
   }catch(error){
     if(!posSubmitRequestStillCurrent(generation,userId,businessId))return false;
     posCheckout.submitting=false;
     if(String(error&&error.code||'')==='40001'){
       posClearPending();posCheckout.confirming=false;posCheckout.catalogChanged=true;posCheckout.error=posCheckoutErrorText(error);renderPos();
-      loadPosCheckoutData().catch(function(){});return false;
+      refreshPosAfterMutation().catch(function(){});return false;
     }
     if(!posDeterministicError(error)){
       posCheckout.confirming=false;posCheckout.notice='The connection stopped before a receipt came back. Retry this exact sale safely—do not create a new sale.';
@@ -1652,7 +1760,21 @@ async function submitPosSale(){
     posClearPending();posCheckout.confirming=false;posCheckout.error=posCheckoutErrorText(error);renderPos();return false;
   }
 }
-function posCanManageOperations(){return posContext.role==='owner'||posContext.role==='manager';}
+function posStatusCanManage(status){
+  status=status||posCheckout.shiftStatus;
+  return !!(status&&(status.can_view_costs||status.can_open_training||status.can_void_sales));
+}
+function posCanManageOperations(){
+  if(posCheckout.loaded&&posCheckout.shiftStatus)return posStatusCanManage(posCheckout.shiftStatus);
+  return posContext.role==='owner'||posContext.role==='manager';
+}
+function posRoleLabel(){
+  if(posCheckout.loaded&&posCheckout.shiftStatus){
+    if(!posStatusCanManage(posCheckout.shiftStatus))return 'cashier';
+    if(posContext.role!=='owner'&&posContext.role!=='manager')return 'manager';
+  }
+  return posContext.role||'member';
+}
 function posModeName(isTraining){return isTraining?'Training':'Live';}
 function posModeFromPending(){
   if(!posCheckout.pending)return '';
@@ -1689,7 +1811,7 @@ function posOpenOpsModal(type){
   document.body.classList.add('modal-open');renderPosOpsModal();return true;
 }
 function openPosShiftModal(){
-  if(posCheckout.shift||posCheckout.shiftLoading||posCheckout.shiftError||posCheckout.pending)return false;
+  if(posCheckout.shift||posCheckout.shiftLoading||posCheckout.shiftError||posCheckout.pending||posCheckout.refreshing||posCheckout.checkoutRefreshRequired)return false;
   var status=posCheckout.shiftStatus||{};
   if(!status.can_open_live&&!status.can_open_training)return false;
   posOpenOpsModal('openShift');
@@ -1697,7 +1819,7 @@ function openPosShiftModal(){
   posOpsModal.openingCash='0.00';renderPosOpsModal();focusSoon('#posOpeningCash');return true;
 }
 function setPosOpenMode(mode){
-  if(!posOpsModal.open||posOpsModal.type!=='openShift'||posOpsModal.submitting||posOpsModal.uncertain)return false;
+  if(!posOpsModal.open||posOpsModal.type!=='openShift'||posOpsModal.submitting||posOpsModal.uncertain||posOpsActionBlocked())return false;
   var status=posCheckout.shiftStatus||{};
   if(mode==='training'&&!status.can_open_training)return false;
   if(mode==='live'&&!status.can_open_live)return false;
@@ -1706,7 +1828,7 @@ function setPosOpenMode(mode){
   renderPosOpsModal();if(mode==='live')focusSoon('#posOpeningCash');return true;
 }
 function openPosCloseModal(){
-  if(!posCheckout.shift||posCheckout.submitting||posCheckout.pending||posCheckout.confirming||posCartLines().length||posOpsModal.submitting)return false;
+  if(!posCheckout.shift||posCheckout.submitting||posCheckout.pending||posCheckout.confirming||posCartLines().length||posOpsModal.submitting||posCheckout.refreshing||posCheckout.checkoutRefreshRequired)return false;
   if(!(posCheckout.shiftStatus&&posCheckout.shiftStatus.can_close_shift))return false;
   posOpenOpsModal('closeShift');
   posOpsModal.mode=posCheckout.shift.is_training?'training':'live';
@@ -1714,10 +1836,19 @@ function openPosCloseModal(){
   renderPosOpsModal();if(posOpsModal.mode==='live')focusSoon('#posCountedCash');return true;
 }
 function openPosVoidModal(saleId){
-  if(!posCanManageOperations()||posCheckout.submitting||posCheckout.pending)return false;
+  if(!posCanManageOperations()||posCheckout.submitting||posCheckout.pending||posCheckout.refreshing||posCheckout.checkoutRefreshRequired)return false;
   var sale=(posCheckout.recent||[]).find(function(row){return String(row.sale_id||'')===String(saleId||'');});
   if(!sale||!sale.can_void||sale.sale_state==='voided')return false;
   posOpenOpsModal('voidSale');posOpsModal.sale=sale;renderPosOpsModal();focusSoon('#posVoidReason');return true;
+}
+function posOpsActionBlocked(){
+  return !!(posCheckout.refreshing||posCheckout.shiftLoading||posCheckout.catalogLoading||
+    (posCheckout.checkoutRefreshRequired&&!posOpsModal.uncertain));
+}
+function requirePosOpsVerification(){
+  if(!posOpsActionBlocked())return true;
+  posOpsModal.error='Wait for the register check to finish, then try again.';
+  renderPosOpsModal();return false;
 }
 function openPosReportModal(){
   if(posCheckout.reportsLoading)return false;
@@ -1821,18 +1952,19 @@ function renderPosOpsModal(){
   if(!modal||!content)return;
   modal.hidden=!posOpsModal.open;if(!posOpsModal.open)return;
   var panel=modal.querySelector('.modal');if(panel)panel.classList.toggle('small',posOpsModal.type==='openShift'||posOpsModal.type==='voidSale');
-  var disabled=posOpsModal.submitting?' disabled':'',frozen=posOpsModal.submitting||posOpsModal.uncertain?' disabled':'';
+  var verificationBlocked=posOpsActionBlocked();
+  var disabled=posOpsModal.submitting||verificationBlocked?' disabled':'',frozen=posOpsModal.submitting||posOpsModal.uncertain?' disabled':'';
   var close='<button class="modal-close" data-act="closePosOpsModal" aria-label="Close dialog"'+(posOpsModal.submitting||posOpsModal.uncertain?' disabled':'')+'>x</button>';
   if(posOpsModal.type==='openShift'){
     var status=posCheckout.shiftStatus||{},training=posOpsModal.mode==='training';
-    var modes='<div class="pos-mode-choice"><button data-act="setPosOpenMode" data-mode="live" class="'+(!training?'active':'')+'"'+(!status.can_open_live||posOpsModal.submitting||posOpsModal.uncertain?' disabled':'')+'><strong>Live</strong><br><span class="hint">Real sales and money</span></button>';
+    var modes='<div class="pos-mode-choice"><button data-act="setPosOpenMode" data-mode="live" class="'+(!training?'active':'')+'"'+(!status.can_open_live||posOpsModal.submitting||posOpsModal.uncertain||verificationBlocked?' disabled':'')+'><strong>Live</strong><br><span class="hint">Real sales and money</span></button>';
     if(status.can_open_training)modes+='<button data-act="setPosOpenMode" data-mode="training" class="'+(training?'active':'')+'"'+frozen+'><strong>Training</strong><br><span class="hint">Practice only</span></button>';
     modes+='</div>';
     content.innerHTML='<div class="modal-head"><div><h2 id="posOpsModalTitle">Open shift</h2><p class="hint">'+escapeHtml(status.register_name||'Main register')+' · choose before taking orders</p></div>'+close+'</div>'+
       modes+(training?'<div class="pos-mode-banner"><span class="pos-mode-training">Training</span><span>No real sales or money. Training totals stay separate from Live.</span></div>':'')+
-      '<label class="fld" for="posOpeningCash">Starting cash in drawer (₱)</label><input id="posOpeningCash" inputmode="decimal" autocomplete="off" value="'+escapeHtml(training?'0.00':posOpsModal.openingCash)+'"'+(training||posOpsModal.submitting||posOpsModal.uncertain?' disabled':'')+'>'+
+      '<label class="fld" for="posOpeningCash">Starting cash in drawer (₱)</label><input id="posOpeningCash" inputmode="decimal" autocomplete="off" value="'+escapeHtml(training?'0.00':posOpsModal.openingCash)+'"'+(training||posOpsModal.submitting||posOpsModal.uncertain||verificationBlocked?' disabled':'')+'>'+
       '<p class="hint">'+(training?'Training always starts at ₱0.00.':'Count the drawer before opening. This becomes the cash-closing baseline.')+'</p>'+
-      '<div class="pos-error" aria-live="assertive">'+escapeHtml(posOpsModal.error)+'</div><div class="modal-actions"><button class="btn secondary" data-act="closePosOpsModal"'+(posOpsModal.uncertain?' disabled':disabled)+'>Cancel</button><button class="btn" data-act="submitPosOpenShift"'+disabled+'>'+escapeHtml(posOpsModal.submitting?'Checking…':(posOpsModal.uncertain?'Retry same opening':'Open '+posModeName(training)+' shift'))+'</button></div>';
+      '<div class="pos-error" aria-live="assertive">'+escapeHtml(posOpsModal.error)+'</div><div class="modal-actions"><button class="btn secondary" data-act="closePosOpsModal"'+frozen+'>Cancel</button><button class="btn" data-act="submitPosOpenShift"'+disabled+'>'+escapeHtml(posOpsModal.submitting?'Checking…':(posOpsModal.uncertain?'Retry same opening':'Open '+posModeName(training)+' shift'))+'</button></div>';
   }else if(posOpsModal.type==='closeShift'){
     var shift=posCheckout.shift||{},isTraining=posOpsModal.mode==='training';
     if(posOpsModal.step==='result'){
@@ -1854,7 +1986,7 @@ function renderPosOpsModal(){
         '<div><label class="fld" for="posVerifiedGotyme">GoTyme verified (₱)</label><input id="posVerifiedGotyme" inputmode="decimal" value="'+escapeHtml(posOpsModal.verifiedGotyme)+'"'+disabled+'></div>'+
         '<div><label class="fld" for="posCloseNotes">Closing note (optional)</label><input id="posCloseNotes" maxlength="500" value="'+escapeHtml(posOpsModal.notes)+'"'+disabled+'></div></div>'+
         '<p class="hint">For GCash and GoTyme, enter only the sales receipts for this shift—not the full wallet or bank balance.</p>'+
-        '<div class="pos-error">'+escapeHtml(posOpsModal.error)+'</div><div class="modal-actions"><button class="btn secondary" data-act="closePosOpsModal"'+disabled+'>Cancel</button><button class="btn" data-act="reviewPosCloseShift"'+disabled+'>Review close</button></div>';
+        '<div class="pos-error">'+escapeHtml(posOpsModal.error)+'</div><div class="modal-actions"><button class="btn secondary" data-act="closePosOpsModal"'+frozen+'>Cancel</button><button class="btn" data-act="reviewPosCloseShift"'+disabled+'>Review close</button></div>';
     }
   }else if(posOpsModal.type==='voidSale'){
     var sale=posOpsModal.sale||{};
@@ -1877,7 +2009,7 @@ function renderPosOpsModal(){
   }
 }
 async function submitPosOpenShift(){
-  if(posOpsModal.submitting||posCheckout.shift||posCheckout.pending||!session||!session.user)return false;
+  if(posOpsModal.submitting||posCheckout.shift||posCheckout.pending||!session||!session.user||!requirePosOpsVerification())return false;
   var status=posCheckout.shiftStatus||{},training=posOpsModal.mode==='training';
   if((training&&!status.can_open_training)||(!training&&!status.can_open_live))return false;
   var opening=training?0:strictPesoCentavos(posOpsModal.openingCash);
@@ -1896,7 +2028,7 @@ async function submitPosOpenShift(){
     posCheckout.lastReceipt=null;
     document.body.classList.toggle('pos-training',!!opened.is_training);
     posCloseOpsModal(true);
-    await loadPosCheckoutData();return true;
+    await refreshPosAfterMutation();return true;
   }catch(error){
     if(!posOpsRequestStillCurrent(generation,userId,businessId))return false;
     posOpsModal.submitting=false;posOpsModal.error=posOperationErrorText(error,'shift opening');
@@ -1926,14 +2058,14 @@ function posCloseValidation(){
   return {valid:true,cash:cash,gcash:gcash,gotyme:gotyme,error:''};
 }
 function reviewPosCloseShift(){
-  if(posOpsModal.type!=='closeShift'||posOpsModal.submitting)return false;
+  if(posOpsModal.type!=='closeShift'||posOpsModal.submitting||!requirePosOpsVerification())return false;
   var validation=posCloseValidation();
   if(!validation.valid){posOpsModal.error=validation.error;renderPosOpsModal();return false;}
   posOpsModal.step='confirm';posOpsModal.error='';renderPosOpsModal();return true;
 }
 function backPosCloseShift(){if(posOpsModal.submitting||posOpsModal.uncertain)return false;posOpsModal.step='edit';posOpsModal.error='';renderPosOpsModal();return true;}
 async function submitPosCloseShift(){
-  if(posOpsModal.submitting||!session||!session.user||posOpsModal.type!=='closeShift')return false;
+  if(posOpsModal.submitting||!session||!session.user||posOpsModal.type!=='closeShift'||!requirePosOpsVerification())return false;
   var validation=posCloseValidation();
   if(!posOpsModal.rpcArgs&&!validation.valid){posOpsModal.error=validation.error;renderPosOpsModal();return false;}
   var businessId=String(posContext.businessId||''),shiftId=String((posCheckout.shift&&posCheckout.shift.shift_id)||(posOpsModal.rpcArgs&&posOpsModal.rpcArgs.p_shift_id)||'');
@@ -1949,7 +2081,7 @@ async function submitPosCloseShift(){
     if(!closed||!closed.shift_id)throw new Error('Missing close response');
     posOpsModal.submitting=false;posOpsModal.uncertain=false;posOpsModal.step='result';posOpsModal.result=closed;
     posCheckout.shift=null;posCheckout.lastReceipt=null;posCheckout.reportMode=closed.is_training?'training':'live';document.body.classList.remove('pos-training');
-    renderPosOpsModal();loadPosCheckoutData().catch(function(){});return true;
+    renderPosOpsModal();refreshPosAfterMutation().catch(function(){});return true;
   }catch(error){
     if(!posOpsRequestStillCurrent(generation,userId,businessId))return false;
     posOpsModal.submitting=false;posOpsModal.error=posOperationErrorText(error,'shift close');
@@ -1970,14 +2102,14 @@ async function submitPosCloseShift(){
   }
 }
 function reviewPosVoidSale(){
-  if(posOpsModal.submitting||posOpsModal.type!=='voidSale')return false;
+  if(posOpsModal.submitting||posOpsModal.type!=='voidSale'||!requirePosOpsVerification())return false;
   var reason=String(posOpsModal.reason||'').trim();
   if(reason.length<3||reason.length>500){posOpsModal.error='Enter a clear reason between 3 and 500 characters.';renderPosOpsModal();return false;}
   posOpsModal.reason=reason;posOpsModal.step='confirm';posOpsModal.error='';renderPosOpsModal();return true;
 }
 function backPosVoidSale(){if(posOpsModal.submitting||posOpsModal.uncertain)return false;posOpsModal.step='edit';posOpsModal.error='';renderPosOpsModal();return true;}
 async function submitPosVoidSale(){
-  if(posOpsModal.submitting||!posCanManageOperations()||!session||!session.user||!posOpsModal.sale)return false;
+  if(posOpsModal.submitting||!posCanManageOperations()||!session||!session.user||!posOpsModal.sale||!requirePosOpsVerification())return false;
   var reason=String(posOpsModal.reason||'').trim();
   if(reason.length<3||reason.length>500){posOpsModal.error='Enter a clear reason between 3 and 500 characters.';renderPosOpsModal();return false;}
   var businessId=String(posContext.businessId||''),saleId=String(posOpsModal.sale.sale_id||'');
@@ -1990,7 +2122,7 @@ async function submitPosVoidSale(){
     if(!posOpsRequestStillCurrent(generation,userId,businessId))return false;
     if(!voided||!voided.sale_id)throw new Error('Missing void response');
     posOpsModal.submitting=false;posOpsModal.uncertain=false;posOpsModal.step='result';posOpsModal.result=voided;renderPosOpsModal();
-    loadPosCheckoutData().catch(function(){});return true;
+    refreshPosAfterMutation().catch(function(){});return true;
   }catch(error){
     if(!posOpsRequestStillCurrent(generation,userId,businessId))return false;
     posOpsModal.submitting=false;posOpsModal.error=posOperationErrorText(error,'void');
@@ -2870,9 +3002,11 @@ function posCartHtml(){
   var buttonText=posCheckout.submitting?'Recording order…':(posCheckout.pending?'Retry exact order':'Review order · '+peso(total/100));
   var actionHtml;
   if(noShift){
-    var status=posCheckout.shiftStatus||{},canOpen=!!(status.can_open_live||status.can_open_training);
+    var status=posCheckout.shiftStatus||{},allowedToOpen=!!(status.can_open_live||status.can_open_training);
+    var canOpen=allowedToOpen&&!posCheckout.refreshing&&!posCheckout.checkoutRefreshRequired;
     actionHtml='<button class="btn pos-checkout" data-act="openPosShift"'+(!canOpen||locked?' disabled':'')+'>'+(lines.length?'Start selling to confirm · '+peso(total/100):'Start selling')+'</button>';
-    if(!canOpen)actionHtml+='<p class="hint">Ask an owner or manager to open the register.</p>';
+    if(!allowedToOpen)actionHtml+='<p class="hint">Ask an owner or manager to open the register.</p>';
+    else if(!canOpen)actionHtml+='<p class="hint">Wait for the register check, then start selling.</p>';
   }else if(posCheckout.confirming){
     var confirmation='Charge <strong>'+peso(total/100)+'</strong> via <strong>'+escapeHtml(posPaymentLabel(posCheckout.paymentMethod))+'</strong>';
     if(posCheckout.paymentMethod==='cash'){var tendered=strictPesoCentavos(posCheckout.cashReceived);confirmation+=' · received '+peso(Number(tendered||0)/100)+' · change '+peso(Math.max(0,Number(tendered||0)-total)/100);}
@@ -2898,7 +3032,7 @@ function posRecentHtml(){
     if(sale.can_view_costs&&!voided)detail+=' · est. profit '+peso(Number(sale.estimated_gross_profit_centavos||0)/100);
     var voidDetail=voided?'<div class="pos-recent-meta">Void reason: '+escapeHtml(sale.void_reason||'Not provided')+(sale.voided_by_display_name?' · '+escapeHtml(sale.voided_by_display_name):'')+'</div>':'';
     var action='<div class="pos-recent-actions"><span class="pos-recent-method pill">'+escapeHtml(posPaymentLabel(sale.payment_method))+'</span><strong>'+peso(Number((voided?sale.gross_total_centavos:sale.net_total_centavos)||0)/100)+'</strong>';
-    if(sale.can_void&&posCanManageOperations())action+='<button class="btn small danger" data-act="openPosVoid" data-id="'+escapeHtml(sale.sale_id)+'">Void</button>';
+    if(sale.can_void&&posCanManageOperations())action+='<button class="btn small danger" data-act="openPosVoid" data-id="'+escapeHtml(sale.sale_id)+'"'+(posCheckout.refreshing||posCheckout.checkoutRefreshRequired?' disabled':'')+'>Void</button>';
     action+='</div>';
     return '<div class="pos-recent-row'+(voided?' voided':'')+'"><div><strong>'+escapeHtml(sale.receipt_number||'Receipt')+(voided?'<span class="pos-void-label">Void</span>':'')+'</strong><div class="pos-recent-meta">'+detail+'</div>'+voidDetail+(sale.item_summary?'<div class="pos-item-summary">'+escapeHtml(sale.item_summary)+'</div>':'')+'</div>'+action+'</div>';
   }).join('');
@@ -2909,13 +3043,16 @@ function posShiftBarHtml(){
     return '<div class="pos-shift-bar"><span class="'+(pendingTraining?'pos-mode-training':'pos-mode-live')+'">'+escapeHtml(posModeName(pendingTraining))+' recovery</span><div class="pos-shift-copy"><strong>Exact sale retry required</strong><span>Do not open another shift. Recover the frozen receipt in Current sale first.</span></div></div>';
   }
   var shift=posCheckout.shift;if(!shift)return '';
-  var training=!!shift.is_training,blocked=!!(posCheckout.submitting||posCheckout.pending||posCheckout.confirming||posCartLines().length);
+  var training=!!shift.is_training,hasCurrentSale=!!(posCheckout.submitting||posCheckout.pending||posCheckout.confirming||posCartLines().length);
+  var verificationBlocked=!!(posCheckout.refreshing||posCheckout.checkoutRefreshRequired),blocked=hasCurrentSale||verificationBlocked;
   var opened=shift.opened_at?new Date(shift.opened_at).toLocaleString('en-PH'):'';
   return '<div class="pos-shift-bar"><span class="'+(training?'pos-mode-training':'pos-mode-live')+'">'+escapeHtml(posModeName(training))+'</span>'+
-    '<div class="pos-shift-copy"><strong>'+escapeHtml(shift.register_name||'Register')+' · shift open</strong><span>Opened '+escapeHtml(opened)+(shift.opened_by_display_name?' by '+escapeHtml(shift.opened_by_display_name):'')+' · mode locked until close'+(blocked?' · finish or clear Current sale before closing':'')+'</span></div>'+
+    '<div class="pos-shift-copy"><strong>'+escapeHtml(shift.register_name||'Register')+' · shift open</strong><span>Opened '+escapeHtml(opened)+(shift.opened_by_display_name?' by '+escapeHtml(shift.opened_by_display_name):'')+' · mode locked until close'+(hasCurrentSale?' · finish or clear Current sale before closing':(verificationBlocked?' · wait for the register check before closing':''))+'</span></div>'+
     '<button class="btn small secondary" data-act="openPosClose"'+(blocked||!(posCheckout.shiftStatus&&posCheckout.shiftStatus.can_close_shift)?' disabled':'')+'>Close shift</button></div>';
 }
 function posNoShiftGateHtml(){
+  if(posCheckout.refreshing)return '<div class="pos-start-banner"><div class="pos-start-banner-copy"><strong>Checking the register</strong><span>You can choose drinks while the latest shift and menu are verified.</span></div><span class="pos-sync syncing">Syncing...</span></div>';
+  if(posCheckout.checkoutRefreshRequired)return '<div class="pos-start-banner"><div class="pos-start-banner-copy"><strong>Refresh required</strong><span>Your menu is still visible, but payment stays locked until the register is verified.</span></div><button class="btn" data-act="refreshPos">Retry</button></div>';
   var status=posCheckout.shiftStatus||{},canOpen=!!(status.can_open_live||status.can_open_training);
   return '<div class="pos-start-banner"><div class="pos-start-banner-copy"><strong>Choose drinks now</strong><span>Start selling before confirming the first payment. Live or Training stays locked until the shift closes.</span></div>'+
     (canOpen?'<button class="btn" data-act="openPosShift">Start selling</button>':'<span class="hint">Ask an owner or manager to open the register.</span>')+'</div>';
@@ -2940,20 +3077,58 @@ function focusPosCart(){
   try{panel.focus({preventScroll:true});}catch(error){panel.focus();}
   return true;
 }
+function posSyncStatusHtml(){
+  var cls=' syncing',text='Checking...',detail='The register is being verified.';
+  if(posCheckout.refreshing||posCheckout.shiftLoading){cls=' syncing';text='Syncing...';detail='Refreshing the menu, shift, and totals in the background.';}
+  else if(posCheckout.checkoutRefreshRequired){cls=' bad';text='Could not refresh';detail=posCheckout.refreshError||'Retry before confirming payment.';}
+  else if(posCheckout.refreshError){cls=' warn';text='Totals delayed';detail=posCheckout.refreshError;}
+  else if(posCheckout.loaded){cls='';text='Up to date';detail=posCheckout.lastUpdatedAt?'Last checked '+new Date(posCheckout.lastUpdatedAt).toLocaleTimeString('en-PH',{hour:'numeric',minute:'2-digit'}):'Register verified.';}
+  return '<span class="pos-sync'+cls+'" role="status" aria-live="polite" title="'+escapeHtml(detail)+'">'+escapeHtml(text)+'</span>';
+}
+function posCriticalRefreshNoticeHtml(){
+  if(!posCheckout.checkoutRefreshRequired||(!posCheckout.shift&&!posCheckout.pending))return '';
+  return '<div class="note" style="margin-bottom:12px"><strong>Current order preserved.</strong> '+escapeHtml(posCheckout.refreshError||'The register could not refresh.')+' <button class="btn small secondary" data-act="refreshPos" style="margin-left:6px">Retry</button></div>';
+}
+function renderPosPreservingInteraction(){
+  var root=document.getElementById('posRoot'),active=document.activeElement,saved=null;
+  if(root&&active&&root.contains(active)){
+    saved={id:active.id||'',tag:String(active.tagName||''),act:active.dataset&&active.dataset.act||'',
+      dataId:active.dataset&&active.dataset.id||'',method:active.dataset&&active.dataset.method||'',
+      centavos:active.dataset&&active.dataset.centavos||'',mode:active.dataset&&active.dataset.mode||'',
+      start:typeof active.selectionStart==='number'?active.selectionStart:null,
+      end:typeof active.selectionEnd==='number'?active.selectionEnd:null};
+  }
+  renderPos();
+  if(!saved)return;
+  root=document.getElementById('posRoot');if(!root)return;
+  var next=saved.id?document.getElementById(saved.id):null;
+  if(!next&&saved.act){
+    next=Array.prototype.find.call(root.querySelectorAll('[data-act]'),function(node){
+      return String(node.dataset.act||'')===saved.act&&String(node.dataset.id||'')===saved.dataId&&
+        String(node.dataset.method||'')===saved.method&&String(node.dataset.centavos||'')===saved.centavos&&
+        String(node.dataset.mode||'')===saved.mode;
+    })||null;
+  }
+  if(!next||next.disabled)return;
+  try{next.focus({preventScroll:true});}catch(error){try{next.focus();}catch(ignore){}}
+  if(saved.start!=null&&typeof next.setSelectionRange==='function'){
+    try{next.setSelectionRange(saved.start,saved.end);}catch(error){}
+  }
+}
 function renderPos(){
   var root=document.getElementById('posRoot');if(!root)return;
   if(!session){root.innerHTML='<div class="card"><h2>Point of sale</h2><p class="hint">The register needs a cloud connection and a signed-in account. Your costing pages remain available above.</p></div>';return;}
   if((!posContext.loaded||posContext.loading)&&!posContext.businessId){root.innerHTML='<div class="card"><div class="pos-loading">Opening the Scoopies register…</div></div>';return;}
   if(posContext.error||!posContext.businessId){root.innerHTML='<div class="card"><h2>Point of sale</h2><div class="note">'+escapeHtml(posContext.error||'The POS workspace is not ready.')+'</div><button class="btn secondary" data-act="retryPosContext" style="margin-top:10px">Retry POS</button></div>';return;}
-  var top='<div class="pos-topbar"><div style="flex:1"><h2>'+escapeHtml(posContext.businessName||'Scoopies')+' register</h2><p class="hint">Tap a drink · choose payment · confirm once</p></div><span class="pos-role">'+escapeHtml(posContext.role||'member')+'</span><button class="btn small secondary" data-act="openPosReport">Daily report</button><button class="btn small secondary" data-act="refreshPos">Refresh</button></div>';
-  if(posCheckout.shiftLoading){root.innerHTML=top+'<div class="card"><div class="pos-loading">Checking the active register shift…</div></div>';return;}
+  var top='<div class="pos-topbar"><div style="flex:1"><h2>'+escapeHtml(posContext.businessName||'Scoopies')+' register</h2><p class="hint">Tap a drink · choose payment · confirm once</p></div>'+posSyncStatusHtml()+'<span class="pos-role">'+escapeHtml(posRoleLabel())+'</span><button class="btn small secondary" data-act="openPosReport">Daily report</button><button class="btn small secondary" data-act="refreshPos"'+(posCheckout.refreshing?' disabled':'')+'>Refresh</button></div>';
+  if(posCheckout.shiftLoading&&!posCheckout.loaded&&!posCheckout.catalogFromCache){root.innerHTML=top+'<div class="card"><div class="pos-loading">Checking the active register shift…</div></div>';return;}
   if(posCheckout.shiftError){root.innerHTML=top+'<div class="card pos-gate"><h2>Shift status unavailable</h2><div class="note">'+escapeHtml(posCheckout.shiftError)+'</div><button class="btn secondary" data-act="refreshPos" style="margin-top:10px">Retry safely</button></div>';return;}
   var trainingView=posCheckout.reportMode==='training';
   var modeBanner=trainingView?'<div class="pos-mode-banner"><span class="pos-mode-training">Training</span><strong>Practice only — excluded from Live sales, cash, and reports.</strong></div>':'';
   var reports=posSummaryHtml()+(posCheckout.reportsError?'<p class="hint">'+escapeHtml(posCheckout.reportsError)+'</p>':'');
   var recent='<div class="card" style="margin-top:14px"><div class="row"><h2 style="margin:0">Recent '+escapeHtml(posModeName(trainingView))+' sales</h2><span class="spacer"></span><span class="hint" style="margin:0">Latest 20 only</span></div>'+posRecentHtml()+'</div>';
   var shiftHeader=!posCheckout.shift&&!posCheckout.pending?posNoShiftGateHtml():posShiftBarHtml();
-  root.innerHTML=top+shiftHeader+modeBanner+posReceiptHtml()+reports+posWorkspaceHtml()+posMobileOrderBarHtml()+recent;
+  root.innerHTML=top+posCriticalRefreshNoticeHtml()+shiftHeader+modeBanner+posReceiptHtml()+reports+posWorkspaceHtml()+posMobileOrderBarHtml()+recent;
 }
 function renderAll(){ renderPos(); renderIngredients(); renderDraftButton(); renderPackaging(); renderRecipes(); renderProducts(); }
 
@@ -2965,7 +3140,10 @@ function activateAppTab(tab,loadData){
   b.classList.add('active');section.classList.add('active');
   if(loadData&&tab==='history')loadHistory();
   if(loadData&&tab==='products'&&session&&!publishModalOpen)loadPosContext().catch(function(){});
-  if(loadData&&tab==='pos'&&session)openPosRegister(true).catch(function(){});
+  if(loadData&&tab==='pos'&&session){
+    if(posContext.businessId)refreshPosSilently(false).catch(function(){});
+    else openPosRegister(true).catch(function(){});
+  }
   return true;
 }
 document.querySelector('nav').addEventListener('click', function(e){
@@ -3183,7 +3361,11 @@ window.addEventListener('focus', function(){
     if(!costingRequestIsCurrent(costingGeneration,costingUserId))return;
     costingCloudReady=false;costingCloudLoading=false;renderProducts();
   });
-  if(session&&!publishModalOpen)loadPosContext().then(function(){var section=document.getElementById('pos');if(section&&section.classList.contains('active'))return openPosRegister(true);}).catch(function(){});
+  var posSection=document.getElementById('pos');
+  if(session&&posSection&&posSection.classList.contains('active')&&!appIsEditing()){
+    if(posContext.businessId)refreshPosSilently(false).catch(function(){});
+    else if(!posContext.loading)loadPosContext().then(function(ready){if(ready)return openPosRegister(true);}).catch(function(){});
+  }
 });
 window.addEventListener('online',retryDirtySave);
 /* if a partner update arrived while typing, apply it once they leave the field */

@@ -209,6 +209,7 @@ document.getElementById('app').addEventListener('load', async () => {
   }
   function installCheckout(role = 'owner', catalog = [checkoutCatalogFixture()]) {
     app.localStorage.removeItem(app.POS_PENDING_KEY);
+    app.posClearCatalogCache();
     app.resetPosCheckout();
     installPosContext(role);
     app.posCheckout.catalog = catalog;
@@ -227,6 +228,15 @@ document.getElementById('app').addEventListener('load', async () => {
     app.posCheckout.reportLoadedDate = '2026-09-28';
     app.renderPos();
     return catalog;
+  }
+  function markCheckoutVerified() {
+    app.posCheckout.loaded = true;
+    app.posCheckout.refreshing = false;
+    app.posCheckout.refreshError = '';
+    app.posCheckout.checkoutRefreshRequired = false;
+    app.posCheckout.lastUpdatedAt = Date.now();
+    app.posCheckout.catalogVerifiedGeneration = app.posCatalogGeneration;
+    app.renderPos();
   }
   function receiptFixture(overrides = {}) {
     return Object.assign({
@@ -1667,6 +1677,466 @@ document.getElementById('app').addEventListener('load', async () => {
     const summaryText = app.document.getElementById('posRoot').textContent;
     assert(/Drinks sold/.test(summaryText), 'simple counter summary omitted the sold-drink count');
     assert(!/Estimated gross profit|Owner only/.test(summaryText), 'cost or profit leaked into the cashier main screen');
+  });
+  test('silent refresh applies an authoritative cashier downgrade while stale workspace role remains owner', async () => {
+    const catalog = installCheckout('owner');
+    markCheckoutVerified();
+    app.posCheckout.recent = [recentSaleFixture({ can_void: true })];
+    app.posCheckout.reportMode = 'training';
+    app.posCheckout.summary = dayReportFixture({ is_training: true });
+    app.posCheckout.dailyReport = app.posCheckout.summary;
+    app.posCheckout.reportLoadedMode = 'training';
+    app.renderPos();
+    assert(app.posContext.role === 'owner', 'downgrade fixture did not start with a stale owner role');
+    assert(app.document.querySelector('[data-act=managePosMenu]') && app.document.querySelector('[data-act=openPosVoid]'), 'owner controls were not visible before the authoritative downgrade');
+
+    app.addPosProduct(catalog[0].product_id);
+    app.posCheckout.cashReceived = '200';
+    app.renderPos();
+    const cashierStatus = shiftStatusFixture({
+      opened_by_display_name: 'Cashier', can_view_costs: false, can_open_live: false,
+      can_open_training: false, can_close_shift: false, can_void_sales: false
+    });
+    app.cloud.client = { rpc(name) {
+      if (name === 'pos_get_catalog') return rpcResult(catalog);
+      if (name === 'pos_get_shift_status') return rpcResult([cashierStatus]);
+      if (name === 'pos_get_end_of_day_summary') return rpcResult([dayReportFixture({
+        is_training: false, can_view_costs: false,
+        estimated_cost_centavos: null, estimated_gross_profit_centavos: null
+      })]);
+      if (name === 'pos_get_recent_sales_v2') return rpcResult([recentSaleFixture({
+        cashier_display_name: 'Cashier', can_view_costs: false,
+        estimated_cost_centavos: null, estimated_gross_profit_centavos: null,
+        can_void: true
+      })]);
+      throw new Error('unexpected RPC ' + name);
+    }};
+
+    assert(await app.refreshPosSilently(true), 'authoritative cashier refresh failed');
+    assert(app.posContext.role === 'owner', 'test no longer exercised a stale workspace role');
+    const root = app.document.getElementById('posRoot');
+    const role = root.querySelector('.pos-role');
+    const closeShift = root.querySelector('[data-act=openPosClose]');
+    const review = root.querySelector('[data-act=reviewPosSale]');
+    assert(role && role.textContent.trim().toLowerCase() === 'cashier', 'role pill trusted stale owner context instead of authoritative permissions');
+    assert(!app.posCanManageOperations(), 'authoritative cashier permissions still allowed manager operations');
+    assert(!root.querySelector('[data-act=managePosMenu]'), 'Manage drinks remained visible after cashier downgrade');
+    assert(!root.querySelector('[data-act=openPosVoid]'), 'Void remained visible after cashier downgrade despite an over-permissive sale row');
+    assert(closeShift && closeShift.disabled, 'cashier could still close the owner-managed shift');
+    assert(!root.querySelector('[data-mode=training]') && app.posCheckout.reportMode === 'live', 'cashier retained Training controls or a stale Training report mode');
+    assert(!(await app.setPosReportMode('training')) && app.posCheckout.reportMode === 'live', 'cashier switched back to Training through code');
+    assert(app.posCheckout.shift && !app.posCheckout.shift.is_training, 'cashier refresh did not retain the authoritative open Live shift');
+    assert(app.posCheckoutValidation().valid && review && !review.disabled, 'normal cashier checkout was not usable after the permission refresh');
+  });
+  test('silent POS refresh keeps the warm order visible and locked until verification succeeds', async () => {
+    const catalog = installCheckout('owner');
+    markCheckoutVerified();
+    app.addPosProduct(catalog[0].product_id);
+    app.posCheckout.paymentMethod = 'gcash';
+    app.posCheckout.referenceNumber = 'warm-order-reference';
+    app.posCheckout.recent = [recentSaleFixture()];
+    app.renderPos();
+
+    let resolveCatalog, resolveShift, checkoutCalls = 0;
+    const catalogResponse = new Promise(resolve => { resolveCatalog = resolve; });
+    const shiftResponse = new Promise(resolve => { resolveShift = resolve; });
+    app.cloud.client = { rpc(name) {
+      if (name === 'pos_get_catalog') return catalogResponse;
+      if (name === 'pos_get_shift_status') return shiftResponse;
+      if (name === 'pos_get_end_of_day_summary') return rpcResult([dayReportFixture()]);
+      if (name === 'pos_get_recent_sales_v2') return rpcResult([recentSaleFixture()]);
+      if (name === 'pos_complete_shift_sale') { checkoutCalls++;return rpcResult([receiptFixture()]); }
+      throw new Error('unexpected RPC ' + name);
+    }};
+
+    const refreshing = app.refreshPosSilently(true);
+    const root = app.document.getElementById('posRoot');
+    assert(app.posCheckout.refreshing, 'silent refresh did not enter its in-progress state');
+    assert(/Matcha Latte/.test(root.textContent) && /Current order/.test(root.textContent) && /170\.00/.test(root.textContent), 'silent refresh replaced the warm menu, cart, or total');
+    assert(app.document.querySelectorAll('[data-act=setPosPayment]').length === 3 && app.document.getElementById('posReference'), 'silent refresh hid the payment controls');
+    assert(app.posCartLines().length === 1 && app.posCheckout.referenceNumber === 'warm-order-reference', 'silent refresh mutated the in-progress order');
+    const review = app.document.querySelector('[data-act=reviewPosSale]');
+    assert(review && review.disabled, 'checkout was enabled before the silent verification finished');
+    assert(!app.posCheckoutValidation().valid && /sync/i.test(app.posCheckoutValidation().error), 'checkout validation did not explain the temporary sync lock');
+    assert(/Syncing/.test(app.document.querySelector('.pos-sync').textContent), 'silent refresh status was not visible');
+    assert(checkoutCalls === 0, 'a background refresh submitted a sale');
+
+    resolveCatalog({ data: catalog, error: null });
+    resolveShift({ data: [shiftStatusFixture()], error: null });
+    assert(await refreshing, 'successful silent verification reported failure');
+    assert(!app.posCheckout.refreshing && !app.posCheckout.checkoutRefreshRequired, 'successful silent verification left checkout locked');
+    assert(app.posCartLines().length === 1 && app.posCheckout.paymentMethod === 'gcash' && app.posCheckout.referenceNumber === 'warm-order-reference', 'successful refresh did not preserve the order and payment choice');
+    assert(app.posCheckoutValidation().valid, 'verified warm order did not unlock checkout');
+    assert(/Up to date/.test(app.document.querySelector('.pos-sync').textContent), 'successful silent refresh did not show an up-to-date status');
+  });
+  test('failed silent refresh preserves warm POS data, blocks sales, and recovers safely', async () => {
+    const catalog = installCheckout('owner');
+    markCheckoutVerified();
+    app.addPosProduct(catalog[0].product_id);
+    app.posCheckout.cashReceived = '200';
+    app.posCheckout.recent = [recentSaleFixture()];
+    app.renderPos();
+    const originalSummary = app.snapshot(app.posCheckout.summary);
+    const originalRecent = app.snapshot(app.posCheckout.recent);
+    let saleCalls = 0;
+    app.cloud.client = { rpc(name) {
+      if (name === 'pos_get_catalog') return rpcResult(catalog);
+      if (name === 'pos_get_shift_status') return rpcResult(null, { message: 'offline' });
+      if (name === 'pos_complete_shift_sale') { saleCalls++;return rpcResult([receiptFixture()]); }
+      throw new Error('unexpected RPC ' + name);
+    }};
+
+    assert(!(await app.refreshPosSilently(true)), 'failed register verification reported success');
+    assert(app.posCheckout.checkoutRefreshRequired && !app.posCheckout.refreshing, 'failed verification did not keep payment locked');
+    assert(app.stableSerialize(app.posCheckout.summary) === app.stableSerialize(originalSummary), 'failed refresh erased the warm totals');
+    assert(app.stableSerialize(app.posCheckout.recent) === app.stableSerialize(originalRecent), 'failed refresh erased recent sales');
+    assert(app.posCartLines().length === 1 && /Matcha Latte/.test(app.document.getElementById('posRoot').textContent), 'failed refresh erased the current order or menu');
+    assert(/Could not refresh/.test(app.document.querySelector('.pos-sync').textContent), 'failed refresh status was not visible');
+    assert(!(await app.submitPosSale()) && saleCalls === 0, 'a sale reached the server while an authoritative refresh was required');
+
+    app.cloud.client = { rpc(name) {
+      if (name === 'pos_get_catalog') return rpcResult(catalog);
+      if (name === 'pos_get_shift_status') return rpcResult([shiftStatusFixture()]);
+      if (name === 'pos_get_end_of_day_summary') return rpcResult([dayReportFixture()]);
+      if (name === 'pos_get_recent_sales_v2') return rpcResult([recentSaleFixture()]);
+      if (name === 'pos_complete_shift_sale') { saleCalls++;return rpcResult([receiptFixture()]); }
+      throw new Error('unexpected RPC ' + name);
+    }};
+    assert(await app.refreshPosSilently(true), 'manual retry did not recover the register');
+    assert(!app.posCheckout.checkoutRefreshRequired && app.posCheckoutValidation().valid, 'successful retry did not unlock the preserved order');
+    assert(app.posCartLines().length === 1 && saleCalls === 0, 'refresh recovery changed or submitted the preserved order');
+  });
+  test('silent POS refresh deduplicates overlap, throttles focus-style checks, and still permits force refresh', async () => {
+    const catalog = installCheckout('owner');
+    markCheckoutVerified();
+    let resolveCatalog, resolveShift;
+    const catalogResponse = new Promise(resolve => { resolveCatalog = resolve; });
+    const shiftResponse = new Promise(resolve => { resolveShift = resolve; });
+    const calls = {};
+    app.cloud.client = { rpc(name) {
+      calls[name] = (calls[name] || 0) + 1;
+      if (name === 'pos_get_catalog' && calls[name] === 1) return catalogResponse;
+      if (name === 'pos_get_shift_status' && calls[name] === 1) return shiftResponse;
+      if (name === 'pos_get_catalog') return rpcResult(catalog);
+      if (name === 'pos_get_shift_status') return rpcResult([shiftStatusFixture()]);
+      if (name === 'pos_get_end_of_day_summary') return rpcResult([dayReportFixture()]);
+      if (name === 'pos_get_recent_sales_v2') return rpcResult([]);
+      throw new Error('unexpected RPC ' + name);
+    }};
+
+    const first = app.refreshPosSilently(true);
+    const overlapping = app.refreshPosSilently(true);
+    assert(calls.pos_get_catalog === 1 && calls.pos_get_shift_status === 1, 'overlapping silent refresh started duplicate requests');
+    resolveCatalog({ data: catalog, error: null });
+    resolveShift({ data: [shiftStatusFixture()], error: null });
+    assert((await first) && (await overlapping), 'deduplicated silent refresh did not complete for both callers');
+    const afterFirst = app.snapshot(calls);
+    assert(await app.refreshPosSilently(false), 'throttled refresh did not return the retained verified state');
+    assert(app.stableSerialize(calls) === app.stableSerialize(afterFirst), 'a focus-style refresh ignored the 30-second throttle');
+    assert(await app.refreshPosSilently(true), 'forced refresh failed');
+    assert(calls.pos_get_catalog === 2 && calls.pos_get_shift_status === 2, 'forced refresh was incorrectly throttled');
+  });
+  test('POS catalog cache is scoped, catalog-only, and ignores expired or incompatible records', () => {
+    const catalog = installCheckout('owner');
+    markCheckoutVerified();
+    app.addPosProduct(catalog[0].product_id);
+    app.posCheckout.paymentMethod = 'gotyme';
+    app.posCheckout.referenceNumber = 'must-not-cache';
+    app.posCheckout.lastReceipt = receiptFixture();
+    app.posCheckout.recent = [recentSaleFixture()];
+    assert(app.posRememberCatalogCache(), 'verified catalog could not be cached');
+    const record = JSON.parse(app.sessionStorage.getItem(app.POS_CATALOG_CACHE_KEY));
+    const userId = app.session.user.id, businessId = app.posContext.businessId;
+    assert(record.scope === String(app.cloud.url || app.activeUrl() || '') + '|' + userId + '|' + businessId, 'catalog cache did not include its project/account/workspace scope');
+    assert(Object.keys(record).sort().join('|') === 'catalog|savedAt|schemaVersion|scope', 'catalog cache stored checkout, shift, payment, or report state');
+
+    app.resetPosCheckout();
+    installPosContext('owner');
+    assert(app.posHydrateCatalogCache(), 'matching account/workspace could not hydrate its catalog');
+    assert(app.posCheckout.catalogFromCache && app.posCheckout.catalog.length === 1, 'matching cache did not restore the menu preview');
+    assert(!app.posCheckout.loaded && !app.posCheckout.shift && !app.posCheckout.shiftStatus && !app.posCheckout.summary && !app.posCheckout.recent.length, 'cache restored authoritative shift or report state');
+    assert(!app.posCartLines().length && app.posCheckout.paymentMethod === 'cash' && !app.posCheckout.referenceNumber && !app.posCheckout.lastReceipt, 'cache restored cart, payment, or receipt state');
+
+    app.resetPosCheckout();
+    app.session = { user: { id: 'different-user' } };
+    app.currentUserId = 'different-user';
+    assert(!app.posHydrateCatalogCache() && !app.posCheckout.catalog.length, 'catalog cache crossed into another account');
+    app.resetPosCheckout();
+    app.session = { user: { id: userId } };
+    app.currentUserId = userId;
+    app.posContext.businessId = 'different-workspace';
+    assert(!app.posHydrateCatalogCache() && !app.posCheckout.catalog.length, 'catalog cache crossed into another workspace');
+
+    app.resetPosCheckout();
+    app.posContext.businessId = businessId;
+    app.sessionStorage.setItem(app.POS_CATALOG_CACHE_KEY, JSON.stringify(Object.assign({}, record, { savedAt: Date.now() - app.POS_CATALOG_CACHE_MAX_AGE_MS - 1000 })));
+    assert(!app.posHydrateCatalogCache() && !app.posCheckout.catalog.length, 'expired catalog cache was used');
+    app.sessionStorage.setItem(app.POS_CATALOG_CACHE_KEY, JSON.stringify(Object.assign({}, record, { schemaVersion: 0, savedAt: Date.now() })));
+    assert(!app.posHydrateCatalogCache() && !app.posCheckout.catalog.length, 'incompatible catalog cache was used');
+    app.posClearCatalogCache();
+  });
+  test('cached menu is preview-only until current shift verification and reconciles newer versions', async () => {
+    const cachedCatalog = installCheckout('owner');
+    markCheckoutVerified();
+    assert(app.posRememberCatalogCache(), 'catalog preview fixture was not cached');
+    app.resetPosCheckout();
+    installPosContext('owner');
+    const currentCatalog = [checkoutCatalogFixture({ active_version_id: '99999999-9999-4999-8999-999999999999', selling_price_centavos: 18000 })];
+    let resolveCatalog, saleCalls = 0;
+    const catalogResponse = new Promise(resolve => { resolveCatalog = resolve; });
+    app.cloud.client = { rpc(name) {
+      if (name === 'pos_get_catalog') return catalogResponse;
+      if (name === 'pos_get_shift_status') return rpcResult([shiftStatusFixture()]);
+      if (name === 'pos_get_end_of_day_summary') return rpcResult([dayReportFixture()]);
+      if (name === 'pos_get_recent_sales_v2') return rpcResult([]);
+      if (name === 'pos_complete_shift_sale') { saleCalls++;return rpcResult([receiptFixture()]); }
+      throw new Error('unexpected RPC ' + name);
+    }};
+
+    const loading = app.loadPosCheckoutData();
+    assert(app.posCheckout.catalogFromCache && app.posCheckout.refreshing, 'cached catalog did not appear as a syncing preview');
+    assert(/Matcha Latte/.test(app.document.getElementById('posRoot').textContent), 'cached drink card was not visible while offline verification was pending');
+    assert(app.addPosProduct(cachedCatalog[0].product_id), 'cached menu preview could not collect a customer selection');
+    app.posCheckout.cashReceived = '200';
+    app.renderPos();
+    assert(!app.posCheckoutValidation().valid && /sync/i.test(app.posCheckoutValidation().error), 'cache preview authorized checkout before shift verification');
+    const previewAction = app.document.querySelector('[data-act=reviewPosSale], [data-act=openPosShift]');
+    assert(previewAction && previewAction.disabled, 'cache preview enabled the payment action');
+    assert(!(await app.submitPosSale()) && saleCalls === 0, 'cache preview sent an unverified sale');
+
+    resolveCatalog({ data: currentCatalog, error: null });
+    assert(await loading, 'authoritative refresh after cache preview failed');
+    assert(!app.posCheckout.catalogFromCache && app.posCheckout.catalog[0].active_version_id === currentCatalog[0].active_version_id, 'authoritative catalog did not replace the cached preview');
+    const line = app.posCartLines()[0];
+    assert(line && line.productVersionId === cachedCatalog[0].active_version_id && line.stale && app.posCheckout.catalogChanged, 'newer server version did not require explicit cart review');
+    assert(!app.posCheckoutValidation().valid && /menu changed/i.test(app.posCheckoutValidation().error), 'stale cached selection became chargeable without review');
+    const updatedCache = JSON.parse(app.sessionStorage.getItem(app.POS_CATALOG_CACHE_KEY));
+    assert(updatedCache.catalog[0].active_version_id === currentCatalog[0].active_version_id, 'verified server catalog did not replace the stale cache');
+  });
+  test('cached catalog immediately restores only its scoped pending exact sale while verification waits', async () => {
+    const catalog = installCheckout('owner');
+    markCheckoutVerified();
+    app.addPosProduct(catalog[0].product_id);
+    app.addPosProduct(catalog[0].product_id);
+    app.posCheckout.paymentMethod = 'gcash';
+    app.posCheckout.referenceNumber = 'pending-gcash-reference';
+    const pending = app.buildPosPendingSale(app.posCheckoutValidation());
+    app.posSavePending(pending);
+    assert(app.posRememberCatalogCache(), 'pending-sale catalog fixture was not cached');
+    app.resetPosCheckout();
+    installPosContext('owner');
+
+    let resolveCatalog, resolveShift;
+    const catalogResponse = new Promise(resolve => { resolveCatalog = resolve; });
+    const shiftResponse = new Promise(resolve => { resolveShift = resolve; });
+    app.cloud.client = { rpc(name) {
+      if (name === 'pos_get_catalog') return catalogResponse;
+      if (name === 'pos_get_shift_status') return shiftResponse;
+      if (name === 'pos_get_end_of_day_summary') return rpcResult([dayReportFixture()]);
+      if (name === 'pos_get_recent_sales_v2') return rpcResult([]);
+      throw new Error('unexpected RPC ' + name);
+    }};
+
+    const loading = app.loadPosCheckoutData();
+    assert(app.posCheckout.catalogFromCache && app.posCheckout.refreshing, 'cached menu was not shown while authoritative requests waited');
+    assert(app.posCheckout.pending && app.posCheckout.pending.rpcArgs.p_client_sale_id === pending.rpcArgs.p_client_sale_id, 'scoped pending exact sale was not restored with the cached menu');
+    assert(app.posCartLines().length === 1 && app.posCartLines()[0].quantity === 2, 'pending cart quantity was not restored exactly');
+    assert(app.posCheckout.paymentMethod === 'gcash' && app.posCheckout.referenceNumber === 'pending-gcash-reference', 'pending payment choice was not restored exactly');
+    const productCard = app.document.querySelector('.pos-product');
+    const startShift = app.document.querySelector('[data-act=openPosShift]');
+    assert(productCard && productCard.disabled, 'drink cards were not locked during exact pending recovery');
+    assert((!startShift || startShift.disabled) && !app.openPosShiftModal(), 'a new shift could start during exact pending recovery');
+    assert(/Retry exact order/.test(app.document.getElementById('posRoot').textContent), 'pending recovery action was not visible immediately');
+
+    resolveCatalog({ data: catalog, error: null });
+    resolveShift({ data: [shiftStatusFixture()], error: null });
+    assert(await loading, 'authoritative verification failed after restoring the pending sale');
+    assert(app.posCheckout.pending && app.posCheckout.paymentMethod === 'gcash' && app.posCheckout.referenceNumber === 'pending-gcash-reference', 'verification replaced the frozen pending payment details');
+    app.posClearPending();
+    app.posClearCatalogCache();
+  });
+  test('catalog-only success cannot clear a checkout lock caused by failed shift verification', async () => {
+    const catalog = installCheckout('owner');
+    markCheckoutVerified();
+    app.addPosProduct(catalog[0].product_id);
+    app.posCheckout.cashReceived = '200';
+    app.renderPos();
+    app.cloud.client = { rpc(name) {
+      if (name === 'pos_get_catalog') return rpcResult(catalog);
+      if (name === 'pos_get_shift_status') return rpcResult(null, { message: 'shift unavailable' });
+      throw new Error('unexpected RPC ' + name);
+    }};
+    assert(!(await app.refreshPosSilently(true)), 'failed shift verification reported success');
+    assert(app.posCheckout.checkoutRefreshRequired, 'failed shift verification did not lock checkout');
+
+    let saleCalls = 0;
+    app.cloud.client = { rpc(name) {
+      if (name === 'pos_get_catalog') return rpcResult(catalog);
+      if (name === 'pos_complete_shift_sale') { saleCalls++;return rpcResult([receiptFixture()]); }
+      throw new Error('unexpected RPC ' + name);
+    }};
+    assert(await app.refreshPosCatalogOnly(), 'catalog-only recovery failed');
+    assert(app.posCheckout.checkoutRefreshRequired, 'catalog-only success improperly cleared the shift-verification lock');
+    assert(!app.posCheckoutValidation().valid && /refresh/i.test(app.posCheckoutValidation().error), 'catalog-only success authorized checkout without a fresh shift');
+    assert(!(await app.submitPosSale()) && saleCalls === 0, 'catalog-only recovery allowed a sale without shift verification');
+  });
+  test('sale success during a prior silent refresh queues a second authoritative refresh', async () => {
+    const catalog = installCheckout('owner');
+    markCheckoutVerified();
+    app.addPosProduct(catalog[0].product_id);
+    app.posCheckout.cashReceived = '200';
+    const pending = app.buildPosPendingSale(app.posCheckoutValidation());
+    app.posSavePending(pending);
+    const catalogResolvers = [], shiftResolvers = [];
+    let catalogCalls = 0, shiftCalls = 0, saleCalls = 0;
+    app.cloud.client = { rpc(name) {
+      if (name === 'pos_get_catalog') {
+        catalogCalls++;
+        return new Promise(resolve => { catalogResolvers.push(resolve); });
+      }
+      if (name === 'pos_get_shift_status') {
+        shiftCalls++;
+        return new Promise(resolve => { shiftResolvers.push(resolve); });
+      }
+      if (name === 'pos_get_end_of_day_summary') return rpcResult([dayReportFixture()]);
+      if (name === 'pos_get_recent_sales_v2') return rpcResult([recentSaleFixture()]);
+      if (name === 'pos_complete_shift_sale') { saleCalls++;return rpcResult([receiptFixture({ is_retry: true })]); }
+      throw new Error('unexpected RPC ' + name);
+    }};
+
+    const priorRefresh = app.refreshPosSilently(true);
+    assert(catalogCalls === 1 && shiftCalls === 1 && app.posCheckout.refreshing, 'prior silent refresh did not start');
+    assert(await app.submitPosSale(), 'exact pending retry did not complete during the prior refresh');
+    assert(saleCalls === 1 && app.posCheckout.lastReceipt, 'sale response was not retained');
+    assert(/Receipt SCP-/.test(app.document.getElementById('posRoot').textContent) && /Matcha Latte/.test(app.document.getElementById('posRoot').textContent), 'receipt or menu disappeared while the prior refresh remained in flight');
+    assert(/Syncing/.test(app.document.querySelector('.pos-sync').textContent), 'sale success hid the in-flight sync status');
+
+    catalogResolvers[0]({ data: catalog, error: null });
+    shiftResolvers[0]({ data: [shiftStatusFixture()], error: null });
+    assert(await priorRefresh, 'prior refresh failed after the sale completed');
+    for (let i = 0; i < 5 && catalogResolvers.length < 2; i++) await new Promise(resolve => app.setTimeout(resolve, 0));
+    assert(catalogCalls === 2 && shiftCalls === 2 && catalogResolvers.length === 2 && shiftResolvers.length === 2, 'sale mutation did not queue a second authoritative refresh');
+    const queuedRefresh = app.posSilentRefreshPromise;
+    assert(queuedRefresh && app.posCheckout.refreshing, 'queued post-sale refresh was not active');
+    assert(/Receipt SCP-/.test(app.document.getElementById('posRoot').textContent) && /Matcha Latte/.test(app.document.getElementById('posRoot').textContent) && /Syncing/.test(app.document.querySelector('.pos-sync').textContent), 'queued refresh replaced the receipt, menu, or sync status');
+    catalogResolvers[1]({ data: catalog, error: null });
+    shiftResolvers[1]({ data: [shiftStatusFixture()], error: null });
+    assert(await queuedRefresh, 'queued authoritative refresh failed');
+    assert(catalogCalls === 2 && shiftCalls === 2 && app.posCheckout.lastReceipt, 'queued refresh duplicated requests or lost the receipt');
+  });
+  test('silent refresh completion preserves focused POS payment inputs and selections', async () => {
+    const cases = [
+      { method: 'cash', id: 'posCashReceived', value: '200.00', start: 1, end: 5 },
+      { method: 'gcash', id: 'posReference', value: 'GCASH-12345', start: 2, end: 8 }
+    ];
+    for (const current of cases) {
+      const catalog = installCheckout('owner');
+      markCheckoutVerified();
+      app.addPosProduct(catalog[0].product_id);
+      app.posCheckout.paymentMethod = current.method;
+      app.renderPos();
+      let resolveCatalog, resolveShift;
+      const catalogResponse = new Promise(resolve => { resolveCatalog = resolve; });
+      const shiftResponse = new Promise(resolve => { resolveShift = resolve; });
+      app.cloud.client = { rpc(name) {
+        if (name === 'pos_get_catalog') return catalogResponse;
+        if (name === 'pos_get_shift_status') return shiftResponse;
+        if (name === 'pos_get_end_of_day_summary') return rpcResult([dayReportFixture()]);
+        if (name === 'pos_get_recent_sales_v2') return rpcResult([]);
+        throw new Error('unexpected RPC ' + name);
+      }};
+
+      const refreshing = app.refreshPosSilently(true);
+      const field = app.document.getElementById(current.id);
+      assert(field, current.id + ' was not rendered after refresh started');
+      field.focus();
+      input(field, current.value);
+      field.setSelectionRange(current.start, current.end);
+      assert(app.document.activeElement === field, current.id + ' could not receive focus during refresh');
+      resolveCatalog({ data: catalog, error: null });
+      resolveShift({ data: [shiftStatusFixture()], error: null });
+      assert(await refreshing, current.id + ' refresh failed');
+      const restored = app.document.getElementById(current.id);
+      assert(restored && restored.value === current.value, current.id + ' value changed after refresh');
+      assert(app.document.activeElement === restored, current.id + ' lost focus after refresh');
+      assert(restored.selectionStart === current.start && restored.selectionEnd === current.end, current.id + ' selection changed after refresh');
+    }
+  });
+  test('POS sync status is an accessible polite live region in every state', () => {
+    installCheckout('owner');
+    markCheckoutVerified();
+    let status = app.document.querySelector('.pos-sync');
+    assert(status && status.getAttribute('role') === 'status' && status.getAttribute('aria-live') === 'polite', 'up-to-date status was not exposed as a polite live region');
+    assert(/Up to date/.test(status.textContent), 'verified state used the wrong status label');
+    app.posCheckout.refreshing = true;
+    app.renderPos();
+    status = app.document.querySelector('.pos-sync');
+    assert(/Syncing/.test(status.textContent) && status.classList.contains('syncing'), 'in-progress status was not announced');
+    app.posCheckout.refreshing = false;
+    app.posCheckout.checkoutRefreshRequired = true;
+    app.posCheckout.refreshError = 'Connection unavailable.';
+    app.renderPos();
+    status = app.document.querySelector('.pos-sync');
+    assert(/Could not refresh/.test(status.textContent) && status.classList.contains('bad'), 'failed status was not announced distinctly');
+    assert(status.getAttribute('role') === 'status' && status.getAttribute('aria-live') === 'polite', 'failed status lost its live-region semantics');
+  });
+  test('explicit POS access denial clears warm cache and operational checkout for either initial RPC', async () => {
+    for (const deniedRpc of ['pos_get_catalog', 'pos_get_shift_status']) {
+      const catalog = installCheckout('owner');
+      markCheckoutVerified();
+      app.addPosProduct(catalog[0].product_id);
+      app.posCheckout.cashReceived = '200';
+      app.posCheckout.recent = [recentSaleFixture()];
+      app.renderPos();
+      assert(app.posRememberCatalogCache() && app.sessionStorage.getItem(app.POS_CATALOG_CACHE_KEY), deniedRpc + ' fixture did not create a warm scoped cache');
+      let saleCalls = 0;
+      app.cloud.client = { rpc(name) {
+        if (name === deniedRpc) return rpcResult(null, { code: '42501', message: 'access revoked' });
+        if (name === 'pos_get_catalog') return rpcResult(catalog);
+        if (name === 'pos_get_shift_status') return rpcResult([shiftStatusFixture()]);
+        if (name === 'pos_complete_shift_sale') { saleCalls++;return rpcResult([receiptFixture()]); }
+        throw new Error('unexpected RPC ' + name);
+      }};
+
+      assert(!(await app.refreshPosSilently(true)), deniedRpc + ' access denial reported success');
+      assert(app.sessionStorage.getItem(app.POS_CATALOG_CACHE_KEY) === null, deniedRpc + ' access denial left the scoped catalog cache readable');
+      assert(!app.posContext.businessId && app.posContext.loaded && /no longer has access/i.test(app.posContext.error), deniedRpc + ' access denial retained an operational workspace context');
+      assert(!app.posCheckout.catalog.length && !app.posCheckout.shift && !app.posCheckout.shiftStatus && !app.posCheckout.summary && !app.posCheckout.recent.length, deniedRpc + ' access denial retained menu, shift, or report data');
+      assert(!app.posCartLines().length && !app.posCheckout.lastReceipt, deniedRpc + ' access denial retained operational checkout data');
+      const root = app.document.getElementById('posRoot');
+      assert(/no longer has access/i.test(root.textContent), deniedRpc + ' access denial was not explained in the POS');
+      assert(!root.querySelector('.pos-product') && !root.querySelector('#posCartPanel'), deniedRpc + ' access denial left the checkout UI usable');
+      assert(!(await app.submitPosSale()) && saleCalls === 0, deniedRpc + ' access denial still allowed a sale request');
+    }
+  });
+  test('same-user token refresh updates auth without replacing or unfocusing the POS DOM', async () => {
+    const catalog = installCheckout('owner');
+    markCheckoutVerified();
+    app.addPosProduct(catalog[0].product_id);
+    app.posCheckout.cashReceived = '200.00';
+    app.renderPos();
+    const root = app.document.getElementById('posRoot');
+    const rootFirstChild = root.firstElementChild;
+    const productCard = root.querySelector('.pos-product');
+    const cashInput = app.document.getElementById('posCashReceived');
+    cashInput.focus();
+    cashInput.setSelectionRange(1, 5);
+    let realtimeToken = '', rpcCalls = 0;
+    app.cloud.client = {
+      realtime: { setAuth(token) { realtimeToken = token; } },
+      rpc() { rpcCalls++;return rpcResult([]); }
+    };
+    const refreshedSession = { user: { id: app.currentUserId, email: 'owner+refreshed@example.test' }, access_token: 'refreshed-access-token' };
+
+    assert(await app.handleAuth(refreshedSession, 'TOKEN_REFRESHED'), 'same-user token refresh did not complete');
+    assert(app.session === refreshedSession && app.session.access_token === 'refreshed-access-token', 'same-user token refresh did not update the active session');
+    assert(realtimeToken === 'refreshed-access-token' && app.cloud.connected, 'same-user token refresh did not update realtime authentication');
+    assert(rpcCalls === 0, 'same-user token refresh unnecessarily reloaded POS RPC data');
+    assert(app.document.getElementById('posRoot') === root && root.firstElementChild === rootFirstChild, 'same-user token refresh replaced the current POS DOM');
+    assert(root.querySelector('.pos-product') === productCard && app.document.getElementById('posCashReceived') === cashInput, 'same-user token refresh recreated POS controls');
+    assert(app.document.activeElement === cashInput && cashInput.value === '200.00', 'same-user token refresh lost the focused POS input or its value');
+    assert(cashInput.selectionStart === 1 && cashInput.selectionEnd === 5, 'same-user token refresh lost the POS input selection');
+    assert(app.posCartLines().length === 1 && app.posContext.businessId, 'same-user token refresh discarded the current order or workspace');
   });
   test('cash input accepts only ordinary pesos with at most two decimals', () => {
     assert(app.strictPesoCentavos('170') === 17000, 'whole pesos were not accepted');
