@@ -54,6 +54,7 @@ the original receipt without creating a duplicate sale.
 - [Phase 4 behavior checks](supabase/tests/pos_phase_4_behavior_checks.sql)
 - [Phase 4 live access checks](supabase/tests/pos_phase_4_live_access_checks.sql)
 - [Phase 4 concurrency checks](supabase/tests/pos_phase_4_concurrency_checks.sql)
+- [Phase 4 deployment record](docs/POS_PHASE_4_DEPLOYMENT.md)
 
 Never commit a Supabase service-role key or database password. The web app uses
 only the public project URL and publishable key; authorization is enforced by
