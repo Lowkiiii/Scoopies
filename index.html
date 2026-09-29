@@ -179,6 +179,13 @@
   .pos-qty-value{min-width:30px;text-align:center;font-weight:800}
   .pos-qty .pos-remove{display:inline-flex;align-items:center;justify-content:center;flex:0 0 44px;margin-left:auto;padding:0;border-color:#ecc5bf;background:#fff7f6;color:var(--bad);font-size:0}
   .pos-remove svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
+  .pos-cart-confirm{text-align:center;padding:2px 4px 0}
+  .pos-cart-confirm-icon{display:inline-flex;align-items:center;justify-content:center;width:58px;height:58px;border-radius:50%;background:#fff0ee;color:var(--bad);margin:2px auto 12px}
+  .pos-cart-confirm-icon svg{width:28px;height:28px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+  .pos-cart-confirm-copy{margin:0 auto;max-width:330px;color:#3f3026;font-size:15px;line-height:1.5}
+  .pos-cart-confirm-note{margin:8px auto 0;max-width:330px;color:var(--muted);font-size:12px;line-height:1.4}
+  .pos-cart-confirm .modal-actions{position:static;bottom:auto;justify-content:center;margin-top:18px}
+  .pos-cart-confirm .modal-actions .btn{min-width:128px}
   .pos-total{display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--line);padding-top:12px;margin-top:10px}
   .pos-total strong{font-size:24px;color:var(--brown)}
   .pos-payment-tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin:12px 0}
@@ -1258,7 +1265,8 @@ function syncOpenPosReportModal(){
 }
 function freshPosOpsModal(){
   return {open:false,type:'',submitting:false,error:'',notice:'',step:'edit',mode:'live',openingCash:'0.00',
-    countedCash:'',verifiedGcash:'',verifiedGotyme:'',notes:'',sale:null,reason:'',result:null,uncertain:false,rpcArgs:null};
+    countedCash:'',verifiedGcash:'',verifiedGotyme:'',notes:'',sale:null,reason:'',result:null,uncertain:false,rpcArgs:null,
+    cartAction:'',cartProductId:'',cartProductName:'',cartQuantity:0};
 }
 function resetPosCheckout(){
   posCheckoutLoadGeneration++;posCheckoutSubmitGeneration++;posCatalogGeneration++;posOpsGeneration++;
@@ -1438,13 +1446,29 @@ function changePosQuantity(productId,delta){
   posCheckout.error='';posCheckout.notice='';renderPos();return true;
 }
 function removePosLine(productId){
-  if(posCheckout.pending||posCheckout.submitting||posCheckout.confirming)return false;
-  delete posCheckout.cart[String(productId)];posCheckout.error='';posCheckout.notice='';renderPos();return true;
+  if(posCheckout.pending||posCheckout.submitting||posCheckout.confirming||posOpsModal.open)return false;
+  var key=String(productId||''),line=posCheckout.cart[key];if(!line)return false;
+  posOpenOpsModal('cartConfirm',{cartAction:'removeLine',cartProductId:key,cartProductName:String(line.name||'this drink'),cartQuantity:Number(line.quantity)||1});
+  focusSoon('#posCartConfirmCancel');return true;
 }
 function clearPosCart(){
-  if(posCheckout.pending||posCheckout.submitting||posCheckout.confirming||!posCartLines().length)return false;
-  if(!confirm('Clear this sale?'))return false;
-  posCheckout.cart={};posCheckout.catalogChanged=false;posCheckout.error='';posCheckout.notice='';renderPos();return true;
+  if(posCheckout.pending||posCheckout.submitting||posCheckout.confirming||posOpsModal.open)return false;
+  var lines=posCartLines();if(!lines.length)return false;
+  var quantity=lines.reduce(function(total,line){return total+(Number(line.quantity)||0);},0);
+  posOpenOpsModal('cartConfirm',{cartAction:'clear',cartQuantity:quantity});
+  focusSoon('#posCartConfirmCancel');return true;
+}
+function confirmPosCartAction(){
+  if(!posOpsModal.open||posOpsModal.type!=='cartConfirm'||posCheckout.pending||posCheckout.submitting||posCheckout.confirming)return false;
+  var action=posOpsModal.cartAction,key=String(posOpsModal.cartProductId||'');
+  if(action==='removeLine'){
+    if(!posCheckout.cart[key]){posCloseOpsModal(true);renderPos();return false;}
+    delete posCheckout.cart[key];
+  }else if(action==='clear'){
+    if(!posCartLines().length){posCloseOpsModal(true);renderPos();return false;}
+    posCheckout.cart={};posCheckout.catalogChanged=false;
+  }else return false;
+  posCheckout.error='';posCheckout.notice='';posOpsModalReturnFocus=null;posCloseOpsModal(true);renderPos();focusSoon('#posCartPanel');return true;
 }
 function resetPosContext(message,preserveCheckout){
   posLoadGeneration++;posStatusGeneration++;
@@ -1812,9 +1836,10 @@ function posCloseOpsModal(force){
   if(posOpsModalReturnFocus&&document.contains(posOpsModalReturnFocus))posOpsModalReturnFocus.focus();
   posOpsModalReturnFocus=null;return true;
 }
-function posOpenOpsModal(type){
+function posOpenOpsModal(type,details){
   posOpsModalReturnFocus=document.activeElement;
   posOpsModal=freshPosOpsModal();posOpsModal.open=true;posOpsModal.type=type;
+  if(details&&typeof details==='object')Object.assign(posOpsModal,details);
   document.body.classList.add('modal-open');renderPosOpsModal();return true;
 }
 function openPosShiftModal(){
@@ -1958,11 +1983,21 @@ function renderPosOpsModal(){
   var modal=document.getElementById('posOpsModal'),content=document.getElementById('posOpsModalContent');
   if(!modal||!content)return;
   modal.hidden=!posOpsModal.open;if(!posOpsModal.open)return;
-  var panel=modal.querySelector('.modal');if(panel)panel.classList.toggle('small',posOpsModal.type==='openShift'||posOpsModal.type==='voidSale');
+  var panel=modal.querySelector('.modal'),cartConfirm=posOpsModal.type==='cartConfirm';
+  if(panel){panel.classList.toggle('small',posOpsModal.type==='openShift'||posOpsModal.type==='voidSale'||cartConfirm);if(cartConfirm)panel.setAttribute('aria-describedby','posCartConfirmDescription');else panel.removeAttribute('aria-describedby');}
   var verificationBlocked=posOpsActionBlocked();
   var disabled=posOpsModal.submitting||verificationBlocked?' disabled':'',frozen=posOpsModal.submitting||posOpsModal.uncertain?' disabled':'';
   var close='<button class="modal-close" data-act="closePosOpsModal" aria-label="Close dialog"'+(posOpsModal.submitting||posOpsModal.uncertain?' disabled':'')+'>x</button>';
-  if(posOpsModal.type==='openShift'){
+  if(cartConfirm){
+    var clearing=posOpsModal.cartAction==='clear',cartQty=Math.max(1,Number(posOpsModal.cartQuantity)||1);
+    var cartTitle=clearing?'Clear current order?':'Remove this drink?';
+    var cartSubject=clearing?'all '+cartQty+' drink'+(cartQty===1?'':'s'):cartQty+' &times; '+escapeHtml(posOpsModal.cartProductName||'this drink');
+    content.innerHTML='<div class="modal-head"><h2 id="posOpsModalTitle">'+cartTitle+'</h2>'+close+'</div><div class="pos-cart-confirm">'+
+      '<div class="pos-cart-confirm-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13M10 11v5M14 11v5"></path></svg></div>'+
+      '<p id="posCartConfirmDescription" class="pos-cart-confirm-copy">Remove <strong>'+cartSubject+'</strong> from the current order?</p>'+
+      '<p class="pos-cart-confirm-note">This only changes the order you are building. It does not void any completed sale.</p>'+
+      '<div class="modal-actions"><button id="posCartConfirmCancel" class="btn secondary" data-act="closePosOpsModal">'+(clearing?'Keep order':'Keep drink')+'</button><button class="btn danger" data-act="confirmPosCartAction">'+(clearing?'Clear order':'Remove drink')+'</button></div></div>';
+  }else if(posOpsModal.type==='openShift'){
     var status=posCheckout.shiftStatus||{},training=posOpsModal.mode==='training';
     var modes='<div class="pos-mode-choice"><button data-act="setPosOpenMode" data-mode="live" class="'+(!training?'active':'')+'"'+(!status.can_open_live||posOpsModal.submitting||posOpsModal.uncertain||verificationBlocked?' disabled':'')+'><strong>Live</strong><br><span class="hint">Real sales and money</span></button>';
     if(status.can_open_training)modes+='<button data-act="setPosOpenMode" data-mode="training" class="'+(training?'active':'')+'"'+frozen+'><strong>Training</strong><br><span class="hint">Practice only</span></button>';
@@ -3265,6 +3300,7 @@ document.body.addEventListener('click', function(e){
     case 'posQtyUp': changePosQuantity(id,1);return;
     case 'removePosLine': removePosLine(id);return;
     case 'clearPosCart': clearPosCart();return;
+    case 'confirmPosCartAction': confirmPosCartAction();return;
     case 'setPosPayment': if(!posCheckout.pending&&!posCheckout.submitting&&!posCheckout.confirming&&['cash','gcash','gotyme'].indexOf(b.dataset.method)>=0){posCheckout.paymentMethod=b.dataset.method;posCheckout.error='';renderPos();}return;
     case 'setPosCash': if(!posCheckout.pending&&!posCheckout.submitting&&!posCheckout.confirming){posCheckout.cashReceived=(Number(b.dataset.centavos||0)/100).toFixed(2);posCheckout.error='';renderPos();}return;
     case 'acceptPosCatalogChanges': acceptPosCatalogChanges();return;

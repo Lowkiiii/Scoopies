@@ -2409,13 +2409,25 @@ document.getElementById('app').addEventListener('load', async () => {
     assert(removeButton.querySelector('svg[aria-hidden=true]') && !removeButton.textContent.trim(), 'cart remove control did not use a compact decorative trash icon');
     assert(/Remove Matcha Latte from order/.test(removeButton.getAttribute('aria-label') || ''), 'trash icon did not keep an accessible drink-specific label');
     assert(parseFloat(removeStyle.width) === 44 && parseFloat(removeStyle.height) === 44, 'trash icon lost its compact 44px touch target');
-    click(removeButton);
-    assert(!app.document.querySelector('.pos-product-count'), 'removing the cart line left a selected card badge');
-    click(app.document.querySelector('[data-act=addPosProduct]'));
     const originalConfirm = app.confirm;
-    app.confirm = () => true;
-    try { click(app.document.querySelector('[data-act=clearPosCart]')); }
+    let nativeConfirmCalls = 0;
+    app.confirm = () => { nativeConfirmCalls++;return false; };
+    try {
+      click(removeButton);
+      assert(app.posOpsModal.open && app.posOpsModal.type === 'cartConfirm', 'trash icon did not open the custom POS confirmation');
+      assert(/Remove this drink/.test(app.document.getElementById('posOpsModal').textContent) && /Matcha Latte/.test(app.document.getElementById('posOpsModal').textContent), 'drink confirmation did not identify the item being removed');
+      click(app.document.getElementById('posCartConfirmCancel'));
+      assert(app.posCartLines().length === 1, 'canceling the drink confirmation removed the cart line');
+      click(app.document.querySelector('[data-act=removePosLine]'));
+      click(app.document.querySelector('[data-act=confirmPosCartAction]'));
+      assert(!app.document.querySelector('.pos-product-count'), 'confirming removal left a selected card badge');
+      click(app.document.querySelector('[data-act=addPosProduct]'));
+      click(app.document.querySelector('[data-act=clearPosCart]'));
+      assert(app.posOpsModal.open && /Clear current order/.test(app.document.getElementById('posOpsModal').textContent), 'Clear did not use the custom POS confirmation');
+      click(app.document.querySelector('[data-act=confirmPosCartAction]'));
+    }
     finally { app.confirm = originalConfirm; }
+    assert(nativeConfirmCalls === 0, 'a POS cart delete opened the browser confirm dialog');
     assert(!app.posCartLines().length && !app.document.querySelector('.pos-product-count'), 'clearing the order did not reset card selection');
   });
   test('mobile order shortcut mirrors the cart and focuses Current order', () => {
@@ -2436,6 +2448,8 @@ document.getElementById('app').addEventListener('load', async () => {
     shortcut = app.document.querySelector('[data-act=focusPosCart]');
     assert(/1 drink/.test(shortcut.textContent) && /170\.00/.test(shortcut.textContent), 'mobile shortcut did not update after cart minus');
     click(app.document.querySelector('[data-act=removePosLine]'));
+    assert(app.posOpsModal.open && app.posOpsModal.type === 'cartConfirm', 'mobile trash did not open the custom confirmation');
+    click(app.document.querySelector('[data-act=confirmPosCartAction]'));
     assert(!app.document.querySelector('.pos-mobile-order-bar'), 'mobile shortcut remained after the cart became empty');
   });
   test('all drinks display as cards and categories remain optional filters', () => {
