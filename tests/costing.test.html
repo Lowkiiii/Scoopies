@@ -26,6 +26,16 @@ document.getElementById('app').addEventListener('load', async () => {
   }
   function installState(overrides = {}) {
     if (app.saveTimer) app.clearTimeout(app.saveTimer);
+    app.categoryModalOpen = false;
+    app.purchasedIngredientModalOpen = false;
+    app.mixtureModalOpen = false;
+    app.draftsModalOpen = false;
+    app.publishModalOpen = false;
+    ['categoryModal', 'purchasedIngredientModal', 'mixtureModal', 'draftsModal', 'publishModal'].forEach(id => {
+      const modal = app.document.getElementById(id);
+      if (modal) modal.hidden = true;
+    });
+    app.document.body.classList.remove('modal-open');
     app.state = normalizedState(overrides);
     app.cloud.connected = false;
     app.pendingSave = false;
@@ -247,6 +257,50 @@ document.getElementById('app').addEventListener('load', async () => {
       cash_tendered_centavos: 20000, change_given_centavos: 3000, is_retry: false
     }, overrides);
   }
+  function inventoryItemFixture(overrides = {}) {
+    return Object.assign({
+      inventory_item_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      source_costing_ingredient_id: 'milk-source', item_kind: 'purchased', name: 'Oat milk', base_unit: 'ml',
+      current_balance_base: 1250, low_stock_threshold_base: 500, revision: 3, has_stock_history: true,
+      active: true, last_movement_at: '2026-09-29T03:00:00.000Z', last_movement_type: 'stock_in'
+    }, overrides);
+  }
+  function inventoryTransactionFixture(overrides = {}) {
+    return Object.assign({
+      transaction_id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+      inventory_item_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', item_name_snapshot: 'Oat milk',
+      transaction_type: 'stock_in', quantity_delta_base: 250, balance_before_base: 1000,
+      balance_after_base: 1250, base_unit_snapshot: 'ml', reason: null, note: 'Morning delivery',
+      recorded_by_name: 'Owner', occurred_at: '2026-09-29T03:00:00.000Z', item_revision_before: 2, item_revision_after: 3
+    }, overrides);
+  }
+  function installInventory(role = 'owner', rows = [inventoryItemFixture()], transactions = [inventoryTransactionFixture()]) {
+    app.localStorage.removeItem(app.STOCK_PENDING_KEY);
+    app.localStorage.removeItem(app.STOCK_SOURCE_DELETE_KEY);
+    for (let index = app.localStorage.length - 1; index >= 0; index -= 1) {
+      const key = app.localStorage.key(index);
+      if (key && (key.startsWith(app.STOCK_PENDING_KEY + '|') || key.startsWith(app.STOCK_SOURCE_DELETE_KEY + '|'))) app.localStorage.removeItem(key);
+    }
+    installState({
+      ingredientCategories: [{ id: 'dairy', name: 'Milk and cream' }],
+      ingredients: [
+        { id: 'milk-source', categoryId: 'dairy', kind: 'purchased', name: 'Oat milk', purchaseQty: 1, amountPerItem: 1, unit: 'l', price: 180 },
+        { id: 'cream-source', categoryId: 'dairy', kind: 'mixture', name: 'Sea Salt Cream', unit: 'ml', batchYield: 500, components: [] }
+      ]
+    });
+    installPosContext(role);
+    app.stockState = app.freshStockState();
+    app.stockState.loaded = true;
+    app.stockState.items = rows.map(app.stockNormalizeItem);
+    app.stockState.transactions = transactions.map(app.stockNormalizeTransaction);
+    app.stockState.lastUpdatedAt = Date.now();
+    app.stockModal = app.freshStockModal();
+    const modal = app.document.getElementById('stockModal');
+    if (modal) modal.hidden = true;
+    app.refreshModalBodyClass();
+    app.renderStocks();
+    return app.stockState.items;
+  }
   test('test mode isolates storage and disables every cloud connection', () => {
     if (!app.TEST_MODE || app.KEY !== 'scoopies_costing_test') throw new Error('test storage is not isolated');
     if (app.cloud.client || app.cloud.connected || app.session) throw new Error('cloud access is enabled in test mode');
@@ -272,6 +326,66 @@ document.getElementById('app').addEventListener('load', async () => {
   test('liters and kilograms convert before package quantities are multiplied', () => {
     closeTo(app.ingredientTotalBase({ purchaseQty: 2, amountPerItem: 1.5, unit: 'l' }), 3000);
     closeTo(app.ingredientTotalBase({ purchaseQty: 3, amountPerItem: 0.5, unit: 'kg' }), 1500);
+  });
+  test('switching an ingredient between equivalent display units preserves its cost', async () => {
+    installState({
+      ingredients: [{ id: 'milk', name: 'Milk', kind: 'purchased', purchaseQty: 2, amountPerItem: 1, unit: 'l', price: 240 }],
+      recipes: [{ id: 'latte', name: 'Latte', yield: 1, lines: [{ id: 'milk-line', ingredientId: 'milk', qty: 120, unit: 'ml' }] }]
+    });
+    const beforeUnitCost = app.ingCostPerBase(app.state.ingredients[0]);
+    const beforeRecipeCost = app.recipeTotal(app.state.recipes[0]);
+    assert(await app.changeIngredientUnitSafely('milk', 'ml'), 'liter-to-milliliter switch failed');
+    assert(app.state.ingredients[0].unit === 'ml' && app.state.ingredients[0].amountPerItem === 1000, 'package amount was not converted to milliliters');
+    closeTo(app.ingCostPerBase(app.state.ingredients[0]), beforeUnitCost);
+    closeTo(app.recipeTotal(app.state.recipes[0]), beforeRecipeCost);
+    assert(await app.changeIngredientUnitSafely('milk', 'l'), 'milliliter-to-liter switch failed');
+    assert(app.state.ingredients[0].amountPerItem === 1, 'package amount was not converted back to liters');
+    closeTo(app.recipeTotal(app.state.recipes[0]), beforeRecipeCost);
+  });
+  test('switching recipe and mixture display units preserves all quantities and costs', () => {
+    installState({
+      ingredients: [
+        { id: 'cream', name: 'Cream', kind: 'purchased', purchaseQty: 1, amountPerItem: 1, unit: 'l', price: 500 },
+        { id: 'whip', name: 'Whip', kind: 'mixture', batchYield: 500, unit: 'ml', components: [{ ingredientId: 'cream', qty: 250, unit: 'ml' }] }
+      ],
+      recipes: [{ id: 'drink', name: 'Drink', yield: 1, lines: [{ id: 'whip-line', ingredientId: 'whip', qty: 40, unit: 'ml' }] }]
+    });
+    const beforeRecipeCost = app.recipeTotal(app.state.recipes[0]);
+    change(app.document.querySelector('[data-entity=recipeLine] [data-field=unit]'), 'l');
+    closeTo(Number(app.state.recipes[0].lines[0].qty), 0.04);
+    closeTo(app.recipeTotal(app.state.recipes[0]), beforeRecipeCost);
+
+    const beforeMixtureUnitCost = app.ingCostPerBase(app.getById(app.state.ingredients, 'whip'));
+    app.openMixtureModal('whip', false);
+    change(app.document.querySelector('[data-mix-root=unit]'), 'l');
+    change(app.document.querySelector('[data-mix-field=unit]'), 'l');
+    closeTo(Number(app.mixtureDraft.batchYield), 0.5);
+    closeTo(Number(app.mixtureDraft.components[0].qty), 0.25);
+    closeTo(app.draftMixtureInfo().costPerBase, beforeMixtureUnitCost);
+    app.closeMixtureModal(true);
+  });
+  test('replacing a recipe or mixture source converts compatible quantities and clears incompatible ones', () => {
+    installState({
+      ingredients: [
+        { id: 'milk-liters', name: 'Milk liters', kind: 'purchased', purchaseQty: 1, amountPerItem: 1, unit: 'l', price: 100 },
+        { id: 'milk-ml', name: 'Milk milliliters', kind: 'purchased', purchaseQty: 1, amountPerItem: 1000, unit: 'ml', price: 100 },
+        { id: 'matcha', name: 'Matcha', kind: 'purchased', purchaseQty: 1, amountPerItem: 100, unit: 'g', price: 100 },
+        { id: 'blend', name: 'Blend', kind: 'mixture', batchYield: 1000, unit: 'ml', components: [{ ingredientId: 'milk-liters', qty: 1, unit: 'l' }] }
+      ],
+      recipes: [{ id: 'drink', name: 'Drink', yield: 1, lines: [{ id: 'source-line', ingredientId: 'milk-liters', qty: 1, unit: 'l' }] }]
+    });
+    const recipeSource = app.document.querySelector('[data-entity=recipeLine] [data-field=ingredientId]');
+    change(recipeSource, 'milk-ml');
+    assert(app.state.recipes[0].lines[0].unit === 'ml' && Number(app.state.recipes[0].lines[0].qty) === 1000, 'same-dimension recipe replacement reinterpreted the quantity');
+    change(app.document.querySelector('[data-entity=recipeLine] [data-field=ingredientId]'), 'matcha');
+    assert(app.state.recipes[0].lines[0].unit === 'g' && app.state.recipes[0].lines[0].qty === '', 'cross-dimension recipe replacement kept a meaningless quantity');
+
+    app.openMixtureModal('blend', false);
+    change(app.document.querySelector('[data-mix-field=ingredientId]'), 'milk-ml');
+    assert(app.mixtureDraft.components[0].unit === 'ml' && Number(app.mixtureDraft.components[0].qty) === 1000, 'same-dimension mixture replacement reinterpreted the quantity');
+    change(app.document.querySelector('[data-mix-field=ingredientId]'), 'matcha');
+    assert(app.mixtureDraft.components[0].unit === 'g' && app.mixtureDraft.components[0].qty === '', 'cross-dimension mixture replacement kept a meaningless quantity');
+    app.closeMixtureModal(true);
   });
   test('ingredient fields render clearly and changes are persisted in saved state', async () => {
     const ingredient = {
@@ -586,11 +700,65 @@ document.getElementById('app').addEventListener('load', async () => {
     ] });
     const oldConfirm = app.confirm;
     app.confirm = () => true;
+    app.syncedState = app.blank();
     try {
       click(app.document.querySelector('[data-act=delIngredient][data-id=unused]'));
       assert(!app.getById(app.state.ingredients, 'unused'), 'unreferenced ingredient was not deleted');
     } finally {
       app.confirm = oldConfirm;
+    }
+  });
+  test('a synced ingredient cannot be deleted while offline', () => {
+    installState({ ingredients: [
+      { id: 'synced-offline', name: 'Synced ingredient', kind: 'purchased', purchaseQty: 1, amountPerItem: 1, unit: 'kg', price: 100 }
+    ] });
+    const oldConfirm = app.confirm;
+    const oldAlert = app.alert;
+    const notices = [];
+    app.confirm = () => true;
+    app.alert = message => notices.push(String(message));
+    try {
+      click(app.document.querySelector('[data-act=delIngredient][data-id=synced-offline]'));
+      assert(!!app.getById(app.state.ingredients, 'synced-offline'), 'synced ingredient was deleted without an online inventory tombstone');
+      assert(notices.some(message => /reconnect/i.test(message)), 'offline deletion guard did not explain how to continue');
+    } finally {
+      app.confirm = oldConfirm;
+      app.alert = oldAlert;
+    }
+  });
+  test('offline-to-login reconciliation preserves authoritative source identities', () => {
+    const server = normalizedState({ ingredients: [
+      { id: 'kept-source', name: 'Server milk', kind: 'purchased', purchaseQty: 1, amountPerItem: 1, unit: 'l', price: 180 },
+      { id: 'server-deleted', name: 'Deleted remotely', kind: 'purchased', purchaseQty: 1, amountPerItem: 1, unit: 'g', price: 20 }
+    ] });
+    const baseline = app.snapshot(server);
+    const currentServer = normalizedState({ ingredients: [server.ingredients[0]] });
+    const offline = normalizedState({ ingredients: [
+      { id: 'kept-source', name: 'Unsafe dimension edit', kind: 'purchased', purchaseQty: 1, amountPerItem: 1, unit: 'g', price: 180 },
+      { id: 'server-deleted', name: 'Stale local edit', kind: 'purchased', purchaseQty: 1, amountPerItem: 1, unit: 'g', price: 25 },
+      { id: 'new-offline-source', name: 'New offline source', kind: 'purchased', purchaseQty: 1, amountPerItem: 500, unit: 'ml', price: 90 }
+    ] });
+    const reconciled = app.reconcileCostingInventoryLifecycle(currentServer, offline, baseline);
+    assert(app.getById(reconciled.state.ingredients, 'kept-source').unit === 'l', 'offline merge changed an existing source dimension');
+    assert(!app.getById(reconciled.state.ingredients, 'server-deleted'), 'offline merge revived a source deleted by another device');
+    assert(!!app.getById(reconciled.state.ingredients, 'new-offline-source'), 'offline merge discarded a genuinely new source');
+    assert(reconciled.blocked.length === 2, 'reconciliation did not report both rejected lifecycle edits');
+  });
+  test('a synced ingredient cannot change stock dimension while offline', async () => {
+    installState({ ingredients: [
+      { id: 'synced-unit', name: 'Synced liquid', kind: 'purchased', purchaseQty: 1, amountPerItem: 1, unit: 'l', price: 100 }
+    ] });
+    const oldAlert = app.alert;
+    const notices = [];
+    app.alert = message => notices.push(String(message));
+    try {
+      assert(!(await app.changeIngredientUnitSafely('synced-unit', 'g')), 'offline source crossed from volume to weight');
+      assert(app.getById(app.state.ingredients, 'synced-unit').unit === 'l', 'blocked offline unit change still modified state');
+      assert(notices.some(message => /new ingredient|add a new/i.test(message)), 'unit guard did not explain how to continue safely');
+      assert(await app.changeIngredientUnitSafely('synced-unit', 'ml'), 'same-dimension unit change was unnecessarily blocked offline');
+      assert(app.getById(app.state.ingredients, 'synced-unit').unit === 'ml', 'safe same-dimension unit change was not applied');
+    } finally {
+      app.alert = oldAlert;
     }
   });
   test('a realtime update cannot overwrite a local edit waiting to save', () => {
@@ -643,6 +811,7 @@ document.getElementById('app').addEventListener('load', async () => {
       await Promise.resolve(); await Promise.resolve();
       assert(app.pendingSave, 'older request incorrectly marked the newer edit as saved');
       app.maybeApplyRemote(normalizedState({ ingredients: [
+        { id: 'milk', name: 'Milk', kind: 'purchased', purchaseQty: 1, amountPerItem: 1, unit: 'l', price: 120 },
         { id: 'old', name: 'Older remote data', kind: 'purchased', purchaseQty: 1, amountPerItem: 1, unit: 'l', price: 90 }
       ] }));
       assert(app.state.ingredients[0].name === 'Newer edit', 'remote data overwrote the newer pending edit');
@@ -874,7 +1043,7 @@ document.getElementById('app').addEventListener('load', async () => {
     rows = Array.from(app.document.querySelectorAll('#ingTable [data-entity=ingredient]'));
     assert(rows.length === 3, 'clearing search did not restore all ingredients');
   });
-  test('category folders filter ingredients and new ingredients inherit the selected folder', () => {
+  test('category folders filter ingredients and the add modal creates volume and piece sources safely', () => {
     installState({
       ingredientCategories: [{ id: 'milk', name: 'Milk & Cream' }, { id: 'powders', name: 'Powders' }],
       ingredients: [
@@ -888,8 +1057,21 @@ document.getElementById('app').addEventListener('load', async () => {
     assert(rows.length === 1 && rows[0].dataset.id === 'oatside', 'category folder did not filter ingredients');
 
     click(app.document.querySelector('[data-act=addIngredient]'));
-    const added = app.state.ingredients[app.state.ingredients.length - 1];
-    assert(added.categoryId === 'milk', 'ingredient added inside a folder did not inherit that category');
+    const modal = app.document.getElementById('purchasedIngredientModal');
+    assert(!modal.hidden, 'Add ingredient did not open its modal');
+    assert(app.document.getElementById('purchasedIngredientCategory').value === 'milk', 'ingredient modal did not inherit the selected folder');
+    app.document.getElementById('purchasedIngredientName').value = 'Coconut water';
+    change(app.document.getElementById('purchasedIngredientUnit'), 'ml');
+    click(app.document.querySelector('[data-act=savePurchasedIngredient]'));
+    let added = app.state.ingredients[app.state.ingredients.length - 1];
+    assert(added.categoryId === 'milk' && added.unit === 'ml', 'volume ingredient was not created in the selected folder');
+
+    click(app.document.querySelector('[data-act=addIngredient]'));
+    app.document.getElementById('purchasedIngredientName').value = 'Tea filter';
+    change(app.document.getElementById('purchasedIngredientUnit'), 'piece');
+    click(app.document.querySelector('[data-act=savePurchasedIngredient]'));
+    added = app.state.ingredients[app.state.ingredients.length - 1];
+    assert(added.categoryId === 'milk' && added.unit === 'piece', 'piece ingredient was not created with its chosen stock dimension');
   });
   test('ingredient category dropdown moves an item and persists its assignment', () => {
     installState({
@@ -2832,9 +3014,457 @@ document.getElementById('app').addEventListener('load', async () => {
     assert(!app.posOpsModal.uncertain, 'deterministic retry left the modal trapped in uncertain mode');
     assert(app.posCloseOpsModal(false), 'deterministic retry result could not be dismissed safely');
   });
+  test('inventory sync payload uses physical base units and stable source IDs', () => {
+    installInventory();
+    app.state.ingredients.push(
+      { id: 'powder-source', kind: 'purchased', name: 'Matcha', purchaseQty: 1, amountPerItem: 0.1, unit: 'kg', price: 900 },
+      { id: 'piece-source', kind: 'purchased', name: 'Cup seal', purchaseQty: 100, amountPerItem: 1, unit: 'piece', price: 100 },
+      { id: 'blank-source', kind: 'purchased', name: '', purchaseQty: 1, amountPerItem: 1, unit: 'g', price: 1 }
+    );
+    const payload = app.stockSourcePayload();
+    const byId = Object.fromEntries(payload.map(row => [row.sourceCostingIngredientId, row]));
+    assert(byId['milk-source'].baseUnit === 'ml' && byId['powder-source'].baseUnit === 'g' && byId['piece-source'].baseUnit === 'piece', 'costing units were not normalized to physical base units');
+    assert(byId['cream-source'].kind === 'mixture', 'prepared mixture lost its inventory kind');
+    assert(!byId['blank-source'], 'unnamed costing row was synchronized as stock');
+  });
+  test('stocks render status cards, category search, and critical filters', () => {
+    const rows = [
+      inventoryItemFixture(),
+      inventoryItemFixture({ inventory_item_id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', source_costing_ingredient_id: 'cream-source', item_kind: 'mixture', name: 'Sea Salt Cream', current_balance_base: 0, low_stock_threshold_base: 100, revision: 1 }),
+      inventoryItemFixture({ inventory_item_id: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd', name: 'Uncounted syrup', source_costing_ingredient_id: 'missing-source', current_balance_base: 0, low_stock_threshold_base: null, revision: 0, has_stock_history: false, last_movement_at: null })
+    ];
+    installInventory('owner', rows, []);
+    assert(app.document.querySelectorAll('#stocks .stock-card').length === 3, 'stock cards did not render');
+    assert(/Out of stock/.test(app.document.getElementById('stockRoot').textContent), 'zero counted stock was not marked out');
+    input(app.document.getElementById('stockSearch'), 'milk and cream');
+    assert(app.document.querySelectorAll('#stocks .stock-card').length === 2, 'category search did not filter inventory');
+    app.stockState.search = '';
+    app.stockState.status = 'not_counted';
+    app.renderStocks();
+    assert(app.document.querySelectorAll('#stocks .stock-card').length === 1 && /Uncounted syrup/.test(app.document.getElementById('stockResults').textContent), 'not-counted filter returned the wrong items');
+  });
+  test('cashiers can read stock but cannot mutate it or inspect the ledger', () => {
+    installInventory('cashier');
+    const text = app.document.getElementById('stockRoot').textContent;
+    assert(/Read only/.test(text), 'cashier inventory was not labelled read-only');
+    assert(!app.document.querySelector('#stocks [data-act="openStockModal"]'), 'cashier received a stock mutation button');
+    assert(!/Movement history/.test(text), 'cashier received manager ledger history');
+  });
+  test('prepared mixtures cannot use generic stock-in during phase one', () => {
+    const mixture = inventoryItemFixture({ inventory_item_id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', source_costing_ingredient_id: 'cream-source', item_kind: 'mixture', name: 'Sea Salt Cream' });
+    installInventory('owner', [mixture], []);
+    assert(app.openStockModal(mixture.inventory_item_id), 'mixture stock dialog did not open');
+    const actions = Array.from(app.document.querySelectorAll('#stockAction option')).map(option => option.value);
+    assert(!actions.includes('stock_in'), 'mixture incorrectly allowed generic stock-in');
+    assert(/batch-production workflow/i.test(app.document.getElementById('stockModalContent').textContent), 'mixture double-counting safeguard was not explained');
+    app.closeStockModal(true);
+  });
+  test('stock validation converts units and prevents negative or unexplained movements', () => {
+    installInventory();
+    app.openStockModal('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
+    app.setStockModalAction('stock_in');
+    app.stockModal.quantity = '1.5'; app.stockModal.unit = 'l';
+    let validation = app.stockValidateModal();
+    assert(validation.valid && validation.delta === 1500 && validation.after === 2750, 'liter input was not converted to milliliters');
+    app.setStockModalAction('waste'); app.stockModal.quantity = '2'; app.stockModal.unit = 'l'; app.stockModal.reason = 'spill';
+    validation = app.stockValidateModal();
+    assert(!validation.valid && /negative/i.test(validation.error), 'waste was allowed to create negative stock');
+    app.stockModal.quantity = '100'; app.stockModal.unit = 'ml'; app.stockModal.reason = '';
+    validation = app.stockValidateModal();
+    assert(!validation.valid && /reason/i.test(validation.error), 'waste without a reason was accepted');
+    app.closeStockModal(true);
+  });
+  test('inventory load uses scoped RPCs and normalizes authoritative rows', async () => {
+    installInventory('owner', [], []);
+    const calls = [];
+    app.cloud.client = { rpc(name, args) {
+      calls.push({ name, args: app.snapshot(args) });
+      if (name === 'pos_inventory_sync_items') return rpcResult([]);
+      if (name === 'pos_inventory_get_items') return rpcResult([inventoryItemFixture()]);
+      if (name === 'pos_inventory_get_transactions') return rpcResult([inventoryTransactionFixture()]);
+      throw new Error('unexpected RPC ' + name);
+    }};
+    assert(await app.loadStocks(), 'authoritative inventory load failed');
+    assert(calls.map(call => call.name).join(',') === 'pos_inventory_sync_items,pos_inventory_get_items,pos_inventory_get_transactions', 'inventory RPC sequence changed');
+    assert(calls.every(call => call.args.p_business_id === app.posContext.businessId), 'inventory call escaped its business scope');
+    assert(app.stockState.items[0].balance === 1250 && app.stockState.items[0].categoryName === 'Milk and cream', 'inventory item was not normalized');
+    assert(app.stockState.transactions[0].after === 1250, 'ledger row was not normalized');
+  });
+  test('stocks never synchronize a new source until its costing save is cloud-confirmed', async () => {
+    installInventory('owner', [], []);
+    app.state.ingredients.push({ id: 'unsaved-source', name: 'Unsaved syrup', kind: 'purchased', purchaseQty: 1, amountPerItem: 500, unit: 'ml', price: 90 });
+    app.localDirty = true; app.pendingSave = true;
+    const calls = [];
+    app.cloud.client = { rpc(name, args) {
+      calls.push({ name, args: app.snapshot(args) });
+      if (name === 'pos_inventory_get_items' || name === 'pos_inventory_get_transactions') return rpcResult([]);
+      throw new Error('unconfirmed source reached inventory sync: ' + name);
+    }};
+    try { assert(await app.loadStocks(), 'Stocks failed instead of safely skipping an unconfirmed costing source'); }
+    finally { app.pendingSave = false; app.localDirty = false; }
+    assert(!calls.some(call => call.name === 'pos_inventory_sync_items'), 'dirty costing sources were synchronized into immutable inventory identities');
+    assert(/still saving|cloud confirms/i.test(app.stockState.notice), 'Stocks did not explain why source synchronization was deferred');
+  });
+  test('stock movement submits exact physical input and refreshes from the server', async () => {
+    installInventory();
+    app.openStockModal('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
+    app.setStockModalAction('stock_in'); app.stockModal.quantity = '250'; app.stockModal.unit = 'ml'; app.stockModal.note = 'Delivery';
+    const calls = [];
+    app.cloud.client = { rpc(name, args) {
+      calls.push({ name, args: app.snapshot(args) });
+      if (name === 'pos_inventory_record_transaction') return rpcResult([{ transaction_id: 'move-1', inventory_item_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', transaction_type: 'stock_in', item_name: 'Oat milk', base_unit: 'ml', quantity_delta_base: 250, balance_before_base: 1250, balance_after_base: 1500, item_revision: 4, occurred_at: '2026-09-29T04:00:00.000Z' }]);
+      if (name === 'pos_inventory_sync_items') return rpcResult([]);
+      if (name === 'pos_inventory_get_items') return rpcResult([inventoryItemFixture({ current_balance_base: 1500, revision: 4 })]);
+      if (name === 'pos_inventory_get_transactions') return rpcResult([inventoryTransactionFixture({ quantity_delta_base: 250, balance_before_base: 1250, balance_after_base: 1500 })]);
+      throw new Error('unexpected RPC ' + name);
+    }};
+    assert(await app.submitStockModal(), 'stock-in submission failed');
+    const movement = calls.find(call => call.name === 'pos_inventory_record_transaction');
+    assert(movement.args.p_transaction_type === 'stock_in' && movement.args.p_lines[0].quantity === 250 && movement.args.p_lines[0].unit === 'ml', 'stock-in changed the physical input contract');
+    assert(movement.args.p_lines[0].expectedRevision === 3 && /^[0-9a-f-]{36}$/i.test(movement.args.p_client_transaction_id), 'stock-in omitted concurrency or idempotency data');
+    assert(app.stockState.items[0].balance === 1500, 'client guessed the balance instead of accepting the server refresh');
+  });
+  test('ambiguous stock failure retries the same frozen request exactly once', async () => {
+    installInventory();
+    app.openStockModal('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
+    app.setStockModalAction('stock_in'); app.stockModal.quantity = '100'; app.stockModal.unit = 'ml';
+    const movementArgs = [];
+    let attempt = 0;
+    app.cloud.client = { rpc(name, args) {
+      if (name === 'pos_inventory_record_transaction') {
+        movementArgs.push(app.snapshot(args)); attempt += 1;
+        if (attempt === 1) return Promise.reject(new Error('connection dropped'));
+        return rpcResult([{ transaction_id: 'move-retry', inventory_item_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', transaction_type: 'stock_in', item_name: 'Oat milk', base_unit: 'ml', quantity_delta_base: 100, balance_before_base: 1250, balance_after_base: 1350, item_revision: 4, occurred_at: '2026-09-29T04:00:00.000Z' }]);
+      }
+      if (name === 'pos_inventory_sync_items') return rpcResult([]);
+      if (name === 'pos_inventory_get_items') return rpcResult([inventoryItemFixture({ current_balance_base: 1350, revision: 4 })]);
+      if (name === 'pos_inventory_get_transactions') return rpcResult([]);
+      throw new Error('unexpected RPC ' + name);
+    }};
+    assert(!(await app.submitStockModal()) && app.stockModal.uncertain, 'network ambiguity did not enter safe retry mode');
+    assert(await app.submitStockModal(), 'exact retry did not recover');
+    assert(JSON.stringify(movementArgs[0]) === JSON.stringify(movementArgs[1]), 'retry generated different transaction details or ID');
+  });
+  test('interrupted stock movement survives reload and recovers with the same request ID', async () => {
+    installInventory();
+    app.openStockModal('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
+    app.setStockModalAction('stock_in'); app.stockModal.quantity = '100'; app.stockModal.unit = 'ml';
+    let originalArgs;
+    app.cloud.client = { rpc(name, args) {
+      if (name === 'pos_inventory_record_transaction') { originalArgs = app.snapshot(args); return Promise.reject(new Error('response lost')); }
+      throw new Error('unexpected RPC ' + name);
+    }};
+    assert(!(await app.submitStockModal()) && app.stockStoredPending(), 'interrupted movement was not persisted for recovery');
+    const saved = app.snapshot(app.stockStoredPending());
+    app.stockModal = app.freshStockModal(); app.document.getElementById('stockModal').hidden = true; app.refreshModalBodyClass();
+    const recoveryCalls = [];
+    app.cloud.client = { rpc(name, args) {
+      recoveryCalls.push({ name, args: app.snapshot(args) });
+      if (name === 'pos_inventory_sync_items') return rpcResult([]);
+      if (name === 'pos_inventory_get_items') return rpcResult([inventoryItemFixture()]);
+      if (name === 'pos_inventory_get_transactions') return rpcResult([inventoryTransactionFixture()]);
+      if (name === 'pos_inventory_record_transaction') return rpcResult([{ transaction_id: 'move-recovered', inventory_item_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', transaction_type: 'stock_in', item_name: 'Oat milk', base_unit: 'ml', quantity_delta_base: 100, balance_before_base: 1250, balance_after_base: 1350, item_revision: 4, occurred_at: '2026-09-29T04:00:00.000Z', is_retry: true }]);
+      throw new Error('unexpected RPC ' + name);
+    }};
+    assert(await app.loadStocks(), 'reload recovery failed');
+    const recovered = recoveryCalls.find(call => call.name === 'pos_inventory_record_transaction');
+    assert(recovered && JSON.stringify(recovered.args) === JSON.stringify(originalArgs) && recovered.args.p_client_transaction_id === saved.rpcArgs.p_client_transaction_id, 'reload recovery changed the frozen movement payload');
+    assert(app.stockState.items[0].balance === 1350 && !app.stockStoredPending(), 'recovered movement did not apply its authoritative balance or clear pending storage');
+  });
+  test('simultaneous tabs keep separate protected stock request IDs', () => {
+    installInventory();
+    const makeRequest = id => ({ name: 'pos_inventory_record_transaction', args: { p_business_id: app.posContext.businessId, p_client_transaction_id: id, p_transaction_type: 'stock_in', p_lines: [{ inventoryItemId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', quantity: 10, unit: 'ml', expectedRevision: 3 }], p_reason: null, p_note: null } });
+    const first = app.stockBuildPending(makeRequest('11111111-aaaa-4aaa-8aaa-111111111111'), 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
+    const second = app.stockBuildPending(makeRequest('22222222-bbbb-4bbb-8bbb-222222222222'), 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
+    assert(app.stockSavePending(first) && app.stockSavePending(second), 'one tab overwrote or blocked the other tab request record');
+    assert(app.stockStoredPendings().length === 2, 'protected per-tab requests were not stored independently');
+    assert(app.stockClearPending(first) && app.stockStoredPendings().length === 1 && app.stockStoredPending().rpcArgs.p_client_transaction_id === second.rpcArgs.p_client_transaction_id, 'clearing one response deleted another tab request');
+  });
+  test('committed stock response keeps its authoritative balance when refresh fails', async () => {
+    installInventory();
+    app.openStockModal('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
+    app.setStockModalAction('stock_in'); app.stockModal.quantity = '250'; app.stockModal.unit = 'ml';
+    app.cloud.client = { rpc(name) {
+      if (name === 'pos_inventory_record_transaction') return rpcResult([{ transaction_id: 'move-committed', inventory_item_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', transaction_type: 'stock_in', item_name: 'Oat milk', base_unit: 'ml', quantity_delta_base: 250, balance_before_base: 1250, balance_after_base: 1500, item_revision: 4, occurred_at: '2026-09-29T04:00:00.000Z' }]);
+      if (name === 'pos_inventory_sync_items') return rpcResult([]);
+      if (name === 'pos_inventory_get_items') return Promise.reject(new Error('refresh offline'));
+      if (name === 'pos_inventory_get_transactions') return rpcResult([]);
+      throw new Error('unexpected RPC ' + name);
+    }};
+    assert(await app.submitStockModal(), 'committed movement was incorrectly reported as failed');
+    assert(app.stockState.items[0].balance === 1500 && app.stockState.items[0].revision === 4, 'authoritative committed balance was lost after refresh failure');
+    assert(/confirmed new balance/i.test(app.stockState.notice) && !app.stockStoredPending(), 'refresh failure did not distinguish a committed movement from an uncertain one');
+  });
+  test('stale inventory loads cannot cross a workspace reset', async () => {
+    installInventory('owner', [], []);
+    let resolveItems;
+    app.cloud.client = { rpc(name) {
+      if (name === 'pos_inventory_sync_items') return rpcResult([]);
+      if (name === 'pos_inventory_get_items') return new Promise(resolve => { resolveItems = resolve; });
+      if (name === 'pos_inventory_get_transactions') return rpcResult([]);
+      throw new Error('unexpected RPC ' + name);
+    }};
+    const loading = app.loadStocks();
+    for (let tick = 0; tick < 10 && typeof resolveItems !== 'function'; tick += 1) await Promise.resolve();
+    assert(typeof resolveItems === 'function', 'inventory item request did not start');
+    app.resetPosContext('');
+    resolveItems({ data: [inventoryItemFixture({ name: 'Wrong workspace stock' })], error: null });
+    assert(!(await loading), 'stale inventory request reported success');
+    assert(!app.stockState.items.length, 'stale inventory response crossed into the reset workspace');
+  });
+  test('inventory names and ledger text are escaped before rendering', () => {
+    installInventory('owner', [inventoryItemFixture({ name: '<img id="unsafe-stock">' })], [inventoryTransactionFixture({ item_name_snapshot: '<svg id="unsafe-ledger">', note: '<script id="unsafe-note">' })]);
+    assert(!app.document.getElementById('unsafe-stock') && !app.document.getElementById('unsafe-ledger') && !app.document.getElementById('unsafe-note'), 'inventory server text was rendered as HTML');
+    assert(app.document.getElementById('stockRoot').textContent.includes('<img id="unsafe-stock">'), 'escaped inventory name was not visible as text');
+  });
+  test('signed-in ingredient deletion uses one atomic cloud delete and inventory tombstone', async () => {
+    installInventory();
+    const calls = [], oldConfirm = app.confirm, oldAlert = app.alert;
+    const remote = app.snapshot(app.state);
+    app.confirm = () => true; app.alert = message => { throw new Error('unexpected alert: ' + message); };
+    app.cloud.client = {
+      rpc(name, args) {
+        calls.push({ name, args: app.snapshot(args) });
+        if (name === 'pos_inventory_prepare_source_delete') remote.ingredients = remote.ingredients.filter(item => item.id !== 'milk-source');
+        return rpcResult([true]);
+      },
+      from() { const query = { select() { return query; }, eq() { return query; }, maybeSingle() { return Promise.resolve({ data: { data: app.snapshot(remote) }, error: null }); } }; return query; }
+    };
+    try { assert(await app.deleteIngredientSafely('milk-source'), 'safe ingredient deletion failed'); }
+    finally { app.confirm = oldConfirm; app.alert = oldAlert; }
+    assert(calls.length === 2 && calls[0].name === 'pos_inventory_validate_source_delete' && calls[1].name === 'pos_inventory_prepare_source_delete', 'ingredient deletion skipped its preflight or atomic deletion RPC');
+    assert(calls[1].args.p_source_costing_ingredient_id === 'milk-source' && calls[1].args.p_business_id === app.posContext.businessId && calls[1].args.p_item_kind === 'purchased' && calls[1].args.p_name === 'Oat milk' && calls[1].args.p_base_unit === 'ml', 'source archive was not scoped by the complete stable source identity');
+    assert(!app.getById(app.state.ingredients, 'milk-source') && !app.getById(remote.ingredients, 'milk-source'), 'ingredient remained after the atomic deletion');
+    assert(app.stockScopedSourceDeletes().length === 0, 'successful atomic deletion left a recovery marker behind');
+  });
+  test('blank ingredient names stay exact in atomic deletion and durable recovery payloads', async () => {
+    installInventory();
+    const blankSource = app.getById(app.state.ingredients, 'milk-source');
+    blankSource.name = '   ';
+    const remote = app.snapshot(app.state), calls = [];
+    const oldConfirm = app.confirm, oldAlert = app.alert;
+    app.confirm = () => true; app.alert = message => { throw new Error('unexpected alert: ' + message); };
+    app.cloud.client = {
+      rpc(name, args) {
+        calls.push({ name, args: app.snapshot(args) });
+        if (name === 'pos_inventory_prepare_source_delete') remote.ingredients = remote.ingredients.filter(item => item.id !== 'milk-source');
+        return rpcResult([true]);
+      },
+      from() { const query = { select() { return query; }, eq() { return query; }, maybeSingle() { return Promise.resolve({ data: { data: app.snapshot(remote) }, error: null }); } }; return query; }
+    };
+    try { assert(await app.deleteIngredientSafely('milk-source'), 'blank-name ingredient deletion failed'); }
+    finally { app.confirm = oldConfirm; app.alert = oldAlert; }
+    const deleteCall = calls.find(call => call.name === 'pos_inventory_prepare_source_delete');
+    assert(deleteCall && deleteCall.args.p_name === '', 'blank authoritative name was replaced in the atomic delete RPC');
+    const recovery = app.stockBuildSourceDelete({ id: 'blank-recovery', kind: 'purchased', name: '   ', unit: 'ml' });
+    assert(recovery.name === '' && app.stockSaveSourceDelete(recovery), 'blank name was replaced before durable recovery storage');
+    const restored = app.stockScopedSourceDeletes().find(record => record.sourceId === 'blank-recovery');
+    assert(restored && restored.name === '', 'durable recovery changed the exact blank source identity');
+    app.stockClearSourceDelete(recovery);
+  });
+  test('ambiguous atomic deletion verification preserves unrelated local and partner edits', async () => {
+    installInventory();
+    const remote = app.snapshot(app.state), notices = [];
+    const oldConfirm = app.confirm, oldAlert = app.alert;
+    app.state.packaging.push({ id: 'local-cup', name: 'Local cup edit', qty: 1, price: 1 });
+    app.localDirty = true;
+    app.confirm = () => true;
+    app.alert = message => notices.push(String(message));
+    app.cloud.client = {
+      rpc(name) {
+        if (name === 'pos_inventory_validate_source_delete') return rpcResult([true]);
+        if (name === 'pos_inventory_prepare_source_delete') {
+          remote.ingredients = remote.ingredients.filter(item => item.id !== 'milk-source');
+          remote.packaging.push({ id: 'partner-lid', name: 'Partner lid edit', qty: 50, price: 80 });
+          return Promise.reject(new Error('response lost after atomic commit'));
+        }
+        throw new Error('unexpected RPC ' + name);
+      },
+      from() { const query = { select() { return query; }, eq() { return query; }, maybeSingle() { return Promise.resolve({ data: { data: app.snapshot(remote) }, error: null }); } }; return query; }
+    };
+    try {
+      assert(await app.deleteIngredientSafely('milk-source'), 'committed atomic deletion was not recovered after its response was lost');
+    } finally {
+      app.confirm = oldConfirm; app.alert = oldAlert;
+    }
+    assert(!app.getById(app.state.ingredients, 'milk-source'), 'verified atomic deletion was not adopted locally');
+    assert(!!app.getById(app.state.packaging, 'local-cup') && !!app.getById(app.state.packaging, 'partner-lid'), 'ambiguous recovery lost a local or partner edit');
+    assert(app.stockScopedSourceDeletes().length === 0, 'verified atomic deletion kept a stale recovery marker');
+    assert(notices.some(message => /verified|recovered/i.test(message)), 'response-loss recovery was not explained');
+  });
+  test('failed atomic deletion keeps a remotely present source and clears its recovery marker', async () => {
+    installInventory();
+    const remote = app.snapshot(app.state), notices = [];
+    const oldConfirm = app.confirm, oldAlert = app.alert;
+    app.confirm = () => true; app.alert = message => notices.push(String(message));
+    app.cloud.client = {
+      rpc(name) {
+        if (name === 'pos_inventory_validate_source_delete') return rpcResult([true]);
+        if (name === 'pos_inventory_prepare_source_delete') return Promise.reject(new Error('network stopped before commit'));
+        throw new Error('unexpected RPC ' + name);
+      },
+      from() { const query = { select() { return query; }, eq() { return query; }, maybeSingle() { return Promise.resolve({ data: { data: app.snapshot(remote) }, error: null }); } }; return query; }
+    };
+    try { assert(!(await app.deleteIngredientSafely('milk-source')), 'uncommitted atomic deletion reported success'); }
+    finally { app.confirm = oldConfirm; app.alert = oldAlert; }
+    assert(!!app.getById(app.state.ingredients, 'milk-source'), 'uncommitted deletion removed the costing source');
+    assert(app.stockScopedSourceDeletes().length === 0, 'confirmed non-commit kept an unnecessary recovery marker');
+    assert(notices.some(message => /before commit|could not reach/i.test(message)), 'confirmed non-commit was not explained');
+  });
+  test('unverifiable atomic deletion survives reload and completes from its exact recovery record', async () => {
+    installInventory();
+    const remote = app.snapshot(app.state), notices = [];
+    const oldConfirm = app.confirm, oldAlert = app.alert;
+    let reads = 0;
+    app.confirm = () => true; app.alert = message => notices.push(String(message));
+    app.cloud.client = {
+      rpc(name) {
+        if (name === 'pos_inventory_validate_source_delete') return rpcResult([true]);
+        if (name === 'pos_inventory_prepare_source_delete') return Promise.reject(new Error('response unavailable'));
+        throw new Error('unexpected RPC ' + name);
+      },
+      from() { const query = { select() { return query; }, eq() { return query; }, maybeSingle() { reads += 1; return reads === 1 ? Promise.resolve({ data: { data: app.snapshot(remote) }, error: null }) : Promise.reject(new Error('verification offline')); } }; return query; }
+    };
+    try { assert(!(await app.deleteIngredientSafely('milk-source')), 'unverifiable deletion reported success'); }
+    finally { app.confirm = oldConfirm; app.alert = oldAlert; }
+    assert(app.stockScopedSourceDeletes().length === 1, 'unverifiable deletion did not retain its durable recovery record');
+    remote.ingredients = remote.ingredients.filter(item => item.id !== 'milk-source');
+    app.cloud.client = {
+      rpc(name) { if (name === 'pos_inventory_prepare_source_delete') return rpcResult([true]); throw new Error('unexpected RPC ' + name); },
+      from() { const query = { select() { return query; }, eq() { return query; }, maybeSingle() { return Promise.resolve({ data: { data: app.snapshot(remote) }, error: null }); } }; return query; }
+    };
+    assert((await app.stockRecoverSourceDeletes()) === 1, 'saved deletion recovery did not finish its exact atomic retry');
+    assert(!app.getById(app.state.ingredients, 'milk-source') && app.stockScopedSourceDeletes().length === 0, 'recovered deletion did not adopt cloud state or clear its marker');
+  });
+  test('nonzero inventory blocks costing-source deletion without data loss', async () => {
+    installInventory();
+    const notices = [], oldConfirm = app.confirm, oldAlert = app.alert;
+    app.confirm = () => true; app.alert = message => notices.push(String(message));
+    const remote = app.snapshot(app.state);
+    app.cloud.client = {
+      rpc() { return rpcResult(null, { code: '55000', message: 'Cannot delete "Oat milk" from costing while its inventory balance is not zero.' }); },
+      from() { const query = { select() { return query; }, eq() { return query; }, maybeSingle() { return Promise.resolve({ data: { data: app.snapshot(remote) }, error: null }); } }; return query; }
+    };
+    try { assert(!(await app.deleteIngredientSafely('milk-source')), 'nonzero inventory deletion reported success'); }
+    finally { app.confirm = oldConfirm; app.alert = oldAlert; }
+    assert(!!app.getById(app.state.ingredients, 'milk-source'), 'blocked ingredient was removed locally');
+    assert(notices.some(message => /not zero/i.test(message)), 'database reason was not explained to the user');
+  });
+  test('a remote-missing costing source consults authoritative inventory before local deletion', async () => {
+    installInventory('owner', [], []);
+    const remote = app.snapshot(app.state), notices = [];
+    remote.ingredients = remote.ingredients.filter(item => item.id !== 'milk-source');
+    const oldConfirm = app.confirm, oldAlert = app.alert;
+    app.confirm = () => true; app.alert = message => notices.push(String(message));
+    app.cloud.client = {
+      rpc(name) {
+        if (name === 'pos_inventory_get_items') return rpcResult([inventoryItemFixture()]);
+        throw new Error('unexpected RPC ' + name);
+      },
+      from() { const query = { select() { return query; }, eq() { return query; }, maybeSingle() { return Promise.resolve({ data: { data: app.snapshot(remote) }, error: null }); } }; return query; }
+    };
+    try { assert(!(await app.deleteIngredientSafely('milk-source')), 'remote-missing active inventory identity was deleted locally'); }
+    finally { app.confirm = oldConfirm; app.alert = oldAlert; }
+    assert(!!app.getById(app.state.ingredients, 'milk-source'), 'authoritative active inventory check did not preserve the local source');
+    assert(notices.some(message => /active identity|reconcile/i.test(message)), 'inventory inconsistency was not explained');
+  });
+  test('remote-missing deletion merges unrelated local and partner edits before any save', async () => {
+    installInventory('owner', [], []);
+    const remote = app.snapshot(app.syncedState), notices = [];
+    remote.ingredients = remote.ingredients.filter(item => item.id !== 'milk-source');
+    remote.packaging.push({ id: 'partner-lid', name: 'Partner lid', qty: 50, price: 75 });
+    app.state.packaging.push({ id: 'local-cup', name: 'Local cup', qty: 25, price: 100 });
+    app.localDirty = true;
+    const oldConfirm = app.confirm, oldAlert = app.alert;
+    app.confirm = () => true; app.alert = message => notices.push(String(message));
+    app.cloud.client = {
+      rpc(name) {
+        if (name === 'pos_inventory_get_items') return rpcResult([]);
+        throw new Error('unexpected RPC ' + name);
+      },
+      from() { const query = {
+        select() { return query; }, eq() { return query; },
+        maybeSingle() { return Promise.resolve({ data: { data: app.snapshot(remote) }, error: null }); },
+        upsert() { throw new Error('merged save fired before its debounce'); }
+      }; return query; }
+    };
+    try { assert(await app.deleteIngredientSafely('milk-source'), 'already-deleted remote source did not reconcile safely'); }
+    finally { app.confirm = oldConfirm; app.alert = oldAlert; }
+    clearTimeout(app.saveTimer); app.saveTimer = null; app.pendingSave = false;
+    assert(!app.getById(app.state.ingredients, 'milk-source'), 'remote deletion was not adopted locally');
+    assert(!!app.getById(app.state.packaging, 'local-cup') && !!app.getById(app.state.packaging, 'partner-lid'), 'remote-missing reconciliation lost a local or partner edit');
+    assert(app.localDirty, 'preserved local edit was incorrectly marked synchronized');
+    assert(!notices.length, 'safe remote-missing reconciliation showed an unexpected alert');
+  });
+  test('existing ingredients cannot change stock dimension or write to the cloud', async () => {
+    installInventory();
+    let writeCount = 0; const notices = [], oldAlert = app.alert;
+    app.alert = message => notices.push(String(message));
+    app.cloud.client = {
+      rpc() { writeCount += 1; throw new Error('unexpected RPC'); },
+      from() { writeCount += 1; throw new Error('unexpected table write'); }
+    };
+    try { assert(!(await app.changeIngredientUnitSafely('milk-source', 'g')), 'existing source crossed from volume to weight'); }
+    finally { app.alert = oldAlert; }
+    assert(writeCount === 0, 'blocked dimension change attempted a database write');
+    assert(app.getById(app.state.ingredients, 'milk-source').unit === 'l', 'blocked dimension change modified costing data');
+    assert(notices.some(message => /new ingredient|add a new/i.test(message)), 'blocked dimension change did not explain the replacement workflow');
+  });
+  test('existing combined costs cannot change yield dimension or write to the cloud', async () => {
+    installInventory();
+    app.openMixtureModal('cream-source', false);
+    app.mixtureDraft.components = [{ ingredientId: 'milk-source', qty: 100, unit: 'ml' }];
+    app.mixtureDraft.unit = 'g'; app.mixtureDraft.batchYield = 100;
+    let writeCount = 0;
+    app.cloud.client = {
+      rpc() { writeCount += 1; throw new Error('unexpected RPC'); },
+      from() { writeCount += 1; throw new Error('unexpected table write'); }
+    };
+    assert(!(await app.saveMixture()), 'existing mixture crossed from volume to weight');
+    assert(writeCount === 0, 'blocked mixture dimension change attempted a database write');
+    assert(app.getById(app.state.ingredients, 'cream-source').unit === 'ml', 'blocked mixture dimension change modified saved costing data');
+    assert(app.mixtureDraft.unit === 'g', 'blocked mixture edit was not kept available as a draft');
+    assert(/new combined cost/i.test(app.document.getElementById('mixtureError').textContent), 'mixture guard did not explain the safe replacement workflow');
+    app.closeMixtureModal(true);
+  });
+  test('bulk costing replacements preserve the exact cloud inventory source set and dimensions', () => {
+    installInventory();
+    const safe = app.snapshot(app.state); safe.ingredients[0].name = 'Renamed oat milk'; safe.ingredients[0].price = 200;
+    assert(!app.costingBulkInventoryIssue(safe), 'safe backup edit with identical source identities was blocked');
+    const removed = app.snapshot(safe); removed.ingredients.pop();
+    assert(/cannot add or remove/i.test(app.costingBulkInventoryIssue(removed)), 'bulk source removal could detach inventory history');
+    const changed = app.snapshot(safe); changed.ingredients[0].unit = 'g';
+    assert(/cannot change/i.test(app.costingBulkInventoryIssue(changed)), 'bulk source dimension change bypassed inventory identity protection');
+  });
+  test('same-ID cross-dimension changes are blocked without depending on inventory history', async () => {
+    installInventory();
+    const notices = [], oldAlert = app.alert;
+    app.alert = message => notices.push(String(message));
+    let rpcCalls = 0;
+    app.cloud.client = { rpc() { rpcCalls += 1; return rpcResult([true]); } };
+    try { assert(!(await app.changeIngredientUnitSafely('milk-source', 'g')), 'historical source dimension change reported success'); }
+    finally { app.alert = oldAlert; }
+    assert(rpcCalls === 0, 'dimension guard unnecessarily depended on remote inventory history');
+    assert(app.getById(app.state.ingredients, 'milk-source').unit === 'l', 'blocked dimension change modified costing data');
+    assert(notices.some(message => /new ingredient|add a new/i.test(message)), 'blocked dimension change did not explain the new-source rule');
+  });
+  test('first per-item stock movement is labelled as an opening count', () => {
+    assert(app.stockTransactionLabel('stock_count', { itemSequence: 1 }) === 'Opening count', 'first movement was not labelled opening count');
+    assert(app.stockTransactionLabel('stock_count', { itemSequence: 2 }) === 'Stock count', 'later count was mislabelled opening count');
+  });
   const failures = [];
-  for (const current of tests) {
-    try { await current.run(); } catch (error) { failures.push(`${current.name}: ${error.message}`); }
+  for (let testIndex = 0; testIndex < tests.length; testIndex += 1) {
+    const current = tests[testIndex];
+    output.textContent = `RUNNING ${testIndex + 1}/${tests.length}: ${current.name}`;
+    document.title = output.textContent;
+    let timeoutId;
+    try {
+      await Promise.race([
+        Promise.resolve().then(() => current.run()),
+        new Promise((_, reject) => { timeoutId = window.setTimeout(() => reject(new Error('timed out after 5 seconds')), 5000); })
+      ]);
+    } catch (error) { failures.push(`${current.name}: ${error.message}`); }
+    finally { if (timeoutId) window.clearTimeout(timeoutId); }
   }
   output.textContent = failures.length ? `FAIL\n${failures.join('\n')}` : `PASS ${tests.length} tests`;
   document.title = failures.length ? 'FAIL' : 'PASS';

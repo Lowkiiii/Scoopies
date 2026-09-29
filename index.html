@@ -20,7 +20,7 @@
   .wrap{width:100%;max-width:1000px;min-width:0;margin:0 auto;padding:0 14px 60px}
   nav{display:flex;flex-wrap:wrap;gap:6px;position:sticky;top:0;background:var(--cream);
     padding:10px 0;z-index:5;border-bottom:1px solid var(--line)}
-  nav button{flex:1 1 auto;min-width:110px;padding:10px 8px;border:1px solid var(--line);
+  nav button{flex:1 1 auto;min-width:96px;padding:10px 8px;border:1px solid var(--line);
     background:#fff;border-radius:10px;font-size:14px;cursor:pointer;color:var(--brown);font-weight:600}
   nav button.active{background:var(--brown);color:#fff;border-color:var(--brown)}
   section{display:none;margin-top:16px}
@@ -186,6 +186,40 @@
   .pos-cart-confirm-note{margin:8px auto 0;max-width:330px;color:var(--muted);font-size:12px;line-height:1.4}
   .pos-cart-confirm .modal-actions{position:static;bottom:auto;justify-content:center;margin-top:18px}
   .pos-cart-confirm .modal-actions .btn{min-width:128px}
+  .stock-head{display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+  .stock-head h2{margin:0}
+  .stock-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:12px 0}
+  .stock-summary button{font:inherit;text-align:left;cursor:pointer}
+  .stock-summary button.active{border-color:var(--brown);box-shadow:0 0 0 2px rgba(91,58,41,.10)}
+  .stock-toolbar{display:grid;grid-template-columns:minmax(220px,1fr) 180px;gap:8px;align-items:end;margin:12px 0 8px}
+  .stock-filter-bar{display:flex;gap:7px;overflow-x:auto;padding:2px 1px 8px;scrollbar-width:thin}
+  .stock-filter-bar .category-chip{white-space:nowrap;min-height:40px}
+  .stock-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:8px}
+  .stock-card{border:1px solid var(--line);border-radius:12px;background:#fff;padding:12px;min-width:0}
+  .stock-card-head{display:flex;align-items:flex-start;gap:8px}
+  .stock-card-title{flex:1;min-width:0;font-weight:750;color:#2b2018;overflow-wrap:anywhere}
+  .stock-badges{display:flex;gap:5px;flex-wrap:wrap;margin-top:5px}
+  .stock-badge{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:999px;padding:2px 7px;font-size:11px;font-weight:700;background:#f8f3ec;color:var(--brown2)}
+  .stock-badge.mixture{background:#eef5ff;color:#315b8a;border-color:#cfdef0}
+  .stock-badge.good{background:#e9f6ea;color:var(--good);border-color:#bfe3c1}
+  .stock-badge.warn{background:#fff4dd;color:#8a5a00;border-color:#efd49b}
+  .stock-badge.bad{background:#fdecea;color:var(--bad);border-color:#f0c8c2}
+  .stock-on-hand{font-size:24px;font-weight:850;color:var(--brown);margin-top:13px}
+  .stock-on-hand.bad{color:var(--bad)}
+  .stock-card-meta{font-size:12px;color:var(--muted);margin-top:4px;min-height:34px}
+  .stock-card .btn{width:100%;min-height:44px;margin-top:10px}
+  .stock-history{display:grid;gap:0;margin-top:8px}
+  .stock-history-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);align-items:start}
+  .stock-history-row:last-child{border-bottom:0}
+  .stock-history-delta{font-weight:800;white-space:nowrap;text-align:right}
+  .stock-history-delta.good{color:var(--good)}
+  .stock-history-delta.bad{color:var(--bad)}
+  .stock-modal-preview{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:center;margin:14px 0;padding:12px;border:1px solid var(--line);border-radius:11px;background:var(--cream)}
+  .stock-modal-preview .metric{text-align:center;background:#fff}
+  .stock-preview-arrow{font-size:22px;color:var(--muted);font-weight:800}
+  .stock-negative-warning{border:1px solid #e5b4ae;border-radius:10px;background:#fff0ee;color:#7d251d;padding:9px 11px;margin-top:9px;font-size:13px}
+  .stock-phase-note{margin:10px 0 14px}
+  .stock-sync{font-size:12px;color:var(--muted);margin-top:6px}
   .pos-total{display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--line);padding-top:12px;margin-top:10px}
   .pos-total strong{font-size:24px;color:var(--brown)}
   .pos-payment-tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin:12px 0}
@@ -262,6 +296,9 @@
     .component-grid .component-cost{grid-column:1 / -1;grid-row:2;text-align:left;padding:0 2px 6px}
     .component-grid .icon-btn{grid-column:4;grid-row:1}
     .component-grid.head{display:none}
+    .stock-summary{grid-template-columns:1fr 1fr}
+    .stock-toolbar{grid-template-columns:1fr}
+    .stock-grid{grid-template-columns:1fr}
   }
   @media(max-width:560px){
     nav{display:grid;grid-template-columns:repeat(4,minmax(0,1fr))}
@@ -282,6 +319,8 @@
     .draft-card-head{display:block}
     .draft-actions .btn{flex:1 1 auto}
     .publish-summary{grid-template-columns:1fr}
+    .stock-modal-preview{grid-template-columns:1fr}
+    .stock-preview-arrow{transform:rotate(90deg);text-align:center;line-height:1}
   }
   @media(max-width:480px){
     .pos-summary{grid-template-columns:1fr 1fr}
@@ -325,6 +364,7 @@
 <div class="wrap">
   <nav>
     <button data-tab="pos" class="active">🛒 POS</button>
+    <button data-tab="stocks">📦 Stocks</button>
     <button data-tab="ingredients">1. Ingredients</button>
     <button data-tab="packaging">2. Packaging</button>
     <button data-tab="recipes">3. Recipes</button>
@@ -338,6 +378,13 @@
   <section id="pos" class="active">
     <div id="posRoot" aria-live="polite">
       <div class="card"><div class="pos-loading">Sign in to load the register.</div></div>
+    </div>
+  </section>
+
+  <!-- STOCKS / INVENTORY -->
+  <section id="stocks">
+    <div id="stockRoot" aria-live="polite">
+      <div class="card"><div class="pos-loading">Open Stocks to load physical inventory.</div></div>
     </div>
   </section>
 
@@ -483,6 +530,34 @@ create policy "auth update" on scoopies_state for update to authenticated using 
   </div>
 </div>
 
+<div id="purchasedIngredientModal" class="modal-backdrop" hidden>
+  <div class="modal small" role="dialog" aria-modal="true" aria-labelledby="purchasedIngredientModalTitle">
+    <div class="modal-head">
+      <div style="flex:1"><h2 id="purchasedIngredientModalTitle">Add purchased ingredient</h2><p class="hint">Choose the unit type before this ingredient is saved to Stocks.</p></div>
+      <button class="modal-close" data-act="closePurchasedIngredientModal" aria-label="Close ingredient dialog">x</button>
+    </div>
+    <label class="fld" for="purchasedIngredientName">Ingredient name</label>
+    <input id="purchasedIngredientName" maxlength="120" placeholder="e.g. Oat milk" autocomplete="off">
+    <label class="fld" for="purchasedIngredientCategory" style="margin-top:10px">Category</label>
+    <select id="purchasedIngredientCategory"></select>
+    <label class="fld" for="purchasedIngredientUnit" style="margin-top:10px">How this ingredient is measured</label>
+    <select id="purchasedIngredientUnit">
+      <option value="">— choose unit —</option>
+      <option value="g">grams (g)</option>
+      <option value="kg">kilograms (kg)</option>
+      <option value="ml">milliliters (mL)</option>
+      <option value="l">liters (L)</option>
+      <option value="piece">pieces</option>
+    </select>
+    <p class="hint">You can later switch g ↔ kg or mL ↔ L. Changing between weight, volume, and pieces requires a new ingredient so stock history stays correct.</p>
+    <div id="purchasedIngredientError" class="modal-error" aria-live="assertive"></div>
+    <div class="modal-actions">
+      <button class="btn secondary" data-act="closePurchasedIngredientModal">Cancel</button>
+      <button class="btn" data-act="savePurchasedIngredient">Add ingredient</button>
+    </div>
+  </div>
+</div>
+
 <div id="mixtureModal" class="modal-backdrop" hidden>
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="mixtureModalTitle">
     <div id="mixtureModalContent"></div>
@@ -512,6 +587,12 @@ create policy "auth update" on scoopies_state for update to authenticated using 
   </div>
 </div>
 
+<div id="stockModal" class="modal-backdrop" hidden>
+  <div class="modal small" role="dialog" aria-modal="true" aria-labelledby="stockModalTitle">
+    <div id="stockModalContent"></div>
+  </div>
+</div>
+
 <script>
 /* ---------- units & money ---------- */
 var UNIT_FACTOR = {g:1, kg:1000, ml:1, l:1000, piece:1};
@@ -520,6 +601,12 @@ var TYPE_UNITS  = {weight:['g','kg'], volume:['ml','l'], count:['piece']};
 var TYPE_BASE   = {weight:'g', volume:'ml', count:'piece'};
 
 function toBase(qty, unit){ return (parseFloat(qty)||0) * (UNIT_FACTOR[unit]||1); }
+function convertUnitQuantity(qty, fromUnit, toUnit){
+  if(qty===''||qty==null)return qty;
+  var value=Number(qty),fromFactor=UNIT_FACTOR[fromUnit],toFactor=UNIT_FACTOR[toUnit];
+  if(!isFinite(value)||!fromFactor||!toFactor||UNIT_TYPE[fromUnit]!==UNIT_TYPE[toUnit])return qty;
+  return value*fromFactor/toFactor;
+}
 function peso(n){ if(!isFinite(n)) return '—'; return '₱' + (Math.round(n*100)/100).toLocaleString('en-PH',{minimumFractionDigits:2, maximumFractionDigits:2}); }
 function pct(n){ if(!isFinite(n)) return '—'; return (Math.round(n*10)/10) + '%'; }
 function num(v){ var n=parseFloat(v); return isNaN(n)?0:n; }
@@ -550,18 +637,22 @@ var state = loadLocal();
 var cloud = { url:'', key:'', client:null, connected:false, channel:null };
 var session = null, currentUserId = null, offlineMode = false, authMode = 'login', costingCloudReady = false, costingLoadGeneration = 0, costingCloudLoading = false;
 var pendingSave = false, saveTimer = null, pendingRemote = null, saveVersion = 0, retryingDirty = false;
+var costingSourceCommitInFlight = false;
 var localDirty = loadLocalDirty(), syncedState = loadSyncedLocal();
 var lastState = null;  /* baseline snapshot for the activity-log diff */
 var NAMES = { 'lukesellado04@gmail.com':'Luke', 'ynazov03@gmail.com':'Ynah' };  /* email → display name */
 var ingredientUi = { search:'', category:'all' };
 var categoryModalOpen = false, categoryEditId = '', modalReturnFocus = null;
-var mixtureModalOpen = false, mixtureDraft = null, mixtureReadOnly = false, quickIngredientDraft = null, mixtureOriginalExisting = false;
+var purchasedIngredientModalOpen = false, purchasedIngredientReturnFocus = null;
+var mixtureModalOpen = false, mixtureDraft = null, mixtureReadOnly = false, mixtureSaving = false, quickIngredientDraft = null, mixtureOriginalExisting = false;
 var draftsModalOpen = false, activeMixtureDraftId = '', mixtureInitialSnapshot = null;
 var mixtureSourceId = '', mixtureSourceSnapshot = null, openedMixtureDraftUpdatedAt = '', openedMixtureDraftFingerprint = '', mixtureDraftNotice = '';
 var posContext = { loaded:false, loading:false, businessId:'', businessName:'', role:'', publications:{}, error:'' };
 var posLoadGeneration = 0, posStatusGeneration = 0;
 var publishModalOpen = false, publishProductId = '', publishSnapshot = null, publishSubmitting = false, publishError = '', publishNotice = '';
 var POS_PENDING_KEY = TEST_MODE ? 'scoopies_pos_pending_test' : 'scoopies_pos_pending_v1';
+var STOCK_PENDING_KEY = TEST_MODE ? 'scoopies_stock_pending_test' : 'scoopies_stock_pending_v1';
+var STOCK_SOURCE_DELETE_KEY = TEST_MODE ? 'scoopies_stock_source_delete_test' : 'scoopies_stock_source_delete_v1';
 var POS_CATALOG_CACHE_KEY = TEST_MODE ? 'scoopies_pos_catalog_cache_test' : 'scoopies_pos_catalog_cache_v1';
 var POS_CATALOG_CACHE_MAX_AGE_MS = 30*60*1000, POS_SILENT_REFRESH_MIN_AGE_MS = 30*1000;
 var posCheckoutLoadGeneration = 0, posCheckoutSubmitGeneration = 0, posCatalogGeneration = 0;
@@ -575,6 +666,8 @@ var posCheckout = {
   shift:null, shiftStatus:null, shiftLoading:false, shiftError:'', reportMode:'live', reportDate:'', dailyReport:null,
   reportLoadedMode:'',reportLoadedDate:'',loaded:false,refreshing:false,refreshError:'',checkoutRefreshRequired:false,lastUpdatedAt:0,catalogFromCache:false,catalogVerifiedGeneration:0
 };
+var stockLoadGeneration=0,stockMutationGeneration=0,stockModalReturnFocus=null,stockSourceMutations={};
+var stockState=freshStockState(),stockModal=freshStockModal();
 
 function blank(){ return {schemaVersion:3, ingredientCategories:[], ingredients:[], mixtureDrafts:[], packaging:[], recipes:[], products:[]}; }
 function normalizeState(raw){
@@ -738,6 +831,10 @@ function save(){
   var version=++saveVersion;
   markLocalDirty();
   try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){}
+  if(cloud.connected&&session&&stockScopedSourceDeletes().length){
+    clearTimeout(saveTimer);saveTimer=null;pendingSave=false;
+    setStatus('Inventory source recovery pending - refresh Stocks','bad');return;
+  }
   if(cloud.connected && session){
     setStatus('Saving…','');
     pendingSave = true;
@@ -762,7 +859,6 @@ function save(){
     setStatus('Saved on device','');
   }
 }
-
 /* ---------- Supabase config + client ---------- */
 function loadCfg(){ try{ return JSON.parse(localStorage.getItem(CFG_KEY))||{}; }catch(e){ return {}; } }
 function saveCfg(c){ localStorage.setItem(CFG_KEY, JSON.stringify(c)); }
@@ -783,14 +879,18 @@ async function cloudLoad(){
   if(res.error) throw res.error;
   return res.data && res.data.data ? normalizeState(res.data.data) : null;
 }
-async function cloudSave(s){
-  var res = await cloud.client.from('scoopies_state')
-    .upsert({ id:'main', data:s, updated_at:new Date().toISOString() }, { onConflict:'id' });
-  if(res.error) throw res.error;
+var cloudSaveChain=Promise.resolve();
+function cloudSave(s){
+  var payload=snapshot(s);
+  var task=cloudSaveChain.then(async function(){
+    var res=await cloud.client.from('scoopies_state').upsert({id:'main',data:payload,updated_at:new Date().toISOString()},{onConflict:'id'});
+    if(res.error)throw res.error;
+  });
+  cloudSaveChain=task.catch(function(){});return task;
 }
 function hasData(s){ return !!(s && ((s.ingredientCategories&&s.ingredientCategories.length)||(s.ingredients&&s.ingredients.length)||(s.mixtureDrafts&&s.mixtureDrafts.length)||(s.packaging&&s.packaging.length)||(s.recipes&&s.recipes.length)||(s.products&&s.products.length))); }
 function appIsEditing(){
-  if(categoryModalOpen||mixtureModalOpen||draftsModalOpen||publishModalOpen||(posOpsModal&&posOpsModal.open)) return true;
+  if(categoryModalOpen||purchasedIngredientModalOpen||mixtureModalOpen||draftsModalOpen||publishModalOpen||(posOpsModal&&posOpsModal.open)||(stockModal&&stockModal.open)) return true;
   var ae=document.activeElement;
   return !!(ae && (ae.tagName==='INPUT'||ae.tagName==='SELECT'||ae.tagName==='TEXTAREA') && ae.closest && ae.closest('.wrap'));
 }
@@ -810,6 +910,11 @@ async function retryDirtySave(){
   if(retryingDirty||!cloud.connected||!session||!localDirty||pendingSave)return;
   retryingDirty=true; setStatus('Checking cloud before retry…','');
   try{
+    if(stockScopedSourceDeletes().length){
+      await stockRecoverSourceDeletes();
+      if(stockScopedSourceDeletes().length){setStatus('Ingredient deletion recovery pending - refresh Stocks','bad');return;}
+      if(!localDirty)return;
+    }
     var remote=await cloudLoad();
     if(remote!==null){pendingRemote=remote;consumePendingRemoteForCommit(false);}
     save();
@@ -956,6 +1061,7 @@ async function handleAuth(sess,event){
       costingCloudLoading = true;
       currentUserId = session.user.id;
       var costingGeneration=++costingLoadGeneration,costingUserId=String(session.user.id||'');
+      var blockedOfflineInventoryChanges=[];
       setStatus('Connecting…','');
       try{
         try{ cloud.client.realtime.setAuth(session.access_token); }catch(e){}
@@ -963,7 +1069,9 @@ async function handleAuth(sess,event){
         if(!costingRequestIsCurrent(costingGeneration,costingUserId))return;
         if(remote!==null){
           if(localDirty){
-            state=mergeStates(syncedState||blank(),state,remote); rememberSynced(remote,false);
+            var mergedState=mergeStates(syncedState||blank(),state,remote);
+            var lifecycleReconciliation=reconcileCostingInventoryLifecycle(remote,mergedState,syncedState||blank());
+            state=lifecycleReconciliation.state;blockedOfflineInventoryChanges=lifecycleReconciliation.blocked;rememberSynced(remote,false);
           }else{
             state=remote; rememberSynced(remote,true);
           }
@@ -976,6 +1084,7 @@ async function handleAuth(sess,event){
         try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){}
         lastState = snapshot(state);
         renderAll();
+        if(blockedOfflineInventoryChanges.length)setTimeout(function(){alert('For stock-history safety, these offline ingredient deletions or unit-type changes were not uploaded: '+blockedOfflineInventoryChanges.join(', ')+'. Reconnect first, then make those changes again. Other offline edits were kept.');},0);
         if(localDirty)save();else setStatus('Saved to cloud ✓','good');
       }catch(e){
         if(!costingRequestIsCurrent(costingGeneration,costingUserId))return;
@@ -1268,6 +1377,21 @@ function freshPosOpsModal(){
     countedCash:'',verifiedGcash:'',verifiedGotyme:'',notes:'',sale:null,reason:'',result:null,uncertain:false,rpcArgs:null,
     cartAction:'',cartProductId:'',cartProductName:'',cartQuantity:0};
 }
+function freshStockState(){
+  return {loaded:false,loading:false,refreshing:false,error:'',notice:'',sourceConflict:'',items:[],transactions:[],search:'',status:'all',kind:'all',lastUpdatedAt:0};
+}
+function freshStockModal(){
+  return {open:false,itemId:'',action:'',quantity:'',unit:'',reason:'',note:'',submitting:false,error:'',notice:'',uncertain:false,pendingRpc:null};
+}
+function stockCanManage(){return posContext.role==='owner'||posContext.role==='manager';}
+function resetStocks(message){
+  stockLoadGeneration++;stockMutationGeneration++;
+  stockState=freshStockState();if(message)stockState.error=String(message);
+  stockModal=freshStockModal();stockModalReturnFocus=null;
+  var modal=document.getElementById('stockModal');if(modal)modal.hidden=true;
+  if(typeof refreshModalBodyClass==='function')refreshModalBodyClass();
+  if(typeof renderStocks==='function')renderStocks();
+}
 function resetPosCheckout(){
   posCheckoutLoadGeneration++;posCheckoutSubmitGeneration++;posCatalogGeneration++;posOpsGeneration++;
   posSilentRefreshPromise=null;posLastSilentRefreshAttemptAt=0;
@@ -1474,6 +1598,7 @@ function resetPosContext(message,preserveCheckout){
   posLoadGeneration++;posStatusGeneration++;
   posOpsGeneration++;if(posOpsModal.open)posCloseOpsModal(true);
   posContext={loaded:!!message,loading:false,businessId:'',businessName:'',role:'',publications:{},error:message||''};
+  resetStocks(message||'');
   if(preserveCheckout){posCheckoutLoadGeneration++;posCatalogGeneration++;}
   else resetPosCheckout();
 }
@@ -1489,6 +1614,416 @@ function rpcRows(result){
   if(result&&result.error)throw result.error;
   if(!result||result.data==null)return [];
   return Array.isArray(result.data)?result.data:[result.data];
+}
+function stockRequestIsCurrent(generation,userId,businessId){
+  return generation===stockLoadGeneration&&!!session&&!!session.user&&
+    String(session.user.id||'')===String(userId||'')&&String(posContext.businessId||'')===String(businessId||'');
+}
+function stockBaseUnitForIngredient(ingredient){
+  var type=ingredient&&UNIT_TYPE[ingredient.unit];return TYPE_BASE[type]||'';
+}
+function stockSourcePayload(sourceState){
+  sourceState=sourceState||state;
+  return (sourceState.ingredients||[]).filter(function(ingredient){
+    return ingredient&&ingredient.id&&String(ingredient.name||'').trim()&&stockBaseUnitForIngredient(ingredient);
+  }).map(function(ingredient){
+    return {sourceCostingIngredientId:String(ingredient.id),kind:isMixture(ingredient)?'mixture':'purchased',
+      name:String(ingredient.name||'').trim(),baseUnit:stockBaseUnitForIngredient(ingredient)};
+  });
+}
+function costingBulkInventoryIssue(nextState){
+  var current=(state.ingredients||[]),next=(nextState&&nextState.ingredients)||[],currentById={},nextById={};
+  current.forEach(function(item){if(item&&item.id)currentById[String(item.id)]=item;});
+  next.forEach(function(item){if(item&&item.id)nextById[String(item.id)]=item;});
+  var currentIds=Object.keys(currentById),nextIds=Object.keys(nextById);
+  if(currentIds.length!==nextIds.length||currentIds.some(function(id){return !nextById[id];})){
+    return 'For inventory safety, a cloud backup cannot add or remove ingredient sources in one bulk action. Add or delete ingredients individually so stock history stays attached to the right item.';
+  }
+  for(var i=0;i<currentIds.length;i++){
+    var id=currentIds[i],before=currentById[id],after=nextById[id];
+    if((isMixture(before)?'mixture':'purchased')!==(isMixture(after)?'mixture':'purchased')||
+      stockBaseUnitForIngredient(before)!==stockBaseUnitForIngredient(after)){
+      return 'For inventory safety, a cloud backup cannot change an ingredient between weight, volume, pieces, purchased, or prepared mixture. Create a new ingredient instead.';
+    }
+  }
+  return '';
+}
+function reconcileCostingInventoryLifecycle(authoritative,candidate,baseline){
+  authoritative=normalizeState(authoritative||blank());candidate=normalizeState(candidate||blank());baseline=normalizeState(baseline||authoritative);
+  var authoritativeById={},baselineById={},candidateById={};
+  authoritative.ingredients.forEach(function(item){authoritativeById[String(item.id)]=item;});
+  baseline.ingredients.forEach(function(item){baselineById[String(item.id)]=item;});
+  candidate.ingredients.forEach(function(item){candidateById[String(item.id)]=item;});
+  var blocked=[];
+  candidate.ingredients=candidate.ingredients.filter(function(localItem){
+    var id=String(localItem.id);
+    if(baselineById[id]&&!authoritativeById[id]){blocked.push(localItem.name||baselineById[id].name||'Unnamed ingredient');delete candidateById[id];return false;}
+    return true;
+  });
+  authoritative.ingredients.forEach(function(serverItem){
+    var localItem=candidateById[String(serverItem.id)];
+    if(!localItem){candidate.ingredients.push(snapshot(serverItem));blocked.push(serverItem.name||'Unnamed ingredient');return;}
+    if((isMixture(localItem)?'mixture':'purchased')!==(isMixture(serverItem)?'mixture':'purchased')||stockBaseUnitForIngredient(localItem)!==stockBaseUnitForIngredient(serverItem)){
+      var index=candidate.ingredients.findIndex(function(item){return String(item.id)===String(serverItem.id);});
+      if(index>=0)candidate.ingredients[index]=snapshot(serverItem);blocked.push(serverItem.name||localItem.name||'Unnamed ingredient');
+    }
+  });
+  return {state:candidate,blocked:blocked};
+}
+function replaceCostingStateSafely(nextState,activity){
+  nextState=normalizeState(nextState);
+  var issue=costingBulkInventoryIssue(nextState);
+  if(issue){alert(issue);return false;}
+  state=nextState;ingredientUi={search:'',category:'all'};logCoarse(activity);save();renderAll();return true;
+}
+function stockNormalizeItem(row){
+  row=row||{};
+  var sourceId=String(row.source_costing_ingredient_id||row.sourceCostingIngredientId||'');
+  var source=getById(state.ingredients||[],sourceId);
+  return {id:String(row.inventory_item_id||row.id||''),sourceId:sourceId,name:String(row.name||'Unnamed item'),
+    kind:String(row.item_kind||row.kind||'purchased')==='mixture'?'mixture':'purchased',
+    baseUnit:String(row.base_unit||row.baseUnit||'g'),balance:Number(row.current_balance_base==null?0:row.current_balance_base),
+    threshold:row.low_stock_threshold_base==null?null:Number(row.low_stock_threshold_base),
+    revision:Number(row.revision||0),initialized:!!(row.has_stock_history||row.initialized),active:row.active!==false,
+    lastMovementAt:row.last_movement_at||null,lastMovementType:String(row.last_movement_type||''),
+    categoryName:source?categoryNameIn(state,source.categoryId):'Removed from costing'};
+}
+function stockNormalizeTransaction(row){
+  row=row||{};
+  return {transactionId:String(row.transaction_id||''),itemId:String(row.inventory_item_id||''),
+    itemName:String(row.item_name_snapshot||row.item_name||'Inventory item'),type:String(row.transaction_type||''),
+    delta:Number(row.quantity_delta_base||0),before:Number(row.balance_before_base||0),after:Number(row.balance_after_base||0),
+    unit:String(row.base_unit_snapshot||row.base_unit||'g'),reason:String(row.reason||''),note:String(row.note||''),
+    actor:String(row.recorded_by_name||row.actor_name||'Staff'),occurredAt:row.occurred_at||row.created_at||null,itemSequence:Number(row.item_sequence||0),
+    revisionBefore:Number(row.item_revision_before||0),revisionAfter:Number(row.item_revision_after||0)};
+}
+function stockPendingScope(userId,businessId){return String(userId||'')+'|'+String(businessId||'');}
+function stockPendingStorageKey(record){
+  return STOCK_PENDING_KEY+'|'+encodeURIComponent(String(record&&record.userId||''))+'|'+encodeURIComponent(String(record&&record.businessId||''))+'|'+encodeURIComponent(String(record&&record.rpcArgs&&record.rpcArgs.p_client_transaction_id||''));
+}
+function stockPendingRecords(){
+  var records=[];
+  try{
+    for(var i=0;i<localStorage.length;i++){
+      var key=localStorage.key(i);if(!key||key.indexOf(STOCK_PENDING_KEY+'|')!==0)continue;
+      var record=JSON.parse(localStorage.getItem(key));if(record&&record.schemaVersion===1)records.push(record);
+    }
+  }catch(error){}
+  return records.sort(function(a,b){return Number(a.savedAt||0)-Number(b.savedAt||0);});
+}
+function stockBuildPending(request,itemId){
+  return {schemaVersion:1,userId:String(session&&session.user&&session.user.id||''),businessId:String(posContext.businessId||''),
+    itemId:String(itemId||''),rpcName:String(request&&request.name||''),rpcArgs:snapshot(request&&request.args||{}),savedAt:Date.now()};
+}
+function stockSavePending(record){
+  if(!record||!record.userId||!record.businessId||record.rpcName!=='pos_inventory_record_transaction')return false;
+  var key=stockPendingStorageKey(record);
+  try{
+    var existing=JSON.parse(localStorage.getItem(key));
+    if(existing&&JSON.stringify(existing.rpcArgs)!==JSON.stringify(record.rpcArgs))return false;
+    localStorage.setItem(key,JSON.stringify(record));return true;
+  }catch(error){return false;}
+}
+function stockClearPending(record){
+  record=record||stockStoredPending();if(!record)return false;
+  var key=stockPendingStorageKey(record);
+  try{
+    var stored=JSON.parse(localStorage.getItem(key));
+    if(stored&&String(stored.rpcArgs&&stored.rpcArgs.p_client_transaction_id||'')!==String(record.rpcArgs&&record.rpcArgs.p_client_transaction_id||''))return false;
+    localStorage.removeItem(key);return true;
+  }catch(error){return false;}
+}
+function stockStoredPendings(){
+  if(!session||!session.user||!posContext.businessId)return [];
+  var scope=stockPendingScope(session.user.id,posContext.businessId);
+  return stockPendingRecords().filter(function(record){return stockPendingScope(record.userId,record.businessId)===scope&&record.rpcName==='pos_inventory_record_transaction'&&record.rpcArgs&&Array.isArray(record.rpcArgs.p_lines);});
+}
+function stockStoredPending(){
+  return stockStoredPendings()[0]||null;
+}
+function stockPendingStillCurrent(record){
+  return !!(record&&session&&session.user&&String(record.userId)===String(session.user.id||'')&&String(record.businessId)===String(posContext.businessId||''));
+}
+function stockSourceDeleteStorageKey(record){
+  return STOCK_SOURCE_DELETE_KEY+'|'+encodeURIComponent(String(record&&record.userId||''))+'|'+encodeURIComponent(String(record&&record.businessId||''))+'|'+encodeURIComponent(String(record&&record.sourceId||''));
+}
+function stockSourceDeleteRecords(){
+  var records=[];
+  try{
+    for(var i=0;i<localStorage.length;i++){
+      var key=localStorage.key(i);if(!key||key.indexOf(STOCK_SOURCE_DELETE_KEY+'|')!==0)continue;
+      var record=JSON.parse(localStorage.getItem(key));if(record&&record.schemaVersion===1)records.push(record);
+    }
+  }catch(error){}
+  return records;
+}
+function stockSaveSourceDelete(record){
+  if(!record||!record.userId||!record.businessId||!record.sourceId)return false;
+  try{localStorage.setItem(stockSourceDeleteStorageKey(record),JSON.stringify(record));return true;}catch(error){return false;}
+}
+function stockClearSourceDelete(record){
+  if(!record)return false;try{localStorage.removeItem(stockSourceDeleteStorageKey(record));return true;}catch(error){return false;}
+}
+function stockBuildSourceDelete(source){
+  return {schemaVersion:1,userId:String(session&&session.user&&session.user.id||''),businessId:String(posContext.businessId||''),sourceId:String(source.id),
+    kind:isMixture(source)?'mixture':'purchased',name:String(source.name||'').trim(),baseUnit:stockBaseUnitForIngredient(source),source:snapshot(source),savedAt:Date.now()};
+}
+function stockAdoptRemoteCosting(remote){
+  if(!remote)return false;
+  remote=normalizeState(remote);
+  var baseline=syncedState||remote,merged=mergeStates(baseline,state,remote);
+  var lifecycle=reconcileCostingInventoryLifecycle(remote,merged,baseline);
+  state=lifecycle.state;
+  var clean=sameDataValue(state,remote),savedLocally=true;
+  try{localStorage.setItem(KEY,JSON.stringify(state));}catch(storageError){savedLocally=false;}
+  rememberSynced(remote,clean);if(!clean)markLocalDirty();lastState=snapshot(state);
+  return savedLocally;
+}
+function stockScopedSourceDeletes(){
+  if(!session||!session.user||!posContext.businessId)return [];
+  var scope=stockPendingScope(session.user.id,posContext.businessId);
+  return stockSourceDeleteRecords().filter(function(record){return stockPendingScope(record.userId,record.businessId)===scope;});
+}
+async function stockRecoverSourceDeletes(){
+  var records=stockScopedSourceDeletes();if(!records.length||!stockCanManage()||!cloud.client)return 0;
+  var remote;
+  try{remote=await cloudLoad();}catch(error){stockState.notice='A confirmed ingredient deletion is waiting for its inventory archive. Reconnect and refresh Stocks.';return 0;}
+  if(remote===null){stockState.notice='The cloud costing document is unavailable, so ingredient deletion recovery was kept for a later refresh.';return 0;}
+  var archived=0,restored=0,failed=0;
+  for(var i=0;i<records.length;i++){
+    var record=records[i];
+    if(getById(remote.ingredients||[],record.sourceId)){
+      var savedLocally=stockAdoptRemoteCosting(remote);
+      if(savedLocally&&stockClearSourceDelete(record))restored++;
+      else failed++;
+      continue;
+    }
+    try{
+      var prepared=rpcRows(await cloud.client.rpc('pos_inventory_prepare_source_delete',{p_business_id:record.businessId,p_source_costing_ingredient_id:record.sourceId,p_item_kind:record.kind,p_name:record.name,p_base_unit:record.baseUnit}));
+      if(prepared[0]!==true)throw {code:'55000',message:'The source deletion was not committed.'};
+      var confirmedRemote=await cloudLoad();
+      if(!confirmedRemote||getById(confirmedRemote.ingredients||[],record.sourceId))throw new Error('The costing deletion could not be verified.');
+      if(stockAdoptRemoteCosting(confirmedRemote)&&stockClearSourceDelete(record))archived++;else failed++;
+    }catch(error){failed++;}
+  }
+  var notices=[];
+  if(restored)notices.push('The cloud still contained '+restored+' ingredient '+(restored===1?'source':'sources')+', so the local deletion was cancelled safely.');
+  if(archived)notices.push('Recovered '+archived+' pending ingredient '+(archived===1?'archive':'archives')+' safely.');
+  if(failed)notices.push('A confirmed ingredient deletion is still waiting for recovery. No source ID will be reused while it is pending.');
+  if(notices.length)stockState.notice=notices.join(' ');
+  return archived;
+}
+function stockApplyMutationRows(request,rows){
+  rows=Array.isArray(rows)?rows:[];if(!request||!rows.length)return false;
+  if(request.name==='pos_inventory_set_threshold'){
+    var thresholdRow=rows[0],thresholdItem=stockItemById(thresholdRow.inventory_item_id);if(!thresholdItem)return false;
+    thresholdItem.threshold=thresholdRow.low_stock_threshold_base==null?null:Number(thresholdRow.low_stock_threshold_base);
+    thresholdItem.revision=Number(thresholdRow.revision||thresholdItem.revision);thresholdItem.active=thresholdRow.active!==false;return true;
+  }
+  if(request.name!=='pos_inventory_record_transaction')return false;
+  var applied=false;
+  rows.forEach(function(row){
+    var item=stockItemById(row.inventory_item_id);if(!item||!row.transaction_id)return;
+    var wasInitialized=item.initialized;
+    item.balance=Number(row.balance_after_base);item.revision=Number(row.item_revision||item.revision);item.initialized=true;item.active=true;
+    item.lastMovementAt=row.occurred_at||new Date().toISOString();item.lastMovementType=String(row.transaction_type||request.args.p_transaction_type||'');
+    var duplicate=stockState.transactions.some(function(entry){return entry.transactionId===String(row.transaction_id)&&entry.itemId===String(row.inventory_item_id);});
+    if(!duplicate)stockState.transactions.unshift({transactionId:String(row.transaction_id),itemId:String(row.inventory_item_id),itemName:String(row.item_name||item.name),
+      type:String(row.transaction_type||request.args.p_transaction_type||''),delta:Number(row.quantity_delta_base||0),before:Number(row.balance_before_base||0),after:Number(row.balance_after_base||0),
+      unit:String(row.base_unit||item.baseUnit),reason:String(request.args.p_reason||''),note:String(request.args.p_note||''),actor:actorName(),occurredAt:row.occurred_at||new Date().toISOString(),
+      itemSequence:wasInitialized?0:1,revisionBefore:Math.max(0,Number(row.item_revision||item.revision)-1),revisionAfter:Number(row.item_revision||item.revision)});
+    applied=true;
+  });
+  if(stockState.transactions.length>100)stockState.transactions=stockState.transactions.slice(0,100);
+  return applied;
+}
+function stockRestorePendingModal(record){
+  var line=record&&record.rpcArgs&&record.rpcArgs.p_lines&&record.rpcArgs.p_lines[0],item=line&&stockItemById(line.inventoryItemId);if(!line||!item)return false;
+  stockModalReturnFocus=document.activeElement;stockModal=freshStockModal();stockModal.open=true;stockModal.itemId=item.id;
+  stockModal.action=String(record.rpcArgs.p_transaction_type||'');stockModal.quantity=String(line.quantity==null?'':line.quantity);stockModal.unit=String(line.unit||item.baseUnit);
+  stockModal.reason=String(record.rpcArgs.p_reason||'');stockModal.note=String(record.rpcArgs.p_note||'');stockModal.uncertain=true;
+  stockModal.pendingRpc={name:record.rpcName,args:snapshot(record.rpcArgs)};
+  var modal=document.getElementById('stockModal');if(modal)modal.hidden=false;refreshModalBodyClass();renderStockModal();return true;
+}
+async function stockRecoverStoredPending(){
+  var records=stockStoredPendings();if(!records.length||!stockCanManage()||!cloud.client)return false;
+  var recovered=0,failed=[];
+  for(var i=0;i<records.length;i++){
+    var record=records[i];
+    try{
+      var rows=rpcRows(await cloud.client.rpc(record.rpcName,record.rpcArgs));
+      if(!stockPendingStillCurrent(record))return false;
+      if(!rows.length)throw new Error('Missing inventory recovery response');
+      stockApplyMutationRows({name:record.rpcName,args:record.rpcArgs},rows);stockClearPending(record);recovered++;
+    }catch(error){
+      if(!stockPendingStillCurrent(record))return false;
+      if(stockMutationDeterministic(error)){stockClearPending(record);failed.push(stockErrorText(error));continue;}
+      stockState.notice='A previous stock update still needs an exact retry. Its request is preserved so it cannot be counted twice.';stockRestorePendingModal(record);return false;
+    }
+  }
+  stockState.notice=(recovered?'Recovered '+recovered+' exact pending stock update'+(recovered===1?'':'s')+' safely. ':'')+(failed.length?'Some pending updates were not applied: '+failed.join(' '):'');
+  return recovered>0;
+}
+function stockErrorText(error){
+  var code=String(error&&error.code||''),message=String(error&&error.message||'');
+  if(code==='PGRST202'||code==='42883'||/pos_inventory_/i.test(message)&&/not find|does not exist/i.test(message))return 'The Stocks database update is not installed yet.';
+  if(code==='42501')return 'Your account does not have access to this inventory workspace.';
+  if(code==='40001')return 'This stock item changed on another device. Refresh and review the latest amount.';
+  if(code==='55000')return message||'This inventory action is blocked until the item is safely reconciled.';
+  if(code==='23505')return 'This request ID was already used with different stock details. Refresh before trying again.';
+  if(code==='22003')return 'The stock amount is outside the supported range. Enter a smaller quantity.';
+  if(code==='23514'||code==='22023')return message||'Review the stock amount, unit, and required reason.';
+  if(code==='P0002')return 'This stock item is no longer active. Refresh Stocks before trying again.';
+  return 'Could not reach the Stocks database. Check your connection and try again.';
+}
+function stockMutationDeterministic(error){
+  return ['PGRST202','42883','42501','40001','55000','23505','23514','22003','22023','P0002'].indexOf(String(error&&error.code||''))>=0;
+}
+function stockSourceGuardMessage(error,verb){
+  var message=String(error&&error.message||'');
+  if(String(error&&error.code||'')==='55000'&&message)return message;
+  if(String(error&&error.code||'')==='42501')return 'Your account does not have permission to '+verb+' this inventory source.';
+  if(TEST_MODE&&message)return message;
+  return stockErrorText(error);
+}
+async function stockEnsureSourceWorkspace(verb){
+  if(!session)return true;
+  if(!cloud.connected||!cloud.client){alert('Reconnect to the cloud before you '+verb+' this ingredient so its stock history stays safe.');return false;}
+  if(!posContext.businessId){var ready=await loadPosContext();if(!ready||!posContext.businessId){alert(posContext.error||'The inventory workspace could not be opened.');return false;}}
+  if(!stockCanManage()){alert('Only an owner or manager can '+verb+' an ingredient that may have stock history.');return false;}
+  return true;
+}
+async function deleteIngredientSafely(id){
+  id=String(id||'');if(!id||stockSourceMutations[id])return false;
+  consumePendingRemoteForCommit(false);
+  var target=getById(state.ingredients,id),usedBy=ingredientUsage(id);
+  if(!target){renderAll();return false;}
+  if(usedBy.length){alert('Cannot delete "'+(target.name||'this item')+'" because it is used by '+usedBy.join(', ')+'. Remove or replace it there first.');return false;}
+  if(!confirm('Delete "'+(target.name||'this ingredient')+'"?'))return false;
+  stockSourceMutations[id]=true;
+  costingSourceCommitInFlight=true;
+  var sourceIdentity=null,sourceDeleteRecord=null;
+  try{
+    if(!session){
+      var knownOfflineSource=getById((syncedState&&syncedState.ingredients)||[],id);
+      if(knownOfflineSource){alert('Reconnect to the cloud before deleting this ingredient so its inventory identity and stock history stay safe.');renderAll();return false;}
+      state.ingredients=state.ingredients.filter(function(item){return item.id!==id;});
+      stockState.items=stockState.items.filter(function(item){return item.sourceId!==id;});
+      logChanges();save();renderAll();return true;
+    }
+    if(!(await stockEnsureSourceWorkspace('delete'))){renderAll();return false;}
+    consumePendingRemoteForCommit(false);
+    target=getById(state.ingredients,id);if(!target){renderAll();return false;}
+    usedBy=ingredientUsage(id);
+    if(usedBy.length){alert('This ingredient is now used by '+usedBy.join(', ')+'. Remove or replace it there first.');renderAll();return false;}
+    var remoteBefore=await cloudLoad();
+    if(!remoteBefore)throw new Error('The cloud costing document could not be loaded.');
+    var remoteTarget=getById(remoteBefore.ingredients||[],id);
+    if(!remoteTarget){
+      var inventoryRows=rpcRows(await cloud.client.rpc('pos_inventory_get_items',{p_business_id:String(posContext.businessId),p_include_inactive:true}));
+      var inventorySource=inventoryRows.find(function(row){return String(row&&row.source_costing_ingredient_id||'')===id;});
+      if(inventorySource&&inventorySource.active!==false)throw {code:'55000',message:'Stocks has an active identity for this ingredient even though the cloud costing source is missing. Refresh and reconcile Stocks before deleting it.'};
+      state.ingredients=state.ingredients.filter(function(item){return item.id!==id;});
+      if(!stockAdoptRemoteCosting(remoteBefore))throw new Error('The ingredient was already deleted in the cloud, but this browser could not save the merged result locally.');
+      stockState.items=stockState.items.filter(function(item){return item.sourceId!==id;});
+      if(!sameDataValue(state,remoteBefore))save();else setStatus('Updated from cloud ✓','good');
+      renderAll();return true;
+    }
+    rpcRows(await cloud.client.rpc('pos_inventory_validate_source_delete',{p_business_id:String(posContext.businessId),p_source_costing_ingredient_id:id}));
+    sourceIdentity={kind:isMixture(remoteTarget)?'mixture':'purchased',name:String(remoteTarget.name||'').trim(),baseUnit:stockBaseUnitForIngredient(remoteTarget)};
+    sourceDeleteRecord=stockBuildSourceDelete(remoteTarget);
+    if(!stockSaveSourceDelete(sourceDeleteRecord)){alert('This browser could not save deletion recovery, so nothing was deleted. Free browser storage or allow local storage, then try again.');return false;}
+    var prepared=rpcRows(await cloud.client.rpc('pos_inventory_prepare_source_delete',{p_business_id:String(posContext.businessId),p_source_costing_ingredient_id:id,p_item_kind:sourceIdentity.kind,p_name:sourceIdentity.name,p_base_unit:sourceIdentity.baseUnit}));
+    if(prepared[0]!==true)throw {code:'55000',message:'The database did not commit the ingredient deletion.'};
+    var confirmedRemote=await cloudLoad();
+    if(!confirmedRemote||getById(confirmedRemote.ingredients||[],id))throw new Error('The cloud did not confirm the ingredient deletion.');
+    if(!stockAdoptRemoteCosting(confirmedRemote))throw new Error('The deletion succeeded, but this browser could not save the confirmed result locally.');
+    if(!stockClearSourceDelete(sourceDeleteRecord))throw new Error('The deletion succeeded, but its recovery marker could not be cleared.');
+    logChanges();
+    stockState.items=stockState.items.filter(function(item){return item.sourceId!==id;});
+    stockState.loaded=false;renderAll();return true;
+  }catch(error){
+    if(sourceDeleteRecord){
+      try{
+        var checkedRemote=await cloudLoad();
+        if(checkedRemote&&!getById(checkedRemote.ingredients||[],id)){
+          if(stockAdoptRemoteCosting(checkedRemote)&&stockClearSourceDelete(sourceDeleteRecord)){
+            logChanges();stockState.items=stockState.items.filter(function(item){return item.sourceId!==id;});stockState.loaded=false;
+            alert('The response was interrupted, but the ingredient deletion was verified and recovered safely.');renderAll();return true;
+          }
+        }else if(checkedRemote){
+          stockAdoptRemoteCosting(checkedRemote);stockClearSourceDelete(sourceDeleteRecord);
+          alert(stockSourceGuardMessage(error,'delete'));renderAll();return false;
+        }
+      }catch(verificationError){}
+      stockState.loaded=false;stockState.notice='An ingredient deletion could not be confirmed. Its exact recovery record is saved; reconnect and refresh Stocks before making more costing changes.';
+      alert('The connection stopped before the atomic ingredient deletion could be confirmed. Refresh Stocks when online; the app will verify the exact result before syncing anything else.');renderAll();return false;
+    }
+    alert(stockSourceGuardMessage(error,'delete'));renderAll();return false;
+  }
+  finally{costingSourceCommitInFlight=false;delete stockSourceMutations[id];}
+}
+async function changeIngredientUnitSafely(id,nextUnit){
+  id=String(id||'');nextUnit=String(nextUnit||'');if(!id||stockSourceMutations[id]){renderAll();return false;}
+  consumePendingRemoteForCommit(false);
+  var ingredient=getById(state.ingredients,id);if(!ingredient){renderAll();return false;}
+  if(!UNIT_TYPE[nextUnit]){alert('Choose a valid ingredient unit.');renderAll();return false;}
+  if(UNIT_TYPE[ingredient.unit]===UNIT_TYPE[nextUnit]){
+    if(isMixture(ingredient))ingredient.batchYield=convertUnitQuantity(ingredient.batchYield,ingredient.unit,nextUnit);
+    else if(ingredient.amountPerItem!=null)ingredient.amountPerItem=convertUnitQuantity(ingredient.amountPerItem,ingredient.unit,nextUnit);
+    else ingredient.qty=convertUnitQuantity(ingredient.qty,ingredient.unit,nextUnit);
+    ingredient.unit=nextUnit;logChanges();save();renderAll();return true;
+  }
+  alert('For inventory safety, an existing ingredient cannot change between weight, volume, or pieces. Add a new ingredient with the correct unit, replace its recipe uses, then delete the old ingredient when its stock balance is zero.');
+  renderAll();return false;
+}
+async function loadStocks(options){
+  options=options||{};
+  if(!cloud.client||!session||!session.user||!posContext.businessId){stockState.error='Sign in and connect the POS workspace to use Stocks.';stockState.loaded=true;renderStocks();return false;}
+  if(stockState.loading||stockState.refreshing||stockModal.submitting)return false;
+  var background=!!options.background,generation=++stockLoadGeneration,userId=String(session.user.id||''),businessId=String(posContext.businessId||'');
+  stockState.loading=!background;stockState.refreshing=background;stockState.error='';stockState.sourceConflict='';if(!background)stockState.notice='';renderStocks();
+  var syncWarning='',sourceRecoveryNotice='';
+  try{
+    await stockRecoverSourceDeletes();sourceRecoveryNotice=stockState.notice;
+    if(!stockRequestIsCurrent(generation,userId,businessId))return false;
+    if(stockCanManage()&&!stockScopedSourceDeletes().length){
+      if(costingCloudReady&&!pendingSave&&!localDirty&&!pendingRemote&&!saveTimer){
+        try{
+          var syncRows=rpcRows(await cloud.client.rpc('pos_inventory_sync_items',{p_business_id:businessId,p_items:stockSourcePayload(syncedState)}));
+          var inactiveSources=syncRows.filter(function(row){return row&&row.active===false;}).map(function(row){return String(row.name||row.source_costing_ingredient_id||'ingredient');});
+          if(inactiveSources.length){stockState.sourceConflict='Costing still contains archived stock '+(inactiveSources.length===1?'source':'sources')+': '+inactiveSources.join(', ')+'. Create a new ingredient ID and replace old recipe references; the archived ledger identity will not be reused.';syncWarning=stockState.sourceConflict;}
+        }
+        catch(syncError){if(String(syncError&&syncError.code||'')==='42501')throw syncError;syncWarning=stockErrorText(syncError);if(String(syncError&&syncError.code||'')==='55000')stockState.sourceConflict=String(syncError.message||syncWarning);}
+      }else syncWarning=costingCloudReady?'Costing changes are still saving, so new or edited sources will appear in Stocks after the cloud confirms them.':'Costing is not fully synced, so ingredient names were not refreshed.';
+    }else if(stockScopedSourceDeletes().length)syncWarning='Costing-to-stock sync is paused until the pending source recovery is confirmed.';
+    var itemRequest=cloud.client.rpc('pos_inventory_get_items',{p_business_id:businessId,p_include_inactive:false});
+    var historyRequest=stockCanManage()?cloud.client.rpc('pos_inventory_get_transactions',{p_business_id:businessId,p_inventory_item_id:null,p_limit:100}):Promise.resolve({data:[],error:null});
+    var responses=await Promise.all([itemRequest,historyRequest]);
+    if(!stockRequestIsCurrent(generation,userId,businessId))return false;
+    stockState.items=rpcRows(responses[0]).map(stockNormalizeItem);
+    stockState.transactions=rpcRows(responses[1]).map(stockNormalizeTransaction);
+    stockState.loaded=true;stockState.error='';stockState.notice=sourceRecoveryNotice;stockState.lastUpdatedAt=Date.now();
+    await stockRecoverStoredPending();
+    if(!stockRequestIsCurrent(generation,userId,businessId))return false;
+    if(syncWarning)stockState.notice=(stockState.notice?stockState.notice+' ':'')+syncWarning;
+    return true;
+  }catch(error){
+    if(!stockRequestIsCurrent(generation,userId,businessId))return false;
+    var message=stockErrorText(error);
+    if(background&&stockState.items.length){stockState.notice='Showing the last loaded stock amounts. '+message;stockState.error='';}
+    else{stockState.error=message;stockState.loaded=true;}
+    if(String(error&&error.code||'')==='42501'){stockState.items=[];stockState.transactions=[];}
+    return false;
+  }finally{
+    if(stockRequestIsCurrent(generation,userId,businessId)){stockState.loading=false;stockState.refreshing=false;renderStocks();}
+  }
+}
+async function openStocks(refresh){
+  if(!session){renderStocks();return false;}
+  if(!posContext.businessId){var ready=await loadPosContext();if(!ready||!posContext.businessId){renderStocks();return false;}}
+  if(stockState.loaded&&!refresh){renderStocks();return true;}
+  return loadStocks({background:!!(stockState.loaded&&stockState.items.length)});
 }
 function posRequestIsCurrent(generation,userId,businessId){
   return generation===posLoadGeneration&&!!session&&!!session.user&&
@@ -2613,7 +3148,7 @@ function renderProducts(){
   }).join('');
 }
 function refreshModalBodyClass(){
-  var open=categoryModalOpen||mixtureModalOpen||draftsModalOpen||publishModalOpen; document.body.classList.toggle('modal-open',open);
+  var open=categoryModalOpen||purchasedIngredientModalOpen||mixtureModalOpen||draftsModalOpen||publishModalOpen||(stockModal&&stockModal.open); document.body.classList.toggle('modal-open',open);
   [document.querySelector('header'),document.querySelector('.wrap')].forEach(function(el){if(!el)return;el.inert=!!open;if(open)el.setAttribute('aria-hidden','true');else el.removeAttribute('aria-hidden');});
 }
 function focusSoon(selector){setTimeout(function(){var el=document.querySelector(selector);if(el)el.focus();},0);}
@@ -2621,9 +3156,12 @@ function focusLastMixtureField(field){setTimeout(function(){var rows=document.qu
 function consumePendingRemoteForCommit(shouldRender){
   if(!pendingRemote) return false;
   var remote=normalizeState(pendingRemote);
-  state=mergeStates(syncedState||blank(),state,remote); pendingRemote=null;
+  var merged=mergeStates(syncedState||blank(),state,remote);
+  var lifecycle=reconcileCostingInventoryLifecycle(remote,merged,syncedState||blank());
+  state=lifecycle.state; pendingRemote=null;
   rememberSynced(remote,false); lastState=snapshot(state);
   try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){}
+  if(lifecycle.blocked.length)setTimeout(function(){alert('A partner already deleted or changed the stock identity for: '+lifecycle.blocked.join(', ')+'. That source change won, so this device did not restore an unsafe stale ingredient.');},0);
   if(shouldRender!==false)renderAll(); return true;
 }
 function applyPendingAfterModal(){
@@ -2642,6 +3180,37 @@ function closeCategoryModal(skipRemote){
   categoryModalOpen=false; categoryEditId=''; document.getElementById('categoryModal').hidden=true; refreshModalBodyClass();
   if(modalReturnFocus&&modalReturnFocus.focus) modalReturnFocus.focus();
   if(!skipRemote) applyPendingAfterModal();
+}
+function purchasedIngredientCategoryOptions(selected){
+  return '<option value=""'+(!selected?' selected':'')+'>Uncategorized</option>'+state.ingredientCategories.map(function(category){return '<option value="'+escapeHtml(category.id)+'"'+(String(category.id)===String(selected||'')?' selected':'')+'>'+escapeHtml(category.name)+'</option>';}).join('');
+}
+function openPurchasedIngredientModal(){
+  var selected=selectedRealCategory();purchasedIngredientModalOpen=true;purchasedIngredientReturnFocus=document.activeElement;
+  document.getElementById('purchasedIngredientName').value='';
+  document.getElementById('purchasedIngredientCategory').innerHTML=purchasedIngredientCategoryOptions(selected?selected.id:'');
+  document.getElementById('purchasedIngredientUnit').value='';
+  document.getElementById('purchasedIngredientError').textContent='';
+  document.getElementById('purchasedIngredientModal').hidden=false;refreshModalBodyClass();focusSoon('#purchasedIngredientName');
+}
+function closePurchasedIngredientModal(skipRemote){
+  purchasedIngredientModalOpen=false;document.getElementById('purchasedIngredientModal').hidden=true;refreshModalBodyClass();
+  if(purchasedIngredientReturnFocus&&purchasedIngredientReturnFocus.focus)purchasedIngredientReturnFocus.focus();
+  purchasedIngredientReturnFocus=null;if(!skipRemote)applyPendingAfterModal();
+}
+function savePurchasedIngredient(){
+  var name=String(document.getElementById('purchasedIngredientName').value||'').trim();
+  var categoryId=String(document.getElementById('purchasedIngredientCategory').value||'');
+  var unit=String(document.getElementById('purchasedIngredientUnit').value||'');
+  consumePendingRemoteForCommit(false);
+  var error='';
+  if(!name)error='Enter an ingredient name.';
+  else if(state.ingredients.some(function(item){return String(item.name||'').trim().toLowerCase()===name.toLowerCase();}))error='An ingredient or mixture with that name already exists.';
+  else if(!UNIT_TYPE[unit])error='Choose whether this ingredient is measured by weight, volume, or pieces.';
+  if(categoryId&&!getById(state.ingredientCategories,categoryId))categoryId='';
+  if(error){document.getElementById('purchasedIngredientError').textContent=error;return false;}
+  var created={id:uid(),kind:'purchased',categoryId:categoryId,name:name,purchaseQty:'',amountPerItem:'',unit:unit,price:''};
+  state.ingredients.push(created);ingredientUi.search='';ingredientUi.category=categoryId||'uncategorized';
+  logChanges();save();closePurchasedIngredientModal(true);renderAll();focusSoon('[data-entity="ingredient"][data-id="'+created.id+'"] [data-field="purchaseQty"]');return true;
 }
 function categoryNameError(name,id){
   var clean=String(name||'').trim(); if(!clean) return 'Enter a category name.';
@@ -2722,14 +3291,14 @@ function openMixtureModal(id,readOnly){
   mixtureDraft=current?snapshot(current):newMixtureDraft(); mixtureDraft.pendingIngredients=[];
   mixtureSourceId=current?current.id:''; mixtureSourceSnapshot=current?snapshot(current):null;
   activeMixtureDraftId=''; openedMixtureDraftUpdatedAt=''; openedMixtureDraftFingerprint=''; mixtureDraftNotice='';
-  mixtureReadOnly=!!readOnly; quickIngredientDraft=null; mixtureModalOpen=true; modalReturnFocus=document.activeElement;
+  mixtureReadOnly=!!readOnly; mixtureSaving=false; quickIngredientDraft=null; mixtureModalOpen=true; modalReturnFocus=document.activeElement;
   mixtureInitialSnapshot=captureMixtureSession();
   document.getElementById('mixtureModal').hidden=false; refreshModalBodyClass(); renderMixtureModal();
   setTimeout(function(){var el=document.getElementById(mixtureReadOnly?'closeMixtureButton':'mixtureName');if(el)el.focus();},0);
 }
 function closeMixtureModal(skipRemote){
   var returnFocus=modalReturnFocus;
-  mixtureModalOpen=false; mixtureDraft=null; quickIngredientDraft=null; mixtureReadOnly=false; mixtureOriginalExisting=false;
+  mixtureModalOpen=false; mixtureDraft=null; quickIngredientDraft=null; mixtureReadOnly=false; mixtureSaving=false; mixtureOriginalExisting=false;
   activeMixtureDraftId=''; openedMixtureDraftUpdatedAt=''; openedMixtureDraftFingerprint=''; mixtureInitialSnapshot=null; mixtureSourceId=''; mixtureSourceSnapshot=null; mixtureDraftNotice='';
   document.getElementById('mixtureModal').hidden=true; refreshModalBodyClass();
   if(returnFocus&&returnFocus.focus&&returnFocus.isConnected)returnFocus.focus();else focusSoon('#mixtureDraftButton');
@@ -2744,7 +3313,7 @@ function currentMixtureDraftConflict(){
   return '';
 }
 function saveCurrentMixtureDraft(closeAfter,automatic){
-  if(!mixtureDraft||mixtureReadOnly)return false;
+  if(!mixtureDraft||mixtureReadOnly||mixtureSaving)return false;
   if(!mixtureSessionHasMeaningfulWork()&&!activeMixtureDraftId&&!mixtureSourceId){
     if(!automatic)setMixtureError('Add a name, item, yield, or purchased-ingredient detail before saving a draft.');
     return false;
@@ -2778,6 +3347,7 @@ function saveCurrentMixtureDraft(closeAfter,automatic){
 }
 function requestCloseMixtureModal(){
   if(!mixtureModalOpen)return;
+  if(mixtureSaving)return;
   if(mixtureReadOnly){closeMixtureModal(false);return;}
   if(mixtureSessionChanged()&&(mixtureSessionHasMeaningfulWork()||activeMixtureDraftId||mixtureSourceId)){
     saveCurrentMixtureDraft(true,true);
@@ -2786,6 +3356,7 @@ function requestCloseMixtureModal(){
   closeMixtureModal(false);
 }
 function discardMixtureChanges(){
+  if(mixtureSaving)return;
   if(mixtureSessionChanged()&&(mixtureSessionHasMeaningfulWork()||activeMixtureDraftId||mixtureSourceId)&&!confirm(activeMixtureDraftId?'Discard changes made since this draft was opened? The last saved draft will stay available.':'Discard these unsaved changes?'))return;
   closeMixtureModal(false);
 }
@@ -2852,6 +3423,14 @@ function mixtureComponentCost(c){
 function beginQuickIngredient(){
   quickIngredientDraft={id:uid(),kind:'purchased',name:'',categoryId:mixtureDraft.categoryId||'',purchaseQty:'',amountPerItem:'',unit:'g',price:''};
   renderMixtureModal(); setTimeout(function(){var e=document.getElementById('quickIngredientName');if(e)e.focus();},0);
+}
+function setMixtureSaving(active){
+  mixtureSaving=!!active;
+  var content=document.getElementById('mixtureModalContent');if(content)content.setAttribute('aria-busy',mixtureSaving?'true':'false');
+  document.querySelectorAll('#mixtureModal button,#mixtureModal input,#mixtureModal select,#mixtureModal textarea').forEach(function(control){
+    if(mixtureSaving){control.dataset.mixtureWasDisabled=control.disabled?'1':'0';control.disabled=true;}
+    else if(Object.prototype.hasOwnProperty.call(control.dataset,'mixtureWasDisabled')){control.disabled=control.dataset.mixtureWasDisabled==='1';delete control.dataset.mixtureWasDisabled;}
+  });
 }
 function renderMixtureModal(){
   if(!mixtureDraft) return;
@@ -2930,12 +3509,10 @@ function mixtureValidationError(){
     var componentInfo=ingredientCostInfo(source,[],draftIngredientLookup); if(!componentInfo.valid) return (source.name||'Item')+': '+componentInfo.error;
   }
   var original=getById(state.ingredients,mixtureDraft.id);
-  if(original&&UNIT_TYPE[original.unit]!==UNIT_TYPE[mixtureDraft.unit]){
-    var uses=ingredientUsage(mixtureDraft.id); if(uses.length) return 'Remove this mixture from '+uses.join(', ')+' before changing its yield type.';
-  }
+  if(original&&UNIT_TYPE[original.unit]!==UNIT_TYPE[mixtureDraft.unit]) return 'For inventory safety, an existing combined cost cannot change between weight, volume, or pieces. Save this work as a draft, then create a new combined cost with the correct yield unit.';
   var info=draftMixtureInfo(); return info.valid?'':info.error;
 }
-function saveMixture(){
+async function saveMixture(){
   consumePendingRemoteForCommit(false); sanitizeMixtureSessionCategories();
   var conflict=currentMixtureDraftConflict();if(conflict){setMixtureError(conflict+' Nothing was overwritten. Click Save draft to keep your work as a separate copy, then review both drafts.');return false;}
   if(quickIngredientDraft){setMixtureError('Add or cancel the new purchased ingredient before saving the combined cost. You can save this whole form as a draft now.');return false;}
@@ -3157,6 +3734,221 @@ function renderPosPreservingInteraction(){
     try{next.setSelectionRange(saved.start,saved.end);}catch(error){}
   }
 }
+function stockNumber(value){
+  var parsed=Number(value);return isFinite(parsed)?parsed:0;
+}
+function stockFormatNumber(value){
+  return stockNumber(value).toLocaleString('en-PH',{minimumFractionDigits:0,maximumFractionDigits:3});
+}
+function stockFormatQuantity(value,baseUnit,signed){
+  var amount=stockNumber(value),absolute=Math.abs(amount),unit=baseUnit,display=amount;
+  if(baseUnit==='g'&&absolute>=1000){display=amount/1000;unit='kg';}
+  else if(baseUnit==='ml'&&absolute>=1000){display=amount/1000;unit='L';}
+  var prefix=signed&&display>0?'+':'';
+  var label=unit==='piece'?(Math.abs(display)===1?'piece':'pieces'):unit;
+  return prefix+stockFormatNumber(display)+' '+label;
+}
+function stockSourceForItem(item){return getById(state.ingredients||[],item&&item.sourceId);}
+function stockStatus(item){
+  if(!item.initialized)return {key:'not_counted',label:'Not counted',cls:'warn',rank:2};
+  if(item.balance<=0)return {key:'out',label:'Out of stock',cls:'bad',rank:0};
+  if(item.threshold!=null&&item.balance<=item.threshold)return {key:'low',label:'Low stock',cls:'warn',rank:1};
+  return {key:'good',label:'In stock',cls:'good',rank:3};
+}
+function stockFilteredItems(){
+  var query=String(stockState.search||'').trim().toLowerCase();
+  return stockState.items.filter(function(item){
+    var status=stockStatus(item);
+    if(stockState.status!=='all'&&status.key!==stockState.status)return false;
+    if(stockState.kind!=='all'&&item.kind!==stockState.kind)return false;
+    if(query&&((item.name+' '+item.categoryName).toLowerCase().indexOf(query)<0))return false;
+    return item.active!==false;
+  }).sort(function(a,b){
+    var rank=stockStatus(a).rank-stockStatus(b).rank;if(rank)return rank;
+    return a.name.localeCompare(b.name,undefined,{sensitivity:'base'});
+  });
+}
+function stockSummaryHtml(){
+  var totals={all:stockState.items.length,low:0,out:0,not_counted:0};
+  stockState.items.forEach(function(item){var key=stockStatus(item).key;if(Object.prototype.hasOwnProperty.call(totals,key))totals[key]++;});
+  function metric(key,label,value,cls){return '<button class="metric'+(stockState.status===key?' active':'')+'" data-act="setStockStatus" data-status="'+key+'"><div class="lbl">'+label+'</div><div class="val '+(cls||'')+'">'+value+'</div></button>';}
+  return '<div class="stock-summary">'+metric('all','Tracked',totals.all)+metric('low','Low stock',totals.low,'')+metric('out','Out of stock',totals.out,'bad')+metric('not_counted','Not counted',totals.not_counted,'')+'</div>';
+}
+function stockFilterBarHtml(){
+  function chip(key,label){return '<button class="category-chip'+(stockState.status===key?' active':'')+'" data-act="setStockStatus" data-status="'+key+'">'+label+'</button>';}
+  return '<div class="stock-filter-bar" aria-label="Stock status filters">'+chip('all','All')+chip('low','Low')+chip('out','Out')+chip('not_counted','Not counted')+'</div>';
+}
+function stockItemCardsHtml(){
+  var items=stockFilteredItems();
+  if(!items.length)return '<div class="card"><p class="empty">'+(stockState.items.length?'No stock items match these filters.':'No ingredients are tracked yet. Add named ingredients in Costing, then refresh Stocks.')+'</p></div>';
+  var pendingRecovery=!!stockStoredPending(),sourceConflict=!!stockState.sourceConflict;
+  return '<div class="stock-grid">'+items.map(function(item){
+    var status=stockStatus(item),source=stockSourceForItem(item),threshold=item.threshold==null?'Alert disabled':'Alert at '+stockFormatQuantity(item.threshold,item.baseUnit,false);
+    var last=item.lastMovementAt?'Last updated '+new Date(item.lastMovementAt).toLocaleString('en-PH',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}):'No physical count recorded yet';
+    return '<article class="stock-card" data-stock-item="'+escapeHtml(item.id)+'"><div class="stock-card-head"><div class="stock-card-title">'+escapeHtml(item.name)+
+      '<div class="stock-badges"><span class="stock-badge '+(item.kind==='mixture'?'mixture':'')+'">'+(item.kind==='mixture'?'Prepared mixture':'Purchased')+'</span><span class="stock-badge '+status.cls+'">'+status.label+'</span>'+(!source?'<span class="stock-badge warn">Removed from costing</span>':'')+'</div></div></div>'+
+      '<div class="stock-on-hand '+(status.key==='out'?'bad':'')+'">'+(item.initialized?stockFormatQuantity(item.balance,item.baseUnit,false):'Not counted')+'</div>'+
+      '<div class="stock-card-meta">'+escapeHtml(item.categoryName)+' &middot; '+escapeHtml(threshold)+'<br>'+escapeHtml(last)+'</div>'+
+      (stockCanManage()?'<button class="btn secondary" data-act="openStockModal" data-id="'+escapeHtml(item.id)+'"'+((pendingRecovery||sourceConflict)?' disabled title="'+escapeHtml(pendingRecovery?'Recover the pending stock update first':'Resolve the costing and stock identity conflict first')+'"':'')+'>Update stock</button>':'')+'</article>';
+  }).join('')+'</div>';
+}
+function stockTransactionLabel(type,row){
+  if(type==='stock_in')return 'Stock received';if(type==='waste')return 'Waste';if(type==='correction')return 'Correction';
+  if(type==='stock_count')return row&&row.itemSequence===1?'Opening count':'Stock count';return 'Stock update';
+}
+function stockHistoryHtml(){
+  if(!stockCanManage())return '';
+  if(!stockState.transactions.length)return '<div class="card"><h2>Movement history</h2><p class="empty">No stock movements yet. Your first physical count will appear here.</p></div>';
+  return '<div class="card"><div class="row"><div><h2 style="margin:0">Movement history</h2><p class="hint">Latest 100 append-only records</p></div></div><div class="stock-history">'+stockState.transactions.map(function(row){
+    var detail=[row.reason,row.note].filter(Boolean).join(' · '),when=row.occurredAt?new Date(row.occurredAt).toLocaleString('en-PH',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}):'';
+    return '<div class="stock-history-row"><div><strong>'+escapeHtml(row.itemName)+'</strong><div class="stock-card-meta">'+escapeHtml(stockTransactionLabel(row.type,row))+' &middot; '+escapeHtml(row.actor)+' &middot; '+escapeHtml(when)+(detail?'<br>'+escapeHtml(detail):'')+'</div></div><div class="stock-history-delta '+(row.delta<0?'bad':(row.delta>0?'good':''))+'">'+stockFormatQuantity(row.delta,row.unit,true)+'<div class="stock-card-meta">After '+stockFormatQuantity(row.after,row.unit,false)+'</div></div></div>';
+  }).join('')+'</div></div>';
+}
+function renderStockResults(){
+  var results=document.getElementById('stockResults'),count=document.getElementById('stockVisibleCount');
+  if(results)results.innerHTML=stockItemCardsHtml();
+  if(count)count.textContent=stockFilteredItems().length+' of '+stockState.items.length+' items';
+  document.querySelectorAll('#stocks [data-act="setStockStatus"]').forEach(function(button){button.classList.toggle('active',String(button.dataset.status)===String(stockState.status));});
+}
+function renderStocks(){
+  var root=document.getElementById('stockRoot');if(!root)return;
+  if(!session){root.innerHTML='<div class="card"><h2>Stocks</h2><p class="hint">Sign in to load the shared physical inventory.</p></div>';return;}
+  if((!posContext.loaded||posContext.loading)&&!posContext.businessId){root.innerHTML='<div class="card"><div class="pos-loading">Opening the inventory workspace...</div></div>';return;}
+  if(posContext.error||!posContext.businessId){root.innerHTML='<div class="card"><h2>Stocks</h2><div class="note">'+escapeHtml(posContext.error||'The shared workspace is unavailable.')+'</div><button class="btn secondary" data-act="refreshStocks" style="margin-top:10px">Retry</button></div>';return;}
+  var readOnly=!stockCanManage();
+  var top='<div class="stock-head"><div style="flex:1"><h2>Stocks</h2><p class="hint">Physical ingredient amounts in grams, mL, or pieces — never ingredient prices.</p><div class="stock-sync">'+(stockState.refreshing?'Refreshing...':(stockState.lastUpdatedAt?'Updated '+new Date(stockState.lastUpdatedAt).toLocaleTimeString('en-PH',{hour:'numeric',minute:'2-digit'}):'Not loaded yet'))+'</div></div><span class="pos-role">'+escapeHtml(readOnly?'Read only':posRoleLabel())+'</span><button class="btn small secondary" data-act="refreshStocks"'+((stockState.loading||stockState.refreshing)?' disabled':'')+'>Refresh</button></div>';
+  if(stockState.loading&&!stockState.items.length){root.innerHTML=top+'<div class="card"><div class="pos-loading">Loading physical stock...</div></div>';return;}
+  if(stockState.error&&!stockState.items.length){root.innerHTML=top+'<div class="card"><div class="note">'+escapeHtml(stockState.error)+'</div><button class="btn secondary" data-act="refreshStocks" style="margin-top:10px">Retry Stocks</button></div>';return;}
+  var note='<div class="note stock-phase-note"><strong>Manual inventory — Phase 1.</strong> Enter a real opening count before using an item. POS sales do not subtract stock yet. Prepared mixtures cannot use Add stock until batch production is built. Packaging stock comes later.</div>';
+  var toolbar='<div class="card">'+stockSummaryHtml()+'<div class="stock-toolbar"><div><label class="fld" for="stockSearch">Search ingredients and mixtures</label><input id="stockSearch" type="search" value="'+escapeHtml(stockState.search)+'" placeholder="Search by name or category..." autocomplete="off"></div><div><label class="fld" for="stockKindFilter">Item type</label><select id="stockKindFilter"><option value="all"'+(stockState.kind==='all'?' selected':'')+'>All types</option><option value="purchased"'+(stockState.kind==='purchased'?' selected':'')+'>Purchased ingredients</option><option value="mixture"'+(stockState.kind==='mixture'?' selected':'')+'>Prepared mixtures</option></select></div></div>'+stockFilterBarHtml()+'<div id="stockVisibleCount" class="search-status">'+stockFilteredItems().length+' of '+stockState.items.length+' items</div><div id="stockResults">'+stockItemCardsHtml()+'</div></div>';
+  var connectionWarning=stockState.error?'<div class="note" style="margin-bottom:10px"><strong>Refresh incomplete.</strong> '+escapeHtml(stockState.error)+' The last confirmed amounts remain visible.</div>':'';
+  var sourceWarning=stockState.sourceConflict?'<div class="note" style="margin-bottom:10px"><strong>Stock updates locked.</strong> '+escapeHtml(stockState.sourceConflict)+'</div>':'';
+  var recoveryWarning=stockStoredPending()?'<div class="note" style="margin-bottom:10px"><strong>Exact retry protected.</strong> Finish recovering the previous stock update before starting another one.</div>':'';
+  root.innerHTML=top+connectionWarning+sourceWarning+recoveryWarning+(stockState.notice?'<div class="note" style="margin-bottom:10px">'+escapeHtml(stockState.notice)+'</div>':'')+note+toolbar+stockHistoryHtml();
+}
+function stockItemById(id){return stockState.items.find(function(item){return String(item.id)===String(id);})||null;}
+function stockAllowedActions(item){
+  if(!item)return [];
+  var actions=[];
+  if(!item.initialized)actions.push({key:'stock_count',label:'Set opening count'});
+  else{
+    if(item.kind!=='mixture')actions.push({key:'stock_in',label:'Add purchased stock'});
+    actions.push({key:'waste',label:'Record waste'},{key:'stock_count',label:'Count actual stock'},{key:'correction',label:'Correct by + / -'});
+  }
+  actions.push({key:'threshold',label:'Set low-stock alert'});return actions;
+}
+function stockUnitChoices(item){
+  if(!item)return [];
+  if(item.baseUnit==='g')return ['g','kg'];if(item.baseUnit==='ml')return ['ml','l'];return ['piece'];
+}
+function stockInputToBase(quantity,unit,item){
+  var value=Number(quantity);if(!isFinite(value)||!item||UNIT_TYPE[unit]!==UNIT_TYPE[item.baseUnit])return NaN;
+  return value*(UNIT_FACTOR[unit]||1);
+}
+function stockValidateModal(){
+  var item=stockItemById(stockModal.itemId);if(!item)return {valid:false,error:'This stock item is no longer available.'};
+  var action=stockModal.action,allowed=stockAllowedActions(item).some(function(option){return option.key===action;});
+  if(!allowed)return {valid:false,error:'Choose an available stock action.'};
+  var raw=String(stockModal.quantity==null?'':stockModal.quantity).trim(),quantity=Number(raw),base=stockInputToBase(quantity,stockModal.unit,item);
+  if(action==='threshold'){
+    if(raw==='')return {valid:true,item:item,thresholdBase:null,before:item.balance,after:item.balance};
+    if(!isFinite(base)||base<0||base>1000000000000)return {valid:false,error:'Enter a non-negative alert amount in a compatible unit.'};
+    return {valid:true,item:item,thresholdBase:base,before:item.balance,after:item.balance};
+  }
+  if(raw===''||!isFinite(base)||Math.abs(base)>1000000000000)return {valid:false,error:'Enter a valid stock amount.'};
+  if(action==='stock_count'&&base<0)return {valid:false,error:'The physical count cannot be negative.'};
+  if((action==='stock_in'||action==='waste')&&base<=0)return {valid:false,error:'Enter an amount greater than zero.'};
+  if(action==='correction'&&base===0)return {valid:false,error:'Enter a positive or negative correction.'};
+  var delta=action==='stock_in'?base:(action==='waste'?-base:(action==='stock_count'?base-item.balance:base));
+  var after=item.balance+delta;if(after<0)return {valid:false,error:'This would make stock negative. Count the actual amount instead, or reduce the waste/correction.'};
+  var reason=String(stockModal.reason||'').trim(),note=String(stockModal.note||'').trim();
+  if((action==='waste'||action==='correction')&&(reason.length<3||reason.length>500))return {valid:false,error:'Enter a clear reason between 3 and 500 characters.'};
+  if(note.length>500)return {valid:false,error:'Keep the note under 500 characters.'};
+  return {valid:true,item:item,inputQuantity:quantity,delta:delta,before:item.balance,after:after,reason:reason||null,note:note||null};
+}
+function openStockModal(itemId){
+  if(!stockCanManage()||stockState.loading||stockState.refreshing||stockStoredPending()||stockState.sourceConflict)return false;
+  var item=stockItemById(itemId);if(!item)return false;
+  var actions=stockAllowedActions(item);stockModalReturnFocus=document.activeElement;
+  stockModal=freshStockModal();stockModal.open=true;stockModal.itemId=item.id;stockModal.action=actions[0].key;stockModal.unit=item.baseUnit;
+  var modal=document.getElementById('stockModal');if(modal)modal.hidden=false;refreshModalBodyClass();renderStockModal();focusSoon('#stockQuantity');return true;
+}
+function closeStockModal(force){
+  if((stockModal.submitting||stockModal.uncertain)&&!force)return false;
+  stockModal=freshStockModal();var modal=document.getElementById('stockModal');if(modal)modal.hidden=true;refreshModalBodyClass();
+  var target=stockModalReturnFocus;stockModalReturnFocus=null;setTimeout(function(){if(target&&document.contains(target))target.focus();},0);return true;
+}
+function setStockModalAction(action){
+  var item=stockItemById(stockModal.itemId);if(!item||stockModal.submitting||stockModal.uncertain)return false;
+  if(!stockAllowedActions(item).some(function(option){return option.key===action;}))return false;
+  stockModal.action=action;stockModal.unit=item.baseUnit;stockModal.reason='';stockModal.note='';stockModal.error='';stockModal.pendingRpc=null;
+  stockModal.quantity=action==='threshold'&&item.threshold!=null?String(item.threshold):'';renderStockModal();focusSoon('#stockQuantity');return true;
+}
+function stockPreviewHtml(validation,item){
+  var threshold=stockModal.action==='threshold';
+  var before=threshold?(item.threshold==null?'Disabled':stockFormatQuantity(item.threshold,item.baseUnit,false)):stockFormatQuantity(item.balance,item.baseUnit,false);
+  var after=validation.valid?(threshold?(validation.thresholdBase==null?'Disabled':stockFormatQuantity(validation.thresholdBase,item.baseUnit,false)):stockFormatQuantity(validation.after,item.baseUnit,false)):'—';
+  return '<div class="stock-modal-preview"><div class="metric"><div class="lbl">'+(threshold?'Current alert':'Before')+'</div><div id="stockPreviewBefore" class="val">'+escapeHtml(before)+'</div></div><div class="stock-preview-arrow" aria-hidden="true">&rarr;</div><div class="metric"><div class="lbl">'+(threshold?'New alert':'After')+'</div><div id="stockPreviewAfter" class="val">'+escapeHtml(after)+'</div></div></div>';
+}
+function renderStockModal(){
+  if(!stockModal.open)return;
+  var item=stockItemById(stockModal.itemId),content=document.getElementById('stockModalContent');if(!item||!content){closeStockModal(true);return;}
+  var actions=stockAllowedActions(item),validation=stockValidateModal(),locked=stockModal.submitting||stockModal.uncertain,action=stockModal.action;
+  var actionOptions=actions.map(function(option){return '<option value="'+option.key+'"'+(option.key===action?' selected':'')+'>'+option.label+'</option>';}).join('');
+  var unitOptions=stockUnitChoices(item).map(function(unit){return '<option value="'+unit+'"'+(unit===stockModal.unit?' selected':'')+'>'+unit+'</option>';}).join('');
+  var quantityLabel=action==='threshold'?'Alert at or below (blank disables)':(action==='stock_count'?(item.initialized?'Actual amount physically counted':'Opening amount physically counted'):(action==='correction'?'Change stock by (+ or -)':'Amount'));
+  var actionLabel=action==='threshold'?'Save alert':(action==='stock_count'?(item.initialized?'Save count':'Set opening count'):(action==='stock_in'?'Add stock':(action==='waste'?'Record waste':'Save correction')));
+  content.setAttribute('aria-busy',stockModal.submitting?'true':'false');
+  content.innerHTML='<div class="modal-head"><div style="flex:1"><h2 id="stockModalTitle">'+escapeHtml(item.name)+'</h2><p class="hint">'+(item.kind==='mixture'?'Prepared mixture':'Purchased ingredient')+' &middot; current '+(item.initialized?stockFormatQuantity(item.balance,item.baseUnit,false):'not counted')+'</p></div><button class="modal-close" data-act="closeStockModal" aria-label="Close stock dialog"'+(locked?' disabled':'')+'>x</button></div>'+
+    (item.kind==='mixture'?'<div class="note" style="margin-bottom:12px">Prepared mixtures use physical counts, waste, and corrections in Phase 1. “Add stock” waits for the future batch-production workflow so raw ingredients are not double-counted.</div>':'')+
+    '<label class="fld" for="stockAction">Action</label><select id="stockAction" data-stock-field="action"'+(locked?' disabled':'')+'>'+actionOptions+'</select>'+
+    '<div class="grid2" style="margin-top:10px"><div><label class="fld" for="stockQuantity">'+quantityLabel+'</label><input id="stockQuantity" data-stock-field="quantity" type="number" step="any" value="'+escapeHtml(stockModal.quantity)+'"'+(locked?' disabled':'')+'></div><div><label class="fld" for="stockUnit">Unit</label><select id="stockUnit" data-stock-field="unit"'+(locked?' disabled':'')+'>'+unitOptions+'</select></div></div>'+
+    stockPreviewHtml(validation,item)+
+    ((action==='waste'||action==='correction')?'<label class="fld" for="stockReason">Reason (required)</label><input id="stockReason" data-stock-field="reason" maxlength="500" value="'+escapeHtml(stockModal.reason)+'" placeholder="e.g. Spilled during preparation"'+(locked?' disabled':'')+'>':'')+
+    (action!=='threshold'?'<label class="fld" for="stockNote" style="margin-top:10px">Note (optional)</label><textarea id="stockNote" data-stock-field="note" maxlength="500" placeholder="Supplier, delivery, or count detail"'+(locked?' disabled':'')+'>'+escapeHtml(stockModal.note)+'</textarea>':'')+
+    '<div id="stockModalError" class="modal-error" aria-live="assertive">'+escapeHtml(stockModal.error)+'</div>'+
+    (stockModal.uncertain?'<div class="note"><strong>Result not confirmed.</strong> Keep these exact details and retry; the request ID prevents a duplicate stock movement.</div>':'')+
+    '<div class="modal-actions"><button class="btn secondary" data-act="closeStockModal"'+(locked?' disabled':'')+'>Cancel</button><button class="btn" data-act="submitStockModal"'+(stockModal.submitting?' disabled':'')+'>'+(stockModal.submitting?'Saving...':(stockModal.uncertain?'Retry exact action':actionLabel))+'</button></div>';
+}
+function updateStockModalPreview(){
+  if(!stockModal.open)return;
+  var item=stockItemById(stockModal.itemId),validation=stockValidateModal(),after=document.getElementById('stockPreviewAfter'),error=document.getElementById('stockModalError');
+  if(after&&item)after.textContent=validation.valid?(stockModal.action==='threshold'?(validation.thresholdBase==null?'Disabled':stockFormatQuantity(validation.thresholdBase,item.baseUnit,false)):stockFormatQuantity(validation.after,item.baseUnit,false)):'—';
+  if(error)error.textContent='';stockModal.error='';
+}
+async function submitStockModal(){
+  if(!stockModal.open||stockModal.submitting||!stockCanManage()||!cloud.client||!session||!session.user||!posContext.businessId)return false;
+  var validation=stockValidateModal();
+  if(!stockModal.pendingRpc&&!validation.valid){stockModal.error=validation.error;renderStockModal();return false;}
+  var request=stockModal.pendingRpc;
+  if(!request){
+    if(stockModal.action==='threshold')request={name:'pos_inventory_set_threshold',args:{p_business_id:String(posContext.businessId),p_inventory_item_id:validation.item.id,p_threshold_base:validation.thresholdBase,p_expected_revision:validation.item.revision}};
+    else request={name:'pos_inventory_record_transaction',args:{p_business_id:String(posContext.businessId),p_client_transaction_id:posUuid(),p_transaction_type:stockModal.action,
+      p_lines:[{inventoryItemId:validation.item.id,quantity:validation.inputQuantity,unit:stockModal.unit,expectedRevision:validation.item.revision}],p_reason:validation.reason,p_note:validation.note}};
+    if(request.name==='pos_inventory_record_transaction'&&!stockSavePending(stockBuildPending(request,validation.item.id))){
+      stockModal.error='Another tab may already have a protected stock update, or this browser could not save retry protection. Recover that update first; no new stock update was sent.';renderStockModal();return false;
+    }
+    stockModal.pendingRpc=request;
+  }
+  var storedPending=request.name==='pos_inventory_record_transaction'?stockStoredPendings().find(function(record){return String(record.rpcArgs.p_client_transaction_id)===String(request.args.p_client_transaction_id);}):null;
+  var generation=++stockMutationGeneration,userId=String(session.user.id||''),businessId=String(posContext.businessId||''),itemId=stockModal.itemId;
+  stockModal.submitting=true;stockModal.error='';stockModal.uncertain=false;renderStockModal();
+  try{
+    var rows=rpcRows(await cloud.client.rpc(request.name,request.args));
+    if(generation!==stockMutationGeneration||!session||String(session.user.id||'')!==userId||String(posContext.businessId||'')!==businessId)return false;
+    if(!rows.length||!stockApplyMutationRows(request,rows))throw new Error('Missing authoritative inventory response');
+    if(request.name==='pos_inventory_record_transaction')stockClearPending(storedPending);
+    stockModal.pendingRpc=null;stockModal.submitting=false;stockModal.uncertain=false;closeStockModal(true);
+    var refreshed=await loadStocks({background:true});
+    stockState.notice=refreshed?'Stock update saved to the shared ledger.':'Stock update was saved and the confirmed new balance is shown, but the full list and history could not refresh. Use Refresh before the next count if the connection is unstable.';
+    renderStocks();focusSoon('[data-act="openStockModal"][data-id="'+itemId+'"]');return true;
+  }catch(error){
+    if(generation!==stockMutationGeneration||!session||String(session.user.id||'')!==userId||String(posContext.businessId||'')!==businessId)return false;
+    stockModal.submitting=false;stockModal.error=stockErrorText(error);
+    if(stockMutationDeterministic(error)){if(request.name==='pos_inventory_record_transaction')stockClearPending(storedPending);stockModal.pendingRpc=null;stockModal.uncertain=false;}else stockModal.uncertain=true;
+    renderStockModal();return false;
+  }
+}
 function renderPos(){
   var root=document.getElementById('posRoot');if(!root)return;
   if(!session){root.innerHTML='<div class="card"><h2>Point of sale</h2><p class="hint">The register needs a cloud connection and a signed-in account. Your costing pages remain available above.</p></div>';return;}
@@ -3172,7 +3964,7 @@ function renderPos(){
   var shiftHeader=!posCheckout.shift&&!posCheckout.pending?posNoShiftGateHtml():posShiftBarHtml();
   root.innerHTML=top+posCriticalRefreshNoticeHtml()+shiftHeader+modeBanner+posReceiptHtml()+reports+posWorkspaceHtml()+posMobileOrderBarHtml()+recent;
 }
-function renderAll(){ renderPos(); renderIngredients(); renderDraftButton(); renderPackaging(); renderRecipes(); renderProducts(); }
+function renderAll(){ renderPos(); renderStocks(); renderIngredients(); renderDraftButton(); renderPackaging(); renderRecipes(); renderProducts(); }
 
 /* ---------- events ---------- */
 function activateAppTab(tab,loadData){
@@ -3186,15 +3978,23 @@ function activateAppTab(tab,loadData){
     if(posContext.businessId)refreshPosSilently(false).catch(function(){});
     else openPosRegister(true).catch(function(){});
   }
+  if(loadData&&tab==='stocks'&&session)openStocks(true).catch(function(){});
   return true;
 }
 document.querySelector('nav').addEventListener('click', function(e){
+  if(costingSourceCommitInFlight)return;
   var b=e.target.closest('button[data-tab]');if(!b)return;
   activateAppTab(b.dataset.tab,true);
 });
 
 document.body.addEventListener('input', function(e){
+  if(costingSourceCommitInFlight)return;
   var el=e.target;
+  if(el.id==='stockSearch'){stockState.search=el.value||'';renderStockResults();return;}
+  if(stockModal.open&&el.dataset.stockField){
+    if(['quantity','reason','note'].indexOf(el.dataset.stockField)>=0){stockModal[el.dataset.stockField]=el.value;updateStockModalPreview();}
+    return;
+  }
   if(posOpsModal.open){
     if(el.id==='posOpeningCash'){posOpsModal.openingCash=el.value||'';posOpsModal.error='';return;}
     if(el.id==='posCountedCash'){posOpsModal.countedCash=el.value||'';posOpsModal.error='';return;}
@@ -3210,29 +4010,45 @@ document.body.addEventListener('input', function(e){
     publishSnapshot[el.dataset.publishField]=el.value;return;
   }
   if(!mixtureDraft) return;
-  if(el.dataset.mixRoot){mixtureDraft[el.dataset.mixRoot]=el.value;refreshMixtureTotals();return;}
+  if(el.dataset.mixRoot){if(el.dataset.mixRoot==='unit')return;mixtureDraft[el.dataset.mixRoot]=el.value;refreshMixtureTotals();return;}
   if(el.dataset.mixField){
     var row=el.closest('[data-mix-index]'), c=row&&mixtureDraft.components[parseInt(row.dataset.mixIndex,10)];
-    if(c){c[el.dataset.mixField]=el.value;refreshMixtureTotals();} return;
+    if(c){if(el.dataset.mixField==='unit'||el.dataset.mixField==='ingredientId')return;c[el.dataset.mixField]=el.value;refreshMixtureTotals();} return;
   }
   if(el.dataset.quickField&&quickIngredientDraft){quickIngredientDraft[el.dataset.quickField]=el.value;return;}
 });
 
 document.body.addEventListener('change', function(e){
+  if(costingSourceCommitInFlight)return;
   var el=e.target;
+  if(el.id==='stockKindFilter'){stockState.kind=el.value||'all';renderStockResults();return;}
+  if(stockModal.open&&el.dataset.stockField){
+    if(el.dataset.stockField==='action'){setStockModalAction(el.value);return;}
+    if(el.dataset.stockField==='unit'){stockModal.unit=el.value;stockModal.pendingRpc=null;updateStockModalPreview();return;}
+  }
   if(el.id==='histDate'){ loadHistory(); return; }
   if(publishModalOpen&&publishSnapshot&&el.dataset.publishField){publishSnapshot[el.dataset.publishField]=el.value;return;}
   if(mixtureDraft&&el.dataset.mixRoot){
+    if(el.dataset.mixRoot==='unit'&&UNIT_TYPE[mixtureDraft.unit]===UNIT_TYPE[el.value])mixtureDraft.batchYield=convertUnitQuantity(mixtureDraft.batchYield,mixtureDraft.unit,el.value);
     mixtureDraft[el.dataset.mixRoot]=el.value;
     if(el.dataset.mixRoot==='unit'){renderMixtureModal();focusSoon('#mixtureModal [data-mix-root="unit"]');}else refreshMixtureTotals(); return;
   }
   if(mixtureDraft&&el.dataset.mixField){
     var mixRow=el.closest('[data-mix-index]'), mixLine=mixRow&&mixtureDraft.components[parseInt(mixRow.dataset.mixIndex,10)];
     if(mixLine){
-      mixLine[el.dataset.mixField]=el.value;
       if(el.dataset.mixField==='ingredientId'){
-        var picked=draftIngredientLookup(el.value),mixIndex=mixRow.dataset.mixIndex; if(picked)mixLine.unit=TYPE_UNITS[UNIT_TYPE[picked.unit]][0]; renderMixtureModal(); focusSoon('#mixtureModal [data-mix-index="'+mixIndex+'"] [data-mix-field="qty"]');
-      }else refreshMixtureTotals();
+        var previousMixSource=draftIngredientLookup(mixLine.ingredientId),picked=draftIngredientLookup(el.value),mixIndex=mixRow.dataset.mixIndex;
+        mixLine.ingredientId=el.value;
+        if(picked){
+          var nextMixUnit=TYPE_UNITS[UNIT_TYPE[picked.unit]][0];
+          mixLine.qty=previousMixSource&&UNIT_TYPE[previousMixSource.unit]===UNIT_TYPE[picked.unit]?convertUnitQuantity(mixLine.qty,mixLine.unit,nextMixUnit):'';
+          mixLine.unit=nextMixUnit;
+        }else mixLine.qty='';
+        renderMixtureModal();focusSoon('#mixtureModal [data-mix-index="'+mixIndex+'"] [data-mix-field="qty"]');
+      }else{
+        if(el.dataset.mixField==='unit'&&UNIT_TYPE[mixLine.unit]===UNIT_TYPE[el.value])mixLine.qty=convertUnitQuantity(mixLine.qty,mixLine.unit,el.value);
+        mixLine[el.dataset.mixField]=el.value;refreshMixtureTotals();
+      }
     } return;
   }
   if(quickIngredientDraft&&el.dataset.quickField){quickIngredientDraft[el.dataset.quickField]=el.value;return;}
@@ -3243,15 +4059,15 @@ document.body.addEventListener('change', function(e){
   if(entity==='ingredient'){
     var ing=getById(state.ingredients,id);
     if(ing){
-      if(field==='unit'&&UNIT_TYPE[ing.unit]!==UNIT_TYPE[val]){
-        var uses=ingredientUsage(id); if(uses.length){alert('Remove this ingredient from '+uses.join(', ')+' before changing between weight, volume, or pieces.');renderAll();return;}
+      if(field==='unit'&&ing.unit!==val){
+        changeIngredientUnitSafely(id,val).catch(function(){});return;
       }
       ing[field]=val;
     }
   }
   else if(entity==='packaging'){ var pk=getById(state.packaging,id); if(pk){ pk[field]=val; } }
   else if(entity==='recipe'){ var r=getById(state.recipes,id); if(r){ r[field]=val; } }
-  else if(entity==='recipeLine'){ var r2=getById(state.recipes,id); if(r2){ var ln=lineId?getById(r2.lines,lineId):r2.lines[idx]; if(!ln){alert('That recipe row changed on another device. Please try again.');renderAll();return;} ln[field]=val; if(field==='ingredientId'){ var ig=getById(state.ingredients,val); if(ig) ln.unit=TYPE_UNITS[UNIT_TYPE[ig.unit]][0]; } } }
+  else if(entity==='recipeLine'){ var r2=getById(state.recipes,id); if(r2){ var ln=lineId?getById(r2.lines,lineId):r2.lines[idx]; if(!ln){alert('That recipe row changed on another device. Please try again.');renderAll();return;} if(field==='ingredientId'){var previousRecipeSource=getById(state.ingredients,ln.ingredientId),nextRecipeSource=getById(state.ingredients,val);ln.ingredientId=val;if(nextRecipeSource){var nextRecipeUnit=TYPE_UNITS[UNIT_TYPE[nextRecipeSource.unit]][0];ln.qty=previousRecipeSource&&UNIT_TYPE[previousRecipeSource.unit]===UNIT_TYPE[nextRecipeSource.unit]?convertUnitQuantity(ln.qty,ln.unit,nextRecipeUnit):'';ln.unit=nextRecipeUnit;}else ln.qty='';}else{if(field==='unit'&&UNIT_TYPE[ln.unit]===UNIT_TYPE[val])ln.qty=convertUnitQuantity(ln.qty,ln.unit,val);ln[field]=val;} } }
   else if(entity==='product'){
     var p=getById(state.products,id);
     if(p){
@@ -3270,11 +4086,17 @@ document.body.addEventListener('change', function(e){
 });
 
 document.body.addEventListener('click', function(e){
+  if(costingSourceCommitInFlight)return;
   var b=e.target.closest('[data-act]'); if(!b) return;
   if(b.tagName==='A') e.preventDefault();
   var act=b.dataset.act, id=b.dataset.id, idx=b.dataset.idx, lineId=b.dataset.lineId;
   if(['deleteCategory','addIngredient','delIngredient','addPackaging','delPackaging','addRecipe','delRecipe','addLine','delLine','addProduct','delProduct','addPkgLine','delPkgLine','useSuggested','loadExample','clearAll'].indexOf(act)>=0)consumePendingRemoteForCommit(false);
   switch(act){
+    case 'refreshStocks': openStocks(true).catch(function(){});return;
+    case 'setStockStatus': stockState.status=b.dataset.status||'all';renderStocks();return;
+    case 'openStockModal': openStockModal(id);return;
+    case 'closeStockModal': closeStockModal(false);return;
+    case 'submitStockModal': submitStockModal().catch(function(){});return;
     case 'refreshPos': openPosRegister(true).catch(function(){});return;
     case 'openPosShift': openPosShiftModal();return;
     case 'setPosOpenMode': setPosOpenMode(b.dataset.mode);return;
@@ -3315,6 +4137,8 @@ document.body.addEventListener('click', function(e){
     case 'closeCategoryModal': closeCategoryModal(false); return;
     case 'saveCategory': saveCategory(); return;
     case 'deleteCategory': deleteCategory(id); return;
+    case 'closePurchasedIngredientModal': closePurchasedIngredientModal(false); return;
+    case 'savePurchasedIngredient': savePurchasedIngredient(); return;
     case 'openMixtureModal': openMixtureModal('',false); return;
     case 'editMixture': openMixtureModal(id,false); return;
     case 'viewMixture': openMixtureModal(id,true); return;
@@ -3335,17 +4159,10 @@ document.body.addEventListener('click', function(e){
     case 'beginQuickIngredient': beginQuickIngredient(); return;
     case 'cancelQuickIngredient': quickIngredientDraft=null; renderMixtureModal(); focusSoon('#mixtureModal [data-act="beginQuickIngredient"]'); return;
     case 'addQuickIngredient': addQuickIngredient(); return;
-    case 'saveMixture': saveMixture(); return;
-    case 'addIngredient': {
-      var selected=selectedRealCategory();
-      ingredientUi.search='';
-      state.ingredients.push({id:uid(),kind:'purchased',categoryId:selected?selected.id:'',name:'',purchaseQty:'',amountPerItem:'',unit:'g',price:''}); break;
-    }
+    case 'saveMixture': saveMixture().catch(function(error){setMixtureError(stockSourceGuardMessage(error,'change'));}); return;
+    case 'addIngredient': openPurchasedIngredientModal(); return;
     case 'delIngredient': {
-      var target=getById(state.ingredients,id), usedBy=ingredientUsage(id);
-      if(usedBy.length){alert('Cannot delete "'+(target&&target.name||'this item')+'" because it is used by '+usedBy.join(', ')+'. Remove or replace it there first.');return;}
-      if(!confirm('Delete "'+(target&&target.name||'this ingredient')+'"?'))return;
-      state.ingredients=state.ingredients.filter(function(x){return x.id!==id;}); break;
+      deleteIngredientSafely(id).catch(function(){});return;
     }
     case 'addPackaging': state.packaging.push({id:uid(),name:'',qty:'',price:''}); break;
     case 'delPackaging': {
@@ -3366,8 +4183,13 @@ document.body.addEventListener('click', function(e){
     case 'useSuggested': { var p3=getById(state.products,id); if(p3){ var c=productCost(p3); var s=suggestedPrice(c,p3.targetMargin); if(isFinite(s)) p3.price=ceilTo(s,5); } break; }
     case 'export': exportData(); return;
     case 'importTrigger': document.getElementById('importFile').click(); return;
-    case 'loadExample': if(confirm('Load example data? This replaces what you have now.')){ state=exampleData(); ingredientUi={search:'',category:'all'}; logCoarse('Loaded example data'); } else return; break;
-    case 'clearAll': if(confirm('Erase ALL data? Export a backup first if unsure.')){ state=blank(); ingredientUi={search:'',category:'all'}; logCoarse('Cleared all data'); } else return; break;
+    case 'loadExample':
+      if(session){alert('Example data is disabled in the shared cloud workspace because replacing ingredient IDs would detach their stock history. Use a separate offline copy for examples.');return;}
+      if(confirm('Load example data? This replaces what you have now.'))replaceCostingStateSafely(exampleData(),'Loaded example data');
+      return;
+    case 'clearAll':
+      if(confirm('Erase ALL costing data? Export a backup first if unsure.'))replaceCostingStateSafely(blank(),'Cleared all data');
+      return;
     case 'doLogin': doLogin(); return;
     case 'toggleAuthMode': toggleAuthMode(); return;
     case 'openLogin': openLogin(); return;
@@ -3383,10 +4205,12 @@ document.body.addEventListener('click', function(e){
 
 document.body.addEventListener('click', function(e){
   if(e.target&&e.target.id==='categoryModal') closeCategoryModal(false);
+  if(e.target&&e.target.id==='purchasedIngredientModal') closePurchasedIngredientModal(false);
   if(e.target&&e.target.id==='mixtureModal') requestCloseMixtureModal();
   if(e.target&&e.target.id==='draftsModal') closeDraftsModal(false,false);
   if(e.target&&e.target.id==='publishModal') closePublishProductModal();
   if(e.target&&e.target.id==='posOpsModal') posCloseOpsModal(false);
+  if(e.target&&e.target.id==='stockModal') closeStockModal(false);
 });
 
 /* reload from cloud when returning to the tab (picks up partner's edits) */
@@ -3409,6 +4233,8 @@ window.addEventListener('focus', function(){
     if(posContext.businessId)refreshPosSilently(false).catch(function(){});
     else if(!posContext.loading)loadPosContext().then(function(ready){if(ready)return openPosRegister(true);}).catch(function(){});
   }
+  var stockSection=document.getElementById('stocks');
+  if(session&&stockSection&&stockSection.classList.contains('active')&&!appIsEditing())openStocks(true).catch(function(){});
 });
 window.addEventListener('online',retryDirtySave);
 /* if a partner update arrived while typing, apply it once they leave the field */
@@ -3419,20 +4245,23 @@ document.body.addEventListener('focusout', function(){
 /* press Enter in the login form to submit it */
 document.body.addEventListener('keydown', function(e){
   if(e.key==='Escape'){
+    if(stockModal.open){e.preventDefault();closeStockModal(false);return;}
     if(posOpsModal.open){e.preventDefault();posCloseOpsModal(false);return;}
     if(publishModalOpen){e.preventDefault();closePublishProductModal();return;}
     if(draftsModalOpen){e.preventDefault();closeDraftsModal(false,false);return;}
     if(mixtureModalOpen){e.preventDefault();requestCloseMixtureModal();return;}
+    if(purchasedIngredientModalOpen){e.preventDefault();closePurchasedIngredientModal(false);return;}
     if(categoryModalOpen){e.preventDefault();closeCategoryModal(false);return;}
   }
-  if(e.key==='Tab'&&(posOpsModal.open||publishModalOpen||draftsModalOpen||mixtureModalOpen||categoryModalOpen)){
-    var selector=posOpsModal.open?'#posOpsModal':(publishModalOpen?'#publishModal':(draftsModalOpen?'#draftsModal':(mixtureModalOpen?'#mixtureModal':'#categoryModal')));
+  if(e.key==='Tab'&&(stockModal.open||posOpsModal.open||publishModalOpen||draftsModalOpen||mixtureModalOpen||purchasedIngredientModalOpen||categoryModalOpen)){
+    var selector=stockModal.open?'#stockModal':(posOpsModal.open?'#posOpsModal':(publishModalOpen?'#publishModal':(draftsModalOpen?'#draftsModal':(mixtureModalOpen?'#mixtureModal':(purchasedIngredientModalOpen?'#purchasedIngredientModal':'#categoryModal')))));
     var modal=document.querySelector(selector+' .modal');
     var focusable=modal?Array.from(modal.querySelectorAll('button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled])')):[];
     if(focusable.length){var first=focusable[0],last=focusable[focusable.length-1];if(!modal.contains(document.activeElement)){e.preventDefault();(e.shiftKey?last:first).focus();}else if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}}
   }
   if(e.key!=='Enter') return;
   var id=e.target && e.target.id;
+  if(purchasedIngredientModalOpen&&(id==='purchasedIngredientName'||id==='purchasedIngredientCategory'||id==='purchasedIngredientUnit')){e.preventDefault();savePurchasedIngredient();return;}
   if(categoryModalOpen&&id==='categoryName'){e.preventDefault();saveCategory();return;}
   if(id==='authEmail' || id==='authPass'){ e.preventDefault(); doLogin(); }
 });
@@ -3448,7 +4277,7 @@ function handleFileImport(e){
   var reader=new FileReader();
   reader.onload=function(){
     try{ var data=JSON.parse(reader.result); if(!data||!Array.isArray(data.ingredients)) throw new Error('not a Scoopies backup');
-      state=normalizeState(data); ingredientUi={search:'',category:'all'}; logCoarse('Imported a backup file'); save(); renderAll(); alert('Backup imported successfully.'); }
+      if(replaceCostingStateSafely(data,'Imported a backup file'))alert('Backup imported successfully.'); }
     catch(err){ alert('Could not read that file: '+err.message); }
     e.target.value='';
   };
