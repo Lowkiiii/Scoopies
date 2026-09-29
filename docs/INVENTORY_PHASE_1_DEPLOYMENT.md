@@ -90,12 +90,12 @@ Record the final values here as part of the release commit:
 |---|---|
 | Supabase project | `zdhybtctoxosjddzbfzp` (production) |
 | Migration status | `202609290005` applied and verified on 2026-09-30 |
-| Application commit | Pending |
-| Pages workflow run | Pending |
+| Application commit | `0dc1251` (`Add inventory tracking phase one`) |
+| Pages workflow run | `36601512150` (success) |
 | Production URL | https://lowkiiii.github.io/Scoopies/ |
 | Schema checks | PASS on production |
 | Live-access checks | PASS on production; transaction rolled back |
-| Browser checks | PASS, 158/158 local tests |
+| Browser checks | PASS, 158/158 locally and on deployed GitHub Pages |
 
 ## First-use procedure
 
