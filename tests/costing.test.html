@@ -205,8 +205,26 @@ document.getElementById('app').addEventListener('load', async () => {
   }
   function salesProductTallyFixture(overrides = {}) {
     return Object.assign({
+      product_id: '22222222-2222-4222-8222-222222222222',
       item_name: 'Sea Salt Cream Matcha', size_label: '12oz',
-      order_count: 12, units_sold: 16
+      order_count: 12, units_sold: 16, net_sales_centavos: 304000
+    }, overrides);
+  }
+  function closedShiftFixture(overrides = {}) {
+    return Object.assign({
+      shift_id: '88888888-8888-4888-8888-888888888888',
+      register_id: '77777777-7777-4777-8777-777777777777', register_name: 'Main register',
+      event_id: null, event_name: null, is_training: false,
+      opened_business_date: '2026-10-02', closed_business_date: '2026-10-02',
+      opened_at: '2026-10-02T01:00:00.000Z', opened_by_display_name: 'Ynah',
+      closed_at: '2026-10-02T09:00:00.000Z', closed_by_display_name: 'Ynah', close_notes: 'Pop-up close',
+      gross_sale_count: 10, voided_sale_count: 1, net_sale_count: 9, net_items_sold: 12,
+      gross_sales_centavos: 200000, voided_sales_centavos: 20000, net_sales_centavos: 180000,
+      cash_net_centavos: 90000, gcash_net_centavos: 70000, gotyme_net_centavos: 20000,
+      opening_cash_centavos: 100000, expected_cash_centavos: 190000, counted_cash_centavos: 189500, cash_variance_centavos: -500,
+      expected_gcash_centavos: 70000, verified_gcash_centavos: 70000, gcash_variance_centavos: 0,
+      expected_gotyme_centavos: 20000, verified_gotyme_centavos: 20500, gotyme_variance_centavos: 500,
+      estimated_cost_centavos: 70000, estimated_gross_profit_centavos: 110000, can_view_costs: true, has_more: false
     }, overrides);
   }
   function closeResultFixture(overrides = {}) {
@@ -1981,16 +1999,17 @@ document.getElementById('app').addEventListener('load', async () => {
       calls.push({ name, args });
       if (name === 'pos_get_sales_history_page') return rpcResult([]);
       if (name === 'pos_get_sales_history_summary') return rpcResult([salesHistorySummaryFixture()]);
-      if (name === 'pos_get_sales_product_tally') return rpcResult([
+      if (name === 'pos_get_sales_product_tally_v2') return rpcResult([
         salesProductTallyFixture({ item_name: '<img id="unsafe-tally"> Sea Salt Cream Matcha' }),
-        salesProductTallyFixture({ item_name: 'Cereal Matcha', order_count: 5, units_sold: 5 })
+        salesProductTallyFixture({ product_id: '33333333-3333-4333-8333-333333333333', item_name: 'Cereal Matcha', order_count: 5, units_sold: 5, net_sales_centavos: 100000 })
       ]);
+      if (name === 'pos_get_closed_shifts_page') return rpcResult([closedShiftFixture()]);
       throw new Error('unexpected RPC ' + name);
     }};
 
     assert(await app.openPosSalesHistory(), 'sales history did not open before tally test');
     await new Promise(resolve => app.setTimeout(resolve, 0));
-    assert(!calls.some(call => call.name === 'pos_get_sales_product_tally'), 'drink tally loaded before its tab was selected');
+    assert(!calls.some(call => call.name === 'pos_get_sales_product_tally_v2' || call.name === 'pos_get_closed_shifts_page'), 'drink tally or shift choices loaded before its tab was selected');
     const modal = app.document.getElementById('posOpsModal');
     assert(/All-time Live totals/.test(modal.textContent), 'receipt view lost the authoritative all-time totals');
     const tallyTab = modal.querySelector('[data-act=setPosSalesHistoryView][data-view=tally]');
@@ -2001,13 +2020,13 @@ document.getElementById('app').addEventListener('load', async () => {
     await new Promise(resolve => app.setTimeout(resolve, 0));
     await new Promise(resolve => app.setTimeout(resolve, 0));
 
-    const tallyCalls = calls.filter(call => call.name === 'pos_get_sales_product_tally');
-    assert(tallyCalls.length === 1 && tallyCalls[0].args.p_is_training === false, 'Live tally used the wrong mode or loaded more than once');
+    const tallyCalls = calls.filter(call => call.name === 'pos_get_sales_product_tally_v2');
+    assert(tallyCalls.length === 1 && tallyCalls[0].args.p_is_training === false && tallyCalls[0].args.p_date_from === null && tallyCalls[0].args.p_date_to === null && tallyCalls[0].args.p_shift_id === null, 'Live tally used the wrong mode/filter or loaded more than once');
     assert(app.posSalesHistory.view === 'tally' && app.posSalesHistory.tallyLoaded, 'tally tab did not load or retain its state');
     const panel = modal.querySelector('#posSalesHistoryPanel');
     assert(panel && panel.getAttribute('aria-labelledby') === 'posHistoryTallyTab', 'tally panel was not associated with its selected tab');
-    assert(/21 drinks sold/.test(panel.textContent) && /2 products/.test(panel.textContent), 'complete tally counts were missing');
-    assert(/16\s*sold/i.test(panel.textContent) && /12 orders/.test(panel.textContent), 'product units and order count were not rendered');
+    assert(/21 drinks sold/.test(panel.textContent) && /₱4,040\.00 net sales/.test(panel.textContent) && /2 products/.test(panel.textContent), 'complete tally counts or sales total were missing');
+    assert(/16\s*sold/i.test(panel.textContent) && /12 orders/.test(panel.textContent) && /₱3,040\.00\s*net sales/i.test(panel.textContent), 'product units, order count, or sales amount were not rendered');
     assert(/minus voided and refunded receipts/i.test(panel.textContent), 'net product-sales reversal semantics were not explained');
     assert(!app.document.getElementById('unsafe-tally') && /<img id="unsafe-tally">/.test(panel.textContent), 'tally product text was not escaped');
     assert(app.document.activeElement && app.document.activeElement.id === 'posHistoryTallyTab', 'selected tally tab did not regain focus after loading');
@@ -2021,17 +2040,19 @@ document.getElementById('app').addEventListener('load', async () => {
 
     modal.querySelector('#posHistoryReceiptsTab').dispatchEvent(new app.KeyboardEvent('keydown', { key: 'End', bubbles: true }));
     await new Promise(resolve => app.setTimeout(resolve, 0));
-    assert(app.posSalesHistory.view === 'tally' && calls.filter(call => call.name === 'pos_get_sales_product_tally').length === 1, 'End did not return to the cached tally');
-    assert(app.document.activeElement && app.document.activeElement.id === 'posHistoryTallyTab', 'End did not focus the last history tab');
+    assert(app.posSalesHistory.view === 'shifts' && calls.filter(call => call.name === 'pos_get_closed_shifts_page').length === 1, 'End did not open the cached Shift closes view');
+    assert(app.document.activeElement && app.document.activeElement.id === 'posHistoryShiftsTab', 'End did not focus the last history tab');
+    const shiftPanel = modal.querySelector('#posSalesHistoryPanel');
+    assert(/Pop-up close/.test(shiftPanel.textContent) && /Cash counted/.test(shiftPanel.textContent) && /Has variance/.test(shiftPanel.textContent), 'Shift closes view omitted saved reconciliation data');
 
-    modal.querySelector('#posHistoryTallyTab').dispatchEvent(new app.KeyboardEvent('keydown', { key: 'Home', bubbles: true }));
+    modal.querySelector('#posHistoryShiftsTab').dispatchEvent(new app.KeyboardEvent('keydown', { key: 'Home', bubbles: true }));
     await new Promise(resolve => app.setTimeout(resolve, 0));
     assert(app.posSalesHistory.view === 'receipts' && app.document.activeElement && app.document.activeElement.id === 'posHistoryReceiptsTab', 'Home did not focus the first history tab');
 
     modal.querySelector('#posHistoryReceiptsTab').dispatchEvent(new app.KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
     await new Promise(resolve => app.setTimeout(resolve, 0));
     assert(app.posSalesHistory.view === 'tally' && app.document.activeElement && app.document.activeElement.id === 'posHistoryTallyTab', 'ArrowRight did not select and focus Drink tally');
-    assert(calls.filter(call => call.name === 'pos_get_sales_product_tally').length === 1, 'keyboard view changes refetched a cached tally');
+    assert(calls.filter(call => call.name === 'pos_get_sales_product_tally_v2').length === 1, 'keyboard view changes refetched a cached tally');
     app.posCloseOpsModal(true);
   });
   test('drink tally retries failures and preserves the tally view across Live and Training', async () => {
@@ -2046,7 +2067,7 @@ document.getElementById('app').addEventListener('load', async () => {
         gross_sale_count: args.p_is_training ? 3 : 29,
         net_items_sold: args.p_is_training ? 4 : 30
       })]);
-      if (name === 'pos_get_sales_product_tally') {
+      if (name === 'pos_get_sales_product_tally_v2') {
         if (!args.p_is_training && failLiveTally) return Promise.reject({ code: 'NETWORK' });
         return rpcResult([salesProductTallyFixture({
           item_name: args.p_is_training ? 'Training Matcha' : 'Live Matcha',
@@ -2054,6 +2075,7 @@ document.getElementById('app').addEventListener('load', async () => {
           units_sold: args.p_is_training ? 4 : 16
         })]);
       }
+      if (name === 'pos_get_closed_shifts_page') return rpcResult([]);
       throw new Error('unexpected RPC ' + name);
     }};
 
@@ -2067,14 +2089,14 @@ document.getElementById('app').addEventListener('load', async () => {
     assert(await app.setPosSalesHistoryMode('training'), 'Training tally mode switch failed');
     const trainingCalls = calls.filter(call => call.args && call.args.p_is_training === true);
     assert(app.posSalesHistory.view === 'tally' && app.posSalesHistory.mode === 'training', 'mode switch did not preserve the tally view');
-    assert(trainingCalls.some(call => call.name === 'pos_get_sales_product_tally') && !trainingCalls.some(call => call.name === 'pos_get_sales_history_page'), 'Training mode did not reload only the preserved tally view');
+    assert(trainingCalls.some(call => call.name === 'pos_get_sales_product_tally_v2') && !trainingCalls.some(call => call.name === 'pos_get_sales_history_page'), 'Training mode did not reload only the preserved tally view');
     const modalText = app.document.getElementById('posOpsModal').textContent;
-    assert(/All-time Training drink tally/.test(modalText) && /Training Matcha/.test(modalText) && /4 drinks/.test(modalText), 'Training tally was not visibly separated');
+    assert(/All dates · Training drink tally/.test(modalText) && /Training Matcha/.test(modalText) && /4 drinks/.test(modalText), 'Training tally was not visibly separated');
     assert(await app.setPosSalesHistoryView('receipts'), 'Training receipts failed to load after entering through the tally view');
     assert(app.posSalesHistory.tallyLoaded && app.posSalesHistory.tallyRows[0].item_name === 'Training Matcha', 'loading uncached receipts discarded the Training tally cache');
-    const trainingTallyCallCount = calls.filter(call => call.name === 'pos_get_sales_product_tally' && call.args.p_is_training === true).length;
+    const trainingTallyCallCount = calls.filter(call => call.name === 'pos_get_sales_product_tally_v2' && call.args.p_is_training === true).length;
     assert(await app.setPosSalesHistoryView('tally'), 'could not return to the cached Training tally');
-    assert(calls.filter(call => call.name === 'pos_get_sales_product_tally' && call.args.p_is_training === true).length === trainingTallyCallCount, 'returning to the Training tally performed an unnecessary reload');
+    assert(calls.filter(call => call.name === 'pos_get_sales_product_tally_v2' && call.args.p_is_training === true).length === trainingTallyCallCount, 'returning to the Training tally performed an unnecessary reload');
     app.posCloseOpsModal(true);
   });
   test('drink tally ignores a response that arrives after the history modal closes', async () => {
@@ -2084,7 +2106,8 @@ document.getElementById('app').addEventListener('load', async () => {
     app.cloud.client = { rpc(name) {
       if (name === 'pos_get_sales_history_page') return rpcResult([]);
       if (name === 'pos_get_sales_history_summary') return rpcResult([salesHistorySummaryFixture()]);
-      if (name === 'pos_get_sales_product_tally') return deferred;
+      if (name === 'pos_get_sales_product_tally_v2') return deferred;
+      if (name === 'pos_get_closed_shifts_page') return rpcResult([]);
       throw new Error('unexpected RPC ' + name);
     }};
     assert(await app.openPosSalesHistory(), 'history did not open for late tally test');
@@ -2093,6 +2116,141 @@ document.getElementById('app').addEventListener('load', async () => {
     app.posCloseOpsModal(true);
     resolveTally(rpcResult([salesProductTallyFixture()]));
     assert(!(await loading) && !app.posOpsModal.open && app.posSalesHistory.tallyRows.length === 0, 'late tally response repopulated the closed modal');
+  });
+  test('closed shift history ignores a response that arrives after the modal closes', async () => {
+    installCheckout('owner');
+    let resolveShifts;
+    const deferred = new Promise(resolve => { resolveShifts = resolve; });
+    app.cloud.client = { rpc(name) {
+      if (name === 'pos_get_sales_history_page') return rpcResult([]);
+      if (name === 'pos_get_sales_history_summary') return rpcResult([salesHistorySummaryFixture()]);
+      if (name === 'pos_get_closed_shifts_page') return deferred;
+      throw new Error('unexpected RPC ' + name);
+    }};
+    assert(await app.openPosSalesHistory(), 'history did not open for late shift test');
+    const loading = app.setPosSalesHistoryView('shifts');
+    assert(app.posSalesHistory.shiftLoading, 'closed shifts did not enter their loading state');
+    app.posCloseOpsModal(true);
+    resolveShifts(rpcResult([closedShiftFixture()]));
+    assert(!(await loading) && !app.posOpsModal.open && app.posSalesHistory.shiftRows.length === 0, 'late shift response repopulated the closed modal');
+  });
+  test('drink tally filters by sales date or exact shift without mixing filter scopes', async () => {
+    installNoShift('owner');
+    const shift = closedShiftFixture({ shift_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' });
+    const calls = [];
+    app.cloud.client = { rpc(name, args) {
+      calls.push({ name, args });
+      if (name === 'pos_get_sales_history_page') return rpcResult([]);
+      if (name === 'pos_get_sales_history_summary') return rpcResult([salesHistorySummaryFixture()]);
+      if (name === 'pos_get_sales_product_tally_v2') return rpcResult([salesProductTallyFixture()]);
+      if (name === 'pos_get_closed_shifts_page') return rpcResult([shift]);
+      throw new Error('unexpected RPC ' + name);
+    }};
+
+    assert(await app.openPosSalesHistory(), 'history did not open for filter test');
+    assert(await app.setPosSalesHistoryView('tally'), 'all-date tally did not load');
+    input(app.document.getElementById('posHistoryDateFilter'), '2026-10-02');
+    assert(await app.applyPosHistoryDateFilter(), 'business-date tally did not load');
+    let tallyCall = calls.filter(call => call.name === 'pos_get_sales_product_tally_v2').at(-1);
+    let shiftCall = calls.filter(call => call.name === 'pos_get_closed_shifts_page').at(-1);
+    assert(tallyCall.args.p_date_from === '2026-10-02' && tallyCall.args.p_date_to === '2026-10-02' && tallyCall.args.p_shift_id === null, 'date tally mixed or omitted its inclusive date bounds');
+    assert(shiftCall.args.p_date_from === '2026-10-02' && shiftCall.args.p_date_to === '2026-10-02', 'shift choices did not follow the applied sales date');
+    assert(/Oct 2, 2026 · Live drink tally/.test(app.document.getElementById('posOpsModal').textContent), 'applied business date was not visible');
+    assert(/date the shift was closed/.test(app.document.getElementById('posOpsModal').textContent) && /crossed midnight/.test(app.document.getElementById('posOpsModal').textContent), 'cross-midnight shift-choice date semantics were not explained');
+
+    const tallyCountBeforeInvalid = calls.filter(call => call.name === 'pos_get_sales_product_tally_v2').length;
+    app.posSalesHistory.filterDateInput = '2026-02-30';
+    assert(!(await app.applyPosHistoryDateFilter()), 'invalid calendar date was accepted');
+    assert(calls.filter(call => call.name === 'pos_get_sales_product_tally_v2').length === tallyCountBeforeInvalid && /valid business date/i.test(app.document.getElementById('posOpsModal').textContent), 'invalid date reached the database or lacked feedback');
+
+    assert(await app.setPosHistoryShiftFilter(shift.shift_id), 'exact-shift tally did not load');
+    tallyCall = calls.filter(call => call.name === 'pos_get_sales_product_tally_v2').at(-1);
+    shiftCall = calls.filter(call => call.name === 'pos_get_closed_shifts_page').at(-1);
+    assert(tallyCall.args.p_shift_id === shift.shift_id && tallyCall.args.p_date_from === null && tallyCall.args.p_date_to === null, 'exact shift was incorrectly combined with date bounds');
+    assert(app.posSalesHistory.filterDate === '' && app.posSalesHistory.filterDateInput === '', 'selecting an exact shift did not clear the date UI');
+    assert(shiftCall.args.p_date_from === null && shiftCall.args.p_date_to === null, 'shift-choice cache stayed trapped in the old date scope');
+    assert(/Shift: Main register/.test(app.document.getElementById('posOpsModal').textContent), 'selected older shift disappeared from the tally heading');
+
+    const choiceCalls = calls.filter(call => call.name === 'pos_get_closed_shifts_page').length;
+    assert(await app.setPosHistoryShiftFilter(''), 'clearing exact-shift tally failed');
+    tallyCall = calls.filter(call => call.name === 'pos_get_sales_product_tally_v2').at(-1);
+    assert(tallyCall.args.p_shift_id === null && tallyCall.args.p_date_from === null && calls.filter(call => call.name === 'pos_get_closed_shifts_page').length === choiceCalls + 1, 'clearing the shift did not restore an all-date tally and fresh choices');
+    app.posCloseOpsModal(true);
+  });
+  test('closed shift history paginates safely and never cancels opposite variances', async () => {
+    installNoShift('owner');
+    const first = closedShiftFixture({
+      shift_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', has_more: true,
+      cash_variance_centavos: 500, gcash_variance_centavos: -500, gotyme_variance_centavos: 0,
+      close_notes: '<img id="unsafe-shift-note"> counted twice'
+    });
+    const older = closedShiftFixture({
+      shift_id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', closed_at: '2026-10-01T09:00:00.000Z',
+      closed_business_date: '2026-10-01', close_notes: 'Older close', has_more: false
+    });
+    let olderAttempts = 0;
+    const calls = [];
+    app.cloud.client = { rpc(name, args) {
+      calls.push({ name, args });
+      if (name === 'pos_get_sales_history_page') return rpcResult([]);
+      if (name === 'pos_get_sales_history_summary') return rpcResult([salesHistorySummaryFixture()]);
+      if (name === 'pos_get_sales_product_tally_v2') return rpcResult([salesProductTallyFixture()]);
+      if (name === 'pos_get_closed_shifts_page') {
+        if (!args.p_before_shift_id) return rpcResult([first]);
+        olderAttempts++;
+        if (olderAttempts === 1) return Promise.reject({ code: 'NETWORK' });
+        return rpcResult([Object.assign({}, first, { has_more: false }), older]);
+      }
+      throw new Error('unexpected RPC ' + name);
+    }};
+
+    assert(await app.openPosSalesHistory(), 'history did not open for shift pagination');
+    assert(await app.setPosSalesHistoryView('shifts'), 'closed shifts did not load');
+    let modal = app.document.getElementById('posOpsModal');
+    assert(modal.querySelector('.pos-shift-history-card .pos-state').textContent.trim() === 'Has variance', 'opposite account variances were falsely netted to Balanced');
+    assert(modal.querySelector('[data-act=viewPosShiftTally]') && /Voids \/ refunds/.test(modal.textContent) && /Orders after voids/.test(modal.textContent) && !/Drinks sold|Net orders/.test(modal.querySelector('.pos-shift-history-card').textContent), 'shift card lacked the exact-shift tally path or used misleading legacy labels');
+    assert(!app.document.getElementById('unsafe-shift-note') && /<img id="unsafe-shift-note">/.test(modal.textContent), 'closing note was not escaped');
+    assert(!(await app.loadPosClosedShiftsPage(true)) && app.posSalesHistory.shiftRows.length === 1, 'failed older-shift page discarded loaded history or reported success');
+    assert(/Could not load closed shifts/.test(modal.textContent), 'shift pagination failure lacked retry feedback');
+    assert(await app.loadPosClosedShiftsPage(true), 'older-shift retry failed');
+    const pageCalls = calls.filter(call => call.name === 'pos_get_closed_shifts_page');
+    assert(pageCalls[1].args.p_before_closed_at === first.closed_at && pageCalls[1].args.p_before_shift_id === first.shift_id, 'older shifts did not use the last visible keyset cursor');
+    assert(app.posSalesHistory.shiftRows.length === 2 && new Set(app.posSalesHistory.shiftRows.map(row => row.shift_id)).size === 2 && !app.posSalesHistory.shiftHasMore, 'shift retry duplicated rows or kept an incorrect has-more state');
+    assert(!modal.querySelector('[data-act=loadOlderPosClosedShifts]') && /2 shifts loaded · complete/.test(modal.textContent), 'complete shift history still showed pagination controls');
+    click(modal.querySelector('[data-act=viewPosShiftTally][data-id="aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"]'));
+    await new Promise(resolve => app.setTimeout(resolve, 0));
+    await new Promise(resolve => app.setTimeout(resolve, 0));
+    const exactTally = calls.filter(call => call.name === 'pos_get_sales_product_tally_v2').at(-1);
+    assert(app.posSalesHistory.view === 'tally' && exactTally.args.p_shift_id === first.shift_id && exactTally.args.p_date_from === null && exactTally.args.p_date_to === null, 'View drink tally did not open the exact full-duration shift scope');
+    const shiftCallsBeforeReturn = calls.filter(call => call.name === 'pos_get_closed_shifts_page').length;
+    assert(await app.setPosSalesHistoryView('shifts'), 'could not return from an exact tally to shift history');
+    assert(app.posSalesHistory.filterShiftId === '' && app.posSalesHistory.shiftRows.length === 1 && calls.filter(call => call.name === 'pos_get_closed_shifts_page').length === shiftCallsBeforeReturn + 1, 'returning from an exact tally reused a partial or injected shift-choice cache');
+    app.posCloseOpsModal(true);
+  });
+  test('cashiers can date-filter drink tallies without receiving shift-close access', async () => {
+    installNoShift('cashier');
+    const calls = [];
+    app.cloud.client = { rpc(name, args) {
+      calls.push({ name, args });
+      if (name === 'pos_get_sales_history_page') return rpcResult([]);
+      if (name === 'pos_get_sales_history_summary') return rpcResult([salesHistorySummaryFixture({ can_view_costs: false })]);
+      if (name === 'pos_get_sales_product_tally_v2') return rpcResult([salesProductTallyFixture()]);
+      throw new Error('cashier reached unexpected RPC ' + name);
+    }};
+
+    assert(await app.openPosSalesHistory(), 'cashier history did not open');
+    assert(await app.setPosSalesHistoryView('tally'), 'cashier tally did not load');
+    let modal = app.document.getElementById('posOpsModal');
+    assert(!modal.querySelector('[data-view=shifts]') && !modal.querySelector('#posHistoryShiftFilter'), 'cashier was shown management-only shift controls');
+    assert(/Sales business date/.test(modal.textContent) && !/Shift closed date/.test(modal.textContent), 'cashier tally mislabeled its sales-date filter');
+    assert(!calls.some(call => call.name === 'pos_get_closed_shifts_page'), 'cashier called the restricted shift-history RPC');
+    input(app.document.getElementById('posHistoryDateFilter'), '2026-10-02');
+    assert(await app.applyPosHistoryDateFilter(), 'cashier date-filtered tally failed');
+    const tallyCall = calls.filter(call => call.name === 'pos_get_sales_product_tally_v2').at(-1);
+    assert(tallyCall.args.p_date_from === '2026-10-02' && tallyCall.args.p_date_to === '2026-10-02' && !calls.some(call => call.name === 'pos_get_closed_shifts_page'), 'cashier date tally used the wrong scope or leaked into close history');
+    assert(!(await app.setPosSalesHistoryView('shifts')) && !(await app.loadPosClosedShiftsPage(false)), 'cashier bypassed local shift-history guards');
+    assert(app.posContext.businessId === '11111111-1111-4111-8111-111111111111' && app.posOpsModal.open, 'blocked shift access reset the cashier workspace or closed history');
+    app.posCloseOpsModal(true);
   });
   test('silent refresh applies an authoritative cashier downgrade while stale workspace role remains owner', async () => {
     const catalog = installCheckout('owner');

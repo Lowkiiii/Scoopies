@@ -277,16 +277,34 @@
   .pos-history-list{border-top:1px solid var(--line);margin-top:8px}
   .pos-history-list .pos-item-summary{display:block;-webkit-line-clamp:unset;overflow:visible}
   .pos-history-count{font-size:12px;color:var(--muted);margin:4px 0 0}
-  .pos-history-view-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin:10px 0 14px;padding:4px;border:1px solid var(--line);border-radius:12px;background:#f8f3ec}
+  .pos-history-view-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin:10px 0 14px;padding:4px;border:1px solid var(--line);border-radius:12px;background:#f8f3ec}
+  .pos-history-view-tabs.two{grid-template-columns:repeat(2,minmax(0,1fr))}
   .pos-history-view-tabs button{min-height:42px;border:0;border-radius:8px;background:transparent;color:var(--brown);font:inherit;font-weight:750;cursor:pointer}
   .pos-history-view-tabs button.active{background:#fff;box-shadow:0 1px 4px rgba(60,35,20,.16)}
+  .pos-history-filter{display:grid;grid-template-columns:minmax(180px,1fr) auto;gap:8px;align-items:end;margin:0 0 14px;padding:11px;border:1px solid var(--line);border-radius:11px;background:#fffaf3}
+  .pos-history-filter .fld{margin-top:0}
+  .pos-history-filter-actions{display:flex;gap:7px;align-items:end}
+  .pos-history-shift-filter{grid-column:1 / -1}
+  .pos-history-shift-filter select{width:100%}
   .pos-tally-list{display:grid;gap:8px;margin-top:10px}
   .pos-tally-row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:14px;padding:12px 14px;border:1px solid var(--line);border-radius:11px;background:#fff}
   .pos-tally-name{color:#2b2018;font-weight:800;overflow-wrap:anywhere}
   .pos-tally-meta{margin-top:3px;color:var(--muted);font-size:12px}
-  .pos-tally-units{text-align:right;white-space:nowrap}
-  .pos-tally-units strong{display:block;color:var(--brown);font-size:24px;line-height:1}
-  .pos-tally-units span{display:block;margin-top:3px;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.04em}
+  .pos-tally-values{display:flex;align-items:center;justify-content:flex-end;gap:18px;text-align:right;white-space:nowrap}
+  .pos-tally-value strong{display:block;color:var(--brown);font-size:20px;line-height:1.1}
+  .pos-tally-value.units strong{font-size:24px}
+  .pos-tally-value span{display:block;margin-top:3px;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.04em}
+  .pos-shift-history-list{display:grid;gap:10px;margin-top:10px}
+  .pos-shift-history-card{border:1px solid var(--line);border-radius:12px;background:#fff;padding:13px}
+  .pos-shift-history-head{display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap}
+  .pos-shift-history-title{flex:1 1 220px;min-width:0}
+  .pos-shift-history-title strong{display:block;color:var(--brown);font-size:16px}
+  .pos-shift-history-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:11px}
+  .pos-shift-reconcile{border:1px solid var(--line);border-radius:9px;background:var(--cream);padding:9px;min-width:0}
+  .pos-shift-reconcile .lbl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em}
+  .pos-shift-reconcile strong{display:block;margin-top:3px;color:var(--brown)}
+  .pos-shift-reconcile .hint{margin-top:2px}
+  .pos-shift-note{margin-top:10px;padding:8px 10px;border-radius:9px;background:#f8f3ec;color:#4e4036;font-size:12px;overflow-wrap:anywhere}
   .pos-closed-result{border:1px solid #c9e5cb;border-radius:11px;background:#eef7ef;padding:12px;margin:10px 0}
   body.pos-training header{background:#6f3e00}
   @media print{
@@ -325,6 +343,14 @@
     .pos-recent-row{grid-template-columns:minmax(0,1fr) auto}
     .pos-recent-row .pos-recent-method{display:none}
     .pos-operation-summary{grid-template-columns:1fr}
+    .pos-history-view-tabs{gap:3px;padding:3px}
+    .pos-history-view-tabs button{font-size:12px;padding-left:5px;padding-right:5px}
+    .pos-history-filter{grid-template-columns:1fr}
+    .pos-history-filter-actions{width:100%}
+    .pos-history-filter-actions .btn{flex:1}
+    .pos-tally-row{align-items:start;gap:9px;padding:11px}
+    .pos-tally-values{display:grid;gap:7px}
+    .pos-shift-history-grid{grid-template-columns:1fr}
     .ingredient-toolbar{display:grid;grid-template-columns:minmax(0,1fr)}
     .ingredient-search{grid-column:1 / -1;min-width:0}
     .ingredient-toolbar .btn{width:100%;min-width:0;padding-left:7px;padding-right:7px;white-space:normal}
@@ -671,7 +697,7 @@ var STOCK_PENDING_KEY = TEST_MODE ? 'scoopies_stock_pending_test' : 'scoopies_st
 var STOCK_SOURCE_DELETE_KEY = TEST_MODE ? 'scoopies_stock_source_delete_test' : 'scoopies_stock_source_delete_v1';
 var POS_CATALOG_CACHE_KEY = TEST_MODE ? 'scoopies_pos_catalog_cache_test' : 'scoopies_pos_catalog_cache_v1';
 var POS_CATALOG_CACHE_MAX_AGE_MS = 30*60*1000, POS_SILENT_REFRESH_MIN_AGE_MS = 30*1000;
-var POS_HISTORY_PAGE_SIZE = 20;
+var POS_HISTORY_PAGE_SIZE = 20, POS_SHIFT_HISTORY_PAGE_SIZE = 20;
 var posCheckoutLoadGeneration = 0, posCheckoutSubmitGeneration = 0, posCatalogGeneration = 0;
 var posSilentRefreshPromise = null, posLastSilentRefreshAttemptAt = 0;
 var posOpsGeneration = 0, posHistoryGeneration = 0, posOpsModalReturnFocus = null;
@@ -1397,7 +1423,9 @@ function freshPosOpsModal(){
 }
 function freshPosSalesHistory(){
   return {rows:[],summary:null,mode:'live',view:'receipts',loading:false,loaded:false,error:'',summaryError:'',hasMore:true,
-    cursorCompletedAt:null,cursorSaleId:null,tallyRows:[],tallyLoading:false,tallyLoaded:false,tallyError:''};
+    cursorCompletedAt:null,cursorSaleId:null,tallyRows:[],tallyLoading:false,tallyLoaded:false,tallyError:'',
+    filterDateInput:'',filterDate:'',filterShiftId:'',selectedShiftRow:null,shiftRows:[],shiftLoading:false,shiftLoaded:false,shiftError:'',shiftHasMore:true,
+    shiftCursorClosedAt:null,shiftCursorShiftId:null};
 }
 function freshStockState(){
   return {loaded:false,loading:false,refreshing:false,error:'',notice:'',sourceConflict:'',items:[],transactions:[],search:'',status:'all',kind:'all',lastUpdatedAt:0};
@@ -2452,11 +2480,11 @@ function posHistoryRequestStillCurrent(generation,userId,businessId,mode,view){
     String(posContext.businessId||'')===String(businessId||'')&&posSalesHistory.mode===mode&&
     (!view||posSalesHistory.view===view);
 }
-function posSalesHistoryBusy(){return !!(posSalesHistory.loading||posSalesHistory.tallyLoading);}
+function posSalesHistoryBusy(){return !!(posSalesHistory.loading||posSalesHistory.tallyLoading||posSalesHistory.shiftLoading);}
 function renderPosHistoryPreservingScroll(focusViewTab){
   var panel=document.querySelector('#posOpsModal .modal'),scrollTop=panel?panel.scrollTop:0;
   var active=document.activeElement,activeView=active&&active.matches&&active.matches('.pos-history-view-tabs [role="tab"]')?active.dataset.view:'';
-  var viewToFocus=['receipts','tally'].indexOf(focusViewTab)>=0?focusViewTab:activeView;
+  var viewToFocus=['receipts','tally','shifts'].indexOf(focusViewTab)>=0?focusViewTab:activeView;
   renderPosOpsModal();panel=document.querySelector('#posOpsModal .modal');if(panel)panel.scrollTop=scrollTop;
   if(viewToFocus){
     var tab=document.querySelector('.pos-history-view-tabs [data-view="'+viewToFocus+'"]');
@@ -2480,40 +2508,148 @@ async function openPosSalesHistory(){
 }
 async function reloadPosSalesHistory(){
   if(!posOpsModal.open||posOpsModal.type!=='salesHistory'||posSalesHistoryBusy())return false;
-  return posSalesHistory.view==='tally'?loadPosSalesProductTally():loadPosSalesHistoryPage(false);
+  if(posSalesHistory.view==='tally')return loadPosSalesProductTally();
+  if(posSalesHistory.view==='shifts')return loadPosClosedShiftsPage(false);
+  return loadPosSalesHistoryPage(false);
 }
 async function setPosSalesHistoryMode(mode){
   if(['live','training'].indexOf(mode)<0||!posCanManageOperations()||posSalesHistoryBusy()||
     !posOpsModal.open||posOpsModal.type!=='salesHistory')return false;
-  var view=posSalesHistory.view==='tally'?'tally':'receipts';
-  if(posSalesHistory.mode===mode&&((view==='tally'&&posSalesHistory.tallyLoaded)||(view==='receipts'&&posSalesHistory.loaded)))return true;
+  var view=['receipts','tally','shifts'].indexOf(posSalesHistory.view)>=0?posSalesHistory.view:'receipts';
+  if(posSalesHistory.mode===mode&&((view==='tally'&&posSalesHistory.tallyLoaded)||(view==='shifts'&&posSalesHistory.shiftLoaded)||(view==='receipts'&&posSalesHistory.loaded)))return true;
+  var filterDate=posSalesHistory.filterDate,filterDateInput=posSalesHistory.filterDateInput;
   posHistoryGeneration++;posSalesHistory=freshPosSalesHistory();posSalesHistory.mode=mode;posSalesHistory.view=view;
-  renderPosOpsModal();return view==='tally'?loadPosSalesProductTally():loadPosSalesHistoryPage(false);
+  posSalesHistory.filterDate=filterDate;posSalesHistory.filterDateInput=filterDateInput;
+  renderPosOpsModal();
+  if(view==='tally')return loadPosSalesProductTally();
+  if(view==='shifts')return loadPosClosedShiftsPage(false);
+  return loadPosSalesHistoryPage(false);
 }
 async function setPosSalesHistoryView(view){
-  if(['receipts','tally'].indexOf(view)<0||!posOpsModal.open||posOpsModal.type!=='salesHistory'||posSalesHistoryBusy())return false;
+  if(['receipts','tally','shifts'].indexOf(view)<0||(view==='shifts'&&!posCanManageOperations())||!posOpsModal.open||posOpsModal.type!=='salesHistory'||posSalesHistoryBusy())return false;
+  if(view==='shifts'&&posSalesHistory.filterShiftId){
+    posSalesHistory.filterShiftId='';posSalesHistory.selectedShiftRow=null;posSalesHistory.tallyRows=[];posSalesHistory.tallyLoaded=false;posSalesHistory.tallyError='';
+    posSalesHistory.shiftRows=[];posSalesHistory.shiftLoaded=false;posSalesHistory.shiftError='';posSalesHistory.shiftHasMore=true;
+    posSalesHistory.shiftCursorClosedAt=null;posSalesHistory.shiftCursorShiftId=null;
+  }
   posSalesHistory.view=view;renderPosHistoryPreservingScroll(view);
   if(view==='tally'&&!posSalesHistory.tallyLoaded)return loadPosSalesProductTally();
+  if(view==='shifts'&&!posSalesHistory.shiftLoaded)return loadPosClosedShiftsPage(false);
   if(view==='receipts'&&!posSalesHistory.loaded)return loadPosSalesHistoryPage(false);
   return true;
+}
+function validPosBusinessDate(value){
+  var text=String(value||'').trim();if(!/^\d{4}-\d{2}-\d{2}$/.test(text))return false;
+  var parts=text.split('-').map(Number),date=new Date(Date.UTC(parts[0],parts[1]-1,parts[2]));
+  return date.getUTCFullYear()===parts[0]&&date.getUTCMonth()===parts[1]-1&&date.getUTCDate()===parts[2];
+}
+async function applyPosHistoryDateFilter(){
+  if(!posOpsModal.open||posOpsModal.type!=='salesHistory'||posSalesHistoryBusy()||posSalesHistory.view==='receipts')return false;
+  var date=String(posSalesHistory.filterDateInput||'').trim();
+  if(date&&!validPosBusinessDate(date)){
+    if(posSalesHistory.view==='tally')posSalesHistory.tallyError='Choose a valid business date.';
+    else posSalesHistory.shiftError='Choose a valid business date.';
+    renderPosHistoryPreservingScroll();return false;
+  }
+  posHistoryGeneration++;posSalesHistory.filterDate=date;posSalesHistory.filterShiftId='';posSalesHistory.selectedShiftRow=null;
+  posSalesHistory.tallyRows=[];posSalesHistory.tallyLoaded=false;posSalesHistory.tallyError='';
+  posSalesHistory.shiftRows=[];posSalesHistory.shiftLoaded=false;posSalesHistory.shiftError='';posSalesHistory.shiftHasMore=true;
+  posSalesHistory.shiftCursorClosedAt=null;posSalesHistory.shiftCursorShiftId=null;
+  renderPosHistoryPreservingScroll();
+  return posSalesHistory.view==='tally'?loadPosSalesProductTally():loadPosClosedShiftsPage(false);
+}
+async function clearPosHistoryDateFilter(){
+  if(posSalesHistoryBusy())return false;
+  posSalesHistory.filterDateInput='';return applyPosHistoryDateFilter();
+}
+async function setPosHistoryShiftFilter(shiftId){
+  if(!posCanManageOperations()||!posOpsModal.open||posOpsModal.type!=='salesHistory'||posSalesHistory.view!=='tally'||posSalesHistoryBusy())return false;
+  var value=String(shiftId||'');
+  var selectedRow=value?posSalesHistory.shiftRows.find(function(row){return String(row.shift_id||'')===value;}):null;
+  if(value&&!selectedRow)return false;
+  if(posSalesHistory.filterShiftId===value&&posSalesHistory.tallyLoaded)return true;
+  var previousShift=posSalesHistory.filterShiftId;
+  posHistoryGeneration++;posSalesHistory.filterShiftId=value;
+  if(value){
+    posSalesHistory.selectedShiftRow=selectedRow;posSalesHistory.filterDate='';posSalesHistory.filterDateInput='';
+    posSalesHistory.shiftRows=[];posSalesHistory.shiftLoaded=false;posSalesHistory.shiftError='';posSalesHistory.shiftHasMore=true;
+    posSalesHistory.shiftCursorClosedAt=null;posSalesHistory.shiftCursorShiftId=null;
+  }
+  else if(previousShift){
+    posSalesHistory.selectedShiftRow=null;
+    posSalesHistory.shiftRows=[];posSalesHistory.shiftLoaded=false;posSalesHistory.shiftError='';posSalesHistory.shiftHasMore=true;
+    posSalesHistory.shiftCursorClosedAt=null;posSalesHistory.shiftCursorShiftId=null;
+  }
+  posSalesHistory.tallyRows=[];posSalesHistory.tallyLoaded=false;posSalesHistory.tallyError='';
+  renderPosHistoryPreservingScroll();return loadPosSalesProductTally();
+}
+async function viewPosShiftTally(shiftId){
+  if(!posCanManageOperations()||!posOpsModal.open||posOpsModal.type!=='salesHistory'||posSalesHistory.view!=='shifts'||posSalesHistoryBusy())return false;
+  var value=String(shiftId||''),row=posSalesHistory.shiftRows.find(function(item){return String(item.shift_id||'')===value;});
+  if(!row)return false;
+  posHistoryGeneration++;posSalesHistory.view='tally';posSalesHistory.filterShiftId=value;posSalesHistory.selectedShiftRow=row;
+  posSalesHistory.filterDate='';posSalesHistory.filterDateInput='';posSalesHistory.tallyRows=[];posSalesHistory.tallyLoaded=false;posSalesHistory.tallyError='';
+  posSalesHistory.shiftRows=[];posSalesHistory.shiftLoaded=false;posSalesHistory.shiftError='';posSalesHistory.shiftHasMore=true;posSalesHistory.shiftCursorClosedAt=null;posSalesHistory.shiftCursorShiftId=null;
+  renderPosHistoryPreservingScroll('tally');return loadPosSalesProductTally();
+}
+function requestPosHistoryRpc(name,args){
+  try{return Promise.resolve(cloud.client.rpc(name,args)).then(function(result){return {rows:rpcRows(result),error:null};}).catch(function(error){return {rows:[],error:error};});}
+  catch(error){return Promise.resolve({rows:[],error:error});}
+}
+function applyPosClosedShiftRows(rows,loadOlder){
+  var page=(rows||[]).slice(0,POS_SHIFT_HISTORY_PAGE_SIZE),last=page[page.length-1]||null;
+  if(last&&(!last.closed_at||!last.shift_id))return false;
+  if(!loadOlder)posSalesHistory.shiftRows=[];
+  var seen={};posSalesHistory.shiftRows.forEach(function(row){seen[String(row.shift_id||'')]=true;});
+  page.forEach(function(row){var key=String(row.shift_id||'');if(key&&!seen[key]){seen[key]=true;posSalesHistory.shiftRows.push(row);}});
+  posSalesHistory.shiftHasMore=page.some(function(row){return row.has_more===true;});
+  posSalesHistory.shiftCursorClosedAt=last?last.closed_at:posSalesHistory.shiftCursorClosedAt;
+  posSalesHistory.shiftCursorShiftId=last?last.shift_id:posSalesHistory.shiftCursorShiftId;
+  if(posSalesHistory.selectedShiftRow&&!posSalesHistory.shiftRows.some(function(row){return String(row.shift_id||'')===String(posSalesHistory.selectedShiftRow.shift_id||'');}))posSalesHistory.shiftRows.unshift(posSalesHistory.selectedShiftRow);
+  posSalesHistory.shiftLoaded=true;return true;
 }
 async function loadPosSalesProductTally(){
   if(!cloud.client||!session||!session.user||!posContext.businessId||!posOpsModal.open||
     posOpsModal.type!=='salesHistory'||posSalesHistory.view!=='tally'||posSalesHistoryBusy())return false;
   var generation=++posHistoryGeneration,userId=String(session.user.id||''),businessId=String(posContext.businessId||''),mode=posSalesHistory.mode;
-  posSalesHistory.tallyLoading=true;posSalesHistory.tallyError='';renderPosHistoryPreservingScroll();
-  var result;
-  try{result={rows:rpcRows(await cloud.client.rpc('pos_get_sales_product_tally',{p_business_id:businessId,p_is_training:mode==='training'})),error:null};}
-  catch(error){result={rows:[],error:error};}
+  var selectedShift=posSalesHistory.filterShiftId||null,date=selectedShift?null:(posSalesHistory.filterDate||null),needsShifts=posCanManageOperations()&&(!posSalesHistory.shiftLoaded||!!posSalesHistory.shiftError);
+  posSalesHistory.tallyLoading=true;posSalesHistory.tallyError='';
+  if(needsShifts){posSalesHistory.shiftLoading=true;posSalesHistory.shiftError='';}
+  renderPosHistoryPreservingScroll();
+  var tallyArgs={p_business_id:businessId,p_is_training:mode==='training',p_date_from:date,p_date_to:date,p_shift_id:selectedShift};
+  var requests=[requestPosHistoryRpc('pos_get_sales_product_tally_v2',tallyArgs)];
+  if(needsShifts)requests.push(requestPosHistoryRpc('pos_get_closed_shifts_page',{p_business_id:businessId,p_is_training:mode==='training',p_date_from:date,p_date_to:date,p_before_closed_at:null,p_before_shift_id:null,p_limit:POS_SHIFT_HISTORY_PAGE_SIZE}));
+  var responses=await Promise.all(requests),result=responses[0],shiftResult=responses[1]||null;
   if(!posHistoryRequestStillCurrent(generation,userId,businessId,mode,'tally'))return false;
-  if(posHandleAccessDenied(result.error))return false;
+  if(posHandleAccessDenied(result.error||(shiftResult&&shiftResult.error)))return false;
   posSalesHistory.tallyLoading=false;
+  if(shiftResult){
+    posSalesHistory.shiftLoading=false;
+    if(shiftResult.error){posSalesHistory.shiftLoaded=false;posSalesHistory.shiftError='Closed shifts could not load, so shift filtering is temporarily unavailable.';}
+    else if(!applyPosClosedShiftRows(shiftResult.rows,false)){posSalesHistory.shiftLoaded=false;posSalesHistory.shiftError='The server returned an incomplete shift-history cursor.';}
+    else posSalesHistory.shiftError='';
+  }
   if(result.error){
     posSalesHistory.tallyLoaded=false;posSalesHistory.tallyError='Could not load the drink tally. Check your connection and try again.';
     renderPosHistoryPreservingScroll();return false;
   }
   posSalesHistory.tallyRows=(result.rows||[]).filter(function(row){return row&&typeof row==='object';});
   posSalesHistory.tallyLoaded=true;posSalesHistory.tallyError='';renderPosHistoryPreservingScroll();return true;
+}
+async function loadPosClosedShiftsPage(loadOlder){
+  if(!posCanManageOperations()||!cloud.client||!session||!session.user||!posContext.businessId||!posOpsModal.open||
+    posOpsModal.type!=='salesHistory'||posSalesHistory.view!=='shifts'||posSalesHistoryBusy()||(loadOlder&&!posSalesHistory.shiftHasMore))return false;
+  if(!loadOlder){posSalesHistory.shiftRows=[];posSalesHistory.shiftLoaded=false;posSalesHistory.shiftError='';posSalesHistory.shiftHasMore=true;posSalesHistory.shiftCursorClosedAt=null;posSalesHistory.shiftCursorShiftId=null;}
+  var generation=++posHistoryGeneration,userId=String(session.user.id||''),businessId=String(posContext.businessId||''),mode=posSalesHistory.mode,date=posSalesHistory.filterDate||null;
+  posSalesHistory.shiftLoading=true;posSalesHistory.shiftError='';renderPosHistoryPreservingScroll();
+  var result=await requestPosHistoryRpc('pos_get_closed_shifts_page',{p_business_id:businessId,p_is_training:mode==='training',p_date_from:date,p_date_to:date,
+    p_before_closed_at:loadOlder?posSalesHistory.shiftCursorClosedAt:null,p_before_shift_id:loadOlder?posSalesHistory.shiftCursorShiftId:null,p_limit:POS_SHIFT_HISTORY_PAGE_SIZE});
+  if(!posHistoryRequestStillCurrent(generation,userId,businessId,mode,'shifts'))return false;
+  if(posHandleAccessDenied(result.error))return false;
+  posSalesHistory.shiftLoading=false;
+  if(result.error){posSalesHistory.shiftLoaded=true;posSalesHistory.shiftError='Could not load closed shifts. Already loaded shift records are still shown.';renderPosHistoryPreservingScroll();return false;}
+  if(!applyPosClosedShiftRows(result.rows,loadOlder)){posSalesHistory.shiftLoaded=true;posSalesHistory.shiftError='The server returned an incomplete shift-history cursor. Close this window and try again.';renderPosHistoryPreservingScroll();return false;}
+  posSalesHistory.shiftError='';renderPosHistoryPreservingScroll();return true;
 }
 async function loadPosSalesHistoryPage(loadOlder){
   if(!cloud.client||!session||!session.user||!posContext.businessId||!posOpsModal.open||
@@ -2622,11 +2758,69 @@ function posSalesHistorySummaryHtml(summary){
 }
 function posSalesProductTallyHtml(rows){
   return '<div class="pos-tally-list" role="list" aria-label="Drink sales tally">'+(rows||[]).map(function(row){
-    var units=Math.max(0,Number(row.units_sold)||0),orders=Math.max(0,Number(row.order_count)||0);
+    var units=Math.max(0,Number(row.units_sold)||0),orders=Math.max(0,Number(row.order_count)||0),sales=Math.max(0,Number(row.net_sales_centavos)||0);
     var size=String(row.size_label||'').trim();
     return '<div class="pos-tally-row" role="listitem"><div><div class="pos-tally-name">'+escapeHtml(row.item_name||'Unnamed drink')+'</div>'+
       '<div class="pos-tally-meta">'+(size?escapeHtml(size)+' · ':'')+orders.toLocaleString('en-PH')+' order'+(orders===1?'':'s')+'</div></div>'+
-      '<div class="pos-tally-units"><strong>'+units.toLocaleString('en-PH')+'</strong><span>sold</span></div></div>';
+      '<div class="pos-tally-values"><div class="pos-tally-value"><strong>'+peso(sales/100)+'</strong><span>net sales</span></div>'+
+      '<div class="pos-tally-value units"><strong>'+units.toLocaleString('en-PH')+'</strong><span>sold</span></div></div></div>';
+  }).join('')+'</div>';
+}
+function posHistoryFilterLabel(){
+  var date=posSalesHistory.filterDate?posHistoryDateLabel(posSalesHistory.filterDate):'All dates';
+  if(!posSalesHistory.filterShiftId)return date;
+  var shift=posSalesHistory.shiftRows.find(function(row){return String(row.shift_id||'')===String(posSalesHistory.filterShiftId||'');})||posSalesHistory.selectedShiftRow;
+  return shift?'Shift: '+String(shift.register_name||'Register')+' · '+posHistoryDateLabel(shift.closed_business_date||''):date+' · selected shift';
+}
+function posHistoryShiftOptionLabel(row){
+  var date=posHistoryDateLabel(row.closed_business_date||''),registerName=String(row.register_name||'Register');
+  var timeOptions={hour:'numeric',minute:'2-digit'},timezone=posCheckout.shiftStatus&&posCheckout.shiftStatus.business_timezone;
+  if(timezone)timeOptions.timeZone=timezone;
+  var closed=row.closed_at?new Date(row.closed_at):null,time=closed&&!isNaN(closed.getTime())?closed.toLocaleTimeString('en-PH',timeOptions):'';
+  return [date,registerName,time].filter(Boolean).join(' · ');
+}
+function posHistoryFilterHtml(includeShift){
+  var history=posSalesHistory,busy=posSalesHistoryBusy(),tallyDate=history.view==='tally';
+  var shiftDefault=history.filterShiftId?'All dates (clear selected shift)':(history.filterDate?'Use sales date above':'All dates');
+  var shiftOptions='<option value="">'+shiftDefault+'</option>';
+  var choices=history.shiftRows.slice();
+  if(history.selectedShiftRow&&!choices.some(function(row){return String(row.shift_id||'')===String(history.selectedShiftRow.shift_id||'');}))choices.unshift(history.selectedShiftRow);
+  choices.forEach(function(row){shiftOptions+='<option value="'+escapeHtml(row.shift_id||'')+'"'+(String(history.filterShiftId||'')===String(row.shift_id||'')?' selected':'')+'>'+escapeHtml(posHistoryShiftOptionLabel(row))+'</option>';});
+  var shiftDisabled=busy||(!choices.length&&!history.shiftLoaded);
+  var shiftHelp=history.shiftLoading?'Loading shift choices…':(history.shiftError?escapeHtml(history.shiftError):
+    (history.filterShiftId?'The selected shift includes its full duration. Clear it to return to all dates.':
+      (history.filterDate?'Shift choices use the date the shift was closed. Choosing a shift replaces the sales-date filter and includes the whole shift—even if it crossed midnight.':
+        (history.shiftHasMore?'Showing recent shift closes. Choose a date in Shift closes to find older ones.':'All matching shifts are available.'))));
+  return '<div class="pos-history-filter" role="group" aria-label="History date filter"><div><label class="fld" for="posHistoryDateFilter">'+(tallyDate?'Sales business date':'Shift closed date')+'</label>'+
+    '<input id="posHistoryDateFilter" type="date" value="'+escapeHtml(history.filterDateInput)+'"'+(busy?' disabled':'')+'><p class="pos-history-count">'+(tallyDate?'Filters drinks by the date assigned to each sale.':'Filters shifts by the local date their close was confirmed.')+'</p></div>'+
+    '<div class="pos-history-filter-actions"><button class="btn small secondary" data-act="applyPosHistoryDate"'+(busy?' disabled':'')+'>Apply date</button>'+
+    (history.filterDate?'<button class="btn small secondary" data-act="clearPosHistoryDate"'+(busy?' disabled':'')+'>All dates</button>':'')+'</div>'+
+    (includeShift?'<div class="pos-history-shift-filter"><label class="fld" for="posHistoryShiftFilter">Closed shift</label><select id="posHistoryShiftFilter"'+(shiftDisabled?' disabled':'')+'>'+shiftOptions+'</select>'+
+      '<p class="pos-history-count">'+shiftHelp+'</p></div>':'')+'</div>';
+}
+function posShiftReconcileHtml(label,expected,actual,variance){
+  var value=Number(variance||0),cls=value===0?'good':'bad',varianceText=value===0?'Balanced':((value>0?'+':'')+peso(value/100));
+  return '<div class="pos-shift-reconcile"><div class="lbl">'+escapeHtml(label)+'</div><strong>'+peso(Number(actual||0)/100)+'</strong>'+
+    '<div class="hint">Expected '+peso(Number(expected||0)/100)+'</div><div class="pos-variance '+cls+'">'+escapeHtml(varianceText)+'</div></div>';
+}
+function posClosedShiftHistoryHtml(rows){
+  return '<div class="pos-shift-history-list" role="list" aria-label="Closed shift history">'+(rows||[]).map(function(row){
+    var balanced=Number(row.cash_variance_centavos||0)===0&&Number(row.gcash_variance_centavos||0)===0&&Number(row.gotyme_variance_centavos||0)===0;
+    var dateTimeOptions={year:'numeric',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'},timezone=posCheckout.shiftStatus&&posCheckout.shiftStatus.business_timezone;
+    if(timezone)dateTimeOptions.timeZone=timezone;
+    var closed=row.closed_at?new Date(row.closed_at):null,closedText=closed&&!isNaN(closed.getTime())?closed.toLocaleString('en-PH',dateTimeOptions):'';
+    var title=[row.register_name||'Register',row.event_name||''].filter(Boolean).join(' · '),closedBy=String(row.closed_by_display_name||'Unknown user');
+    return '<article class="pos-shift-history-card" role="listitem"><div class="pos-shift-history-head"><div class="pos-shift-history-title"><strong>'+escapeHtml(title)+'</strong>'+
+      '<div class="pos-report-meta">'+escapeHtml(posHistoryDateLabel(row.closed_business_date||''))+' · closed '+escapeHtml(closedText)+' by '+escapeHtml(closedBy)+'</div></div>'+
+      '<span class="pos-state '+(balanced?'good':'bad')+'">'+(balanced?'Balanced':'Has variance')+'</span><button class="btn small secondary" data-act="viewPosShiftTally" data-id="'+escapeHtml(row.shift_id||'')+'">View drink tally</button></div>'+
+      '<div class="pos-history-summary"><div class="metric"><div class="lbl">Gross sales</div><div class="val">'+peso(Number(row.gross_sales_centavos||0)/100)+'</div></div>'+
+      '<div class="metric"><div class="lbl">Voids / refunds</div><div class="val">'+peso(Number(row.voided_sales_centavos||0)/100)+'</div></div>'+
+      '<div class="metric"><div class="lbl">Net collected</div><div class="val">'+peso(Number(row.net_sales_centavos||0)/100)+'</div></div>'+
+      '<div class="metric"><div class="lbl">Orders after voids</div><div class="val">'+Math.max(0,Number(row.net_sale_count)||0).toLocaleString('en-PH')+'</div></div></div>'+
+      '<div class="pos-shift-history-grid">'+posShiftReconcileHtml('Cash counted',row.expected_cash_centavos,row.counted_cash_centavos,row.cash_variance_centavos)+
+      posShiftReconcileHtml('GCash verified',row.expected_gcash_centavos,row.verified_gcash_centavos,row.gcash_variance_centavos)+
+      posShiftReconcileHtml('GoTyme verified',row.expected_gotyme_centavos,row.verified_gotyme_centavos,row.gotyme_variance_centavos)+'</div>'+
+      (row.close_notes?'<div class="pos-shift-note"><strong>Closing note:</strong> '+escapeHtml(row.close_notes)+'</div>':'')+'</article>';
   }).join('')+'</div>';
 }
 function posCsvCell(value){
@@ -2748,8 +2942,9 @@ function renderPosOpsModal(){
   }else if(posOpsModal.type==='salesHistory'){
     var history=posSalesHistory,historyTraining=history.mode==='training',canSwitchHistory=posCanManageOperations(),historyBusy=posSalesHistoryBusy();
     var historyModes=canSwitchHistory?'<div class="pos-payment-tabs" aria-label="Sales mode"><button data-act="setPosSalesHistoryMode" data-mode="live" class="'+(!historyTraining?'active':'')+'" aria-pressed="'+(!historyTraining)+'"'+(historyBusy?' disabled':'')+'>Live sales</button><button data-act="setPosSalesHistoryMode" data-mode="training" class="'+(historyTraining?'active':'')+'" aria-pressed="'+historyTraining+'"'+(historyBusy?' disabled':'')+'>Training sales</button></div>':'';
-    var tallyView=history.view==='tally';
-    var historyViews='<div class="pos-history-view-tabs" role="tablist" aria-label="Sales history view"><button id="posHistoryReceiptsTab" role="tab" aria-controls="posSalesHistoryPanel" aria-selected="'+(!tallyView)+'" tabindex="'+(!tallyView?'0':'-1')+'" aria-disabled="'+historyBusy+'" data-act="setPosSalesHistoryView" data-view="receipts" class="'+(!tallyView?'active':'')+'">Receipts</button><button id="posHistoryTallyTab" role="tab" aria-controls="posSalesHistoryPanel" aria-selected="'+tallyView+'" tabindex="'+(tallyView?'0':'-1')+'" aria-disabled="'+historyBusy+'" data-act="setPosSalesHistoryView" data-view="tally" class="'+(tallyView?'active':'')+'">Drink tally</button></div>';
+    var receiptView=history.view==='receipts',tallyView=history.view==='tally',shiftView=history.view==='shifts';
+    var historyViews='<div class="pos-history-view-tabs'+(canSwitchHistory?'':' two')+'" role="tablist" aria-label="Sales history view"><button id="posHistoryReceiptsTab" role="tab" aria-controls="posSalesHistoryPanel" aria-selected="'+receiptView+'" tabindex="'+(receiptView?'0':'-1')+'" aria-disabled="'+historyBusy+'" data-act="setPosSalesHistoryView" data-view="receipts" class="'+(receiptView?'active':'')+'">Receipts</button><button id="posHistoryTallyTab" role="tab" aria-controls="posSalesHistoryPanel" aria-selected="'+tallyView+'" tabindex="'+(tallyView?'0':'-1')+'" aria-disabled="'+historyBusy+'" data-act="setPosSalesHistoryView" data-view="tally" class="'+(tallyView?'active':'')+'">Drink tally</button>'+
+      (canSwitchHistory?'<button id="posHistoryShiftsTab" role="tab" aria-controls="posSalesHistoryPanel" aria-selected="'+shiftView+'" tabindex="'+(shiftView?'0':'-1')+'" aria-disabled="'+historyBusy+'" data-act="setPosSalesHistoryView" data-view="shifts" class="'+(shiftView?'active':'')+'">Shift closes</button>':'')+'</div>';
     var historyRows=history.rows.length?'<div class="pos-history-list">'+posSalesRowsHtml(history.rows,false)+'</div>':(history.loading?'<div class="pos-loading">Loading receipts…</div>':(history.loaded?'<p class="empty">No completed '+escapeHtml(posModeName(historyTraining))+' sales yet.</p>':''));
     var historyCount=history.rows.length+' receipt'+(history.rows.length===1?'':'s')+' loaded'+(history.loaded&&!history.hasMore?' · complete history':'');
     var showLoad=history.loading||history.hasMore||!!history.error;
@@ -2758,17 +2953,25 @@ function renderPosOpsModal(){
       (history.summaryError?'<div class="note">'+escapeHtml(history.summaryError)+'</div>':'')+
       '<div class="row" style="margin-top:16px"><h3 style="margin:0;color:var(--brown)">Receipts</h3><span class="spacer"></span><span class="pos-history-count">'+escapeHtml(historyCount)+'</span></div>'+historyRows+
       (history.error?'<div class="note" style="margin-top:10px">'+escapeHtml(history.error)+'</div>':'');
-    var tallyUnits=history.tallyRows.reduce(function(total,row){return total+Math.max(0,Number(row.units_sold)||0);},0);
+    var tallyUnits=history.tallyRows.reduce(function(total,row){return total+Math.max(0,Number(row.units_sold)||0);},0),tallySales=history.tallyRows.reduce(function(total,row){return total+Math.max(0,Number(row.net_sales_centavos)||0);},0);
     var tallyRows=history.tallyRows.length?posSalesProductTallyHtml(history.tallyRows):(history.tallyLoading?'<div class="pos-loading">Loading drink tally…</div>':(history.tallyLoaded?'<p class="empty">No drinks sold in '+escapeHtml(posModeName(historyTraining))+' sales yet.</p>':''));
-    var tallyBody='<div class="row"><div><strong>All-time '+escapeHtml(posModeName(historyTraining))+' drink tally</strong><p class="pos-history-count">Completed sales minus voided and refunded receipts</p></div><span class="spacer"></span>'+
-      (history.tallyLoaded?'<span class="pos-history-count">'+tallyUnits.toLocaleString('en-PH')+' drink'+(tallyUnits===1?'':'s')+' sold · '+history.tallyRows.length+' product'+(history.tallyRows.length===1?'':'s')+'</span>':'')+'</div>'+tallyRows+
+    var tallyBody=posHistoryFilterHtml(canSwitchHistory)+'<div class="row"><div><strong>'+escapeHtml(posHistoryFilterLabel())+' · '+escapeHtml(posModeName(historyTraining))+' drink tally</strong><p class="pos-history-count">Completed sales minus voided and refunded receipts</p></div><span class="spacer"></span>'+
+      (history.tallyLoaded?'<span class="pos-history-count">'+tallyUnits.toLocaleString('en-PH')+' drink'+(tallyUnits===1?'':'s')+' sold · '+peso(tallySales/100)+' net sales · '+history.tallyRows.length+' product'+(history.tallyRows.length===1?'':'s')+'</span>':'')+'</div>'+tallyRows+
       (history.tallyError?'<div class="note" style="margin-top:10px">'+escapeHtml(history.tallyError)+'</div>':'');
+    var shiftRows=history.shiftRows.length?posClosedShiftHistoryHtml(history.shiftRows):(history.shiftLoading?'<div class="pos-loading">Loading closed shifts…</div>':(history.shiftLoaded?'<p class="empty">No closed '+escapeHtml(posModeName(historyTraining))+' shifts match this date.</p>':''));
+    var shiftBody=posHistoryFilterHtml(false)+'<div class="row"><div><strong>'+escapeHtml(posHistoryFilterLabel())+' · '+escapeHtml(posModeName(historyTraining))+' shift closes</strong><p class="pos-history-count">Stored reconciliation plus totals recalculated from the shift ledger</p></div><span class="spacer"></span>'+
+      (history.shiftLoaded?'<span class="pos-history-count">'+history.shiftRows.length+' shift'+(history.shiftRows.length===1?'':'s')+' loaded'+(!history.shiftHasMore?' · complete':'')+'</span>':'')+'</div>'+shiftRows+
+      (history.shiftError?'<div class="note" style="margin-top:10px">'+escapeHtml(history.shiftError)+'</div>':'');
+    var selectedTabId=shiftView?'posHistoryShiftsTab':(tallyView?'posHistoryTallyTab':'posHistoryReceiptsTab');
+    var selectedBody=shiftView?shiftBody:(tallyView?tallyBody:receiptsBody);
+    var shiftLoadLabel=history.shiftLoading?'Loading…':(history.shiftError?'Retry':'Load older shifts');
     content.innerHTML='<div class="modal-head"><div style="flex:1"><h2 id="posOpsModalTitle" tabindex="-1">Sales history</h2><p class="hint">Complete totals plus older receipts without crowding the register.</p></div>'+close+'</div>'+
       historyModes+historyViews+(historyTraining?'<div class="pos-mode-banner"><span class="pos-mode-training">Training</span><span>Practice receipts and totals stay separate from real sales.</span></div>':'')+
-      '<div id="posSalesHistoryPanel" role="tabpanel" aria-labelledby="'+(tallyView?'posHistoryTallyTab':'posHistoryReceiptsTab')+'" aria-busy="'+historyBusy+'">'+(tallyView?tallyBody:receiptsBody)+'</div>'+
-      '<div class="modal-actions">'+(!tallyView&&history.summaryError?'<button class="btn secondary" data-act="reloadPosSalesHistory"'+(historyBusy?' disabled':'')+'>Retry totals</button>':'')+
-      (!tallyView&&showLoad?'<button class="btn secondary" data-act="loadOlderPosSalesHistory"'+(historyBusy?' disabled':'')+'>'+escapeHtml(loadLabel)+'</button>':'')+
-      (tallyView&&history.tallyError?'<button class="btn secondary" data-act="retryPosSalesProductTally"'+(historyBusy?' disabled':'')+'>Retry tally</button>':'')+
+      '<div id="posSalesHistoryPanel" role="tabpanel" aria-labelledby="'+selectedTabId+'" aria-busy="'+historyBusy+'">'+selectedBody+'</div>'+
+      '<div class="modal-actions">'+(receiptView&&history.summaryError?'<button class="btn secondary" data-act="reloadPosSalesHistory"'+(historyBusy?' disabled':'')+'>Retry totals</button>':'')+
+      (receiptView&&showLoad?'<button class="btn secondary" data-act="loadOlderPosSalesHistory"'+(historyBusy?' disabled':'')+'>'+escapeHtml(loadLabel)+'</button>':'')+
+      (tallyView&&(history.tallyError||history.shiftError)?'<button class="btn secondary" data-act="retryPosSalesProductTally"'+(historyBusy?' disabled':'')+'>'+(history.tallyError?'Retry tally':'Retry shift list')+'</button>':'')+
+      (shiftView&&(history.shiftLoading||history.shiftHasMore||history.shiftError)?'<button class="btn secondary" data-act="loadOlderPosClosedShifts"'+(historyBusy?' disabled':'')+'>'+escapeHtml(shiftLoadLabel)+'</button>':'')+
       '<button class="btn" data-act="closePosOpsModal">Close</button></div>';
   }else if(posOpsModal.type==='report'){
     var canChoose=!posCheckout.shift&&posCanManageOperations();
@@ -4197,6 +4400,7 @@ document.body.addEventListener('input', function(e){
     if(el.id==='posVerifiedGotyme'){posOpsModal.verifiedGotyme=el.value||'';posOpsModal.error='';return;}
     if(el.id==='posCloseNotes'){posOpsModal.notes=el.value||'';posOpsModal.error='';return;}
     if(el.id==='posVoidReason'){posOpsModal.reason=el.value||'';posOpsModal.error='';return;}
+    if(posOpsModal.type==='salesHistory'&&el.id==='posHistoryDateFilter'){posSalesHistory.filterDateInput=el.value||'';return;}
   }
   if(el.id==='posCashReceived'){posCheckout.cashReceived=el.value||'';posCheckout.error='';updatePosPaymentPreview();return;}
   if(el.id==='posReference'){posCheckout.referenceNumber=el.value||'';posCheckout.error='';return;}
@@ -4222,6 +4426,7 @@ document.body.addEventListener('change', function(e){
     if(el.dataset.stockField==='unit'){stockModal.unit=el.value;stockModal.pendingRpc=null;updateStockModalPreview();return;}
   }
   if(el.id==='histDate'){ loadHistory(); return; }
+  if(posOpsModal.open&&posOpsModal.type==='salesHistory'&&el.id==='posHistoryShiftFilter'){setPosHistoryShiftFilter(el.value).catch(function(){});return;}
   if(publishModalOpen&&publishSnapshot&&el.dataset.publishField){publishSnapshot[el.dataset.publishField]=el.value;return;}
   if(mixtureDraft&&el.dataset.mixRoot){
     if(el.dataset.mixRoot==='unit'&&UNIT_TYPE[mixtureDraft.unit]===UNIT_TYPE[el.value])mixtureDraft.batchYield=convertUnitQuantity(mixtureDraft.batchYield,mixtureDraft.unit,el.value);
@@ -4311,6 +4516,10 @@ document.body.addEventListener('click', function(e){
     case 'setPosSalesHistoryMode': setPosSalesHistoryMode(b.dataset.mode).catch(function(){});return;
     case 'setPosSalesHistoryView': setPosSalesHistoryView(b.dataset.view).catch(function(){});return;
     case 'retryPosSalesProductTally': loadPosSalesProductTally().catch(function(){});return;
+    case 'applyPosHistoryDate': applyPosHistoryDateFilter().catch(function(){});return;
+    case 'clearPosHistoryDate': clearPosHistoryDateFilter().catch(function(){});return;
+    case 'loadOlderPosClosedShifts': loadPosClosedShiftsPage(posSalesHistory.shiftRows.length>0).catch(function(){});return;
+    case 'viewPosShiftTally': viewPosShiftTally(id).catch(function(){});return;
     case 'setPosReportMode': setPosReportMode(b.dataset.mode).catch(function(){});return;
     case 'downloadPosReport': downloadPosReport();return;
     case 'printPosReport': printPosReport();return;
