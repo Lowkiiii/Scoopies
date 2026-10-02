@@ -277,6 +277,16 @@
   .pos-history-list{border-top:1px solid var(--line);margin-top:8px}
   .pos-history-list .pos-item-summary{display:block;-webkit-line-clamp:unset;overflow:visible}
   .pos-history-count{font-size:12px;color:var(--muted);margin:4px 0 0}
+  .pos-history-view-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin:10px 0 14px;padding:4px;border:1px solid var(--line);border-radius:12px;background:#f8f3ec}
+  .pos-history-view-tabs button{min-height:42px;border:0;border-radius:8px;background:transparent;color:var(--brown);font:inherit;font-weight:750;cursor:pointer}
+  .pos-history-view-tabs button.active{background:#fff;box-shadow:0 1px 4px rgba(60,35,20,.16)}
+  .pos-tally-list{display:grid;gap:8px;margin-top:10px}
+  .pos-tally-row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:14px;padding:12px 14px;border:1px solid var(--line);border-radius:11px;background:#fff}
+  .pos-tally-name{color:#2b2018;font-weight:800;overflow-wrap:anywhere}
+  .pos-tally-meta{margin-top:3px;color:var(--muted);font-size:12px}
+  .pos-tally-units{text-align:right;white-space:nowrap}
+  .pos-tally-units strong{display:block;color:var(--brown);font-size:24px;line-height:1}
+  .pos-tally-units span{display:block;margin-top:3px;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.04em}
   .pos-closed-result{border:1px solid #c9e5cb;border-radius:11px;background:#eef7ef;padding:12px;margin:10px 0}
   body.pos-training header{background:#6f3e00}
   @media print{
@@ -1386,8 +1396,8 @@ function freshPosOpsModal(){
     cartAction:'',cartProductId:'',cartProductName:'',cartQuantity:0};
 }
 function freshPosSalesHistory(){
-  return {rows:[],summary:null,mode:'live',loading:false,loaded:false,error:'',summaryError:'',hasMore:true,
-    cursorCompletedAt:null,cursorSaleId:null};
+  return {rows:[],summary:null,mode:'live',view:'receipts',loading:false,loaded:false,error:'',summaryError:'',hasMore:true,
+    cursorCompletedAt:null,cursorSaleId:null,tallyRows:[],tallyLoading:false,tallyLoaded:false,tallyError:''};
 }
 function freshStockState(){
   return {loaded:false,loading:false,refreshing:false,error:'',notice:'',sourceConflict:'',items:[],transactions:[],search:'',status:'all',kind:'all',lastUpdatedAt:0};
@@ -2436,14 +2446,25 @@ function openPosReportModal(){
   if(posCheckout.reportsLoading)return false;
   posOpenOpsModal('report');posOpsModal.result=posCheckout.dailyReport;renderPosOpsModal();return true;
 }
-function posHistoryRequestStillCurrent(generation,userId,businessId,mode){
+function posHistoryRequestStillCurrent(generation,userId,businessId,mode,view){
   return generation===posHistoryGeneration&&posOpsModal.open&&posOpsModal.type==='salesHistory'&&
     !!session&&!!session.user&&String(session.user.id||'')===String(userId||'')&&
-    String(posContext.businessId||'')===String(businessId||'')&&posSalesHistory.mode===mode;
+    String(posContext.businessId||'')===String(businessId||'')&&posSalesHistory.mode===mode&&
+    (!view||posSalesHistory.view===view);
 }
-function renderPosHistoryPreservingScroll(){
+function posSalesHistoryBusy(){return !!(posSalesHistory.loading||posSalesHistory.tallyLoading);}
+function renderPosHistoryPreservingScroll(focusViewTab){
   var panel=document.querySelector('#posOpsModal .modal'),scrollTop=panel?panel.scrollTop:0;
+  var active=document.activeElement,activeView=active&&active.matches&&active.matches('.pos-history-view-tabs [role="tab"]')?active.dataset.view:'';
+  var viewToFocus=['receipts','tally'].indexOf(focusViewTab)>=0?focusViewTab:activeView;
   renderPosOpsModal();panel=document.querySelector('#posOpsModal .modal');if(panel)panel.scrollTop=scrollTop;
+  if(viewToFocus){
+    var tab=document.querySelector('.pos-history-view-tabs [data-view="'+viewToFocus+'"]');
+    if(tab&&tab.getAttribute('aria-selected')==='true'){
+      try{tab.focus({preventScroll:true});}catch(error){tab.focus();}
+      if(panel)panel.scrollTop=scrollTop;
+    }
+  }
 }
 function posHistoryErrorText(error){
   if(error&&String(error.code||'')==='42501')return 'Your account no longer has access to this sales history.';
@@ -2458,22 +2479,48 @@ async function openPosSalesHistory(){
   return loadPosSalesHistoryPage(false);
 }
 async function reloadPosSalesHistory(){
-  if(!posOpsModal.open||posOpsModal.type!=='salesHistory'||posSalesHistory.loading)return false;
-  return loadPosSalesHistoryPage(false);
+  if(!posOpsModal.open||posOpsModal.type!=='salesHistory'||posSalesHistoryBusy())return false;
+  return posSalesHistory.view==='tally'?loadPosSalesProductTally():loadPosSalesHistoryPage(false);
 }
 async function setPosSalesHistoryMode(mode){
-  if(['live','training'].indexOf(mode)<0||!posCanManageOperations()||posSalesHistory.loading||
+  if(['live','training'].indexOf(mode)<0||!posCanManageOperations()||posSalesHistoryBusy()||
     !posOpsModal.open||posOpsModal.type!=='salesHistory')return false;
-  if(posSalesHistory.mode===mode&&posSalesHistory.loaded)return true;
-  posHistoryGeneration++;posSalesHistory=freshPosSalesHistory();posSalesHistory.mode=mode;
-  renderPosOpsModal();return loadPosSalesHistoryPage(false);
+  var view=posSalesHistory.view==='tally'?'tally':'receipts';
+  if(posSalesHistory.mode===mode&&((view==='tally'&&posSalesHistory.tallyLoaded)||(view==='receipts'&&posSalesHistory.loaded)))return true;
+  posHistoryGeneration++;posSalesHistory=freshPosSalesHistory();posSalesHistory.mode=mode;posSalesHistory.view=view;
+  renderPosOpsModal();return view==='tally'?loadPosSalesProductTally():loadPosSalesHistoryPage(false);
+}
+async function setPosSalesHistoryView(view){
+  if(['receipts','tally'].indexOf(view)<0||!posOpsModal.open||posOpsModal.type!=='salesHistory'||posSalesHistoryBusy())return false;
+  posSalesHistory.view=view;renderPosHistoryPreservingScroll(view);
+  if(view==='tally'&&!posSalesHistory.tallyLoaded)return loadPosSalesProductTally();
+  if(view==='receipts'&&!posSalesHistory.loaded)return loadPosSalesHistoryPage(false);
+  return true;
+}
+async function loadPosSalesProductTally(){
+  if(!cloud.client||!session||!session.user||!posContext.businessId||!posOpsModal.open||
+    posOpsModal.type!=='salesHistory'||posSalesHistory.view!=='tally'||posSalesHistoryBusy())return false;
+  var generation=++posHistoryGeneration,userId=String(session.user.id||''),businessId=String(posContext.businessId||''),mode=posSalesHistory.mode;
+  posSalesHistory.tallyLoading=true;posSalesHistory.tallyError='';renderPosHistoryPreservingScroll();
+  var result;
+  try{result={rows:rpcRows(await cloud.client.rpc('pos_get_sales_product_tally',{p_business_id:businessId,p_is_training:mode==='training'})),error:null};}
+  catch(error){result={rows:[],error:error};}
+  if(!posHistoryRequestStillCurrent(generation,userId,businessId,mode,'tally'))return false;
+  if(posHandleAccessDenied(result.error))return false;
+  posSalesHistory.tallyLoading=false;
+  if(result.error){
+    posSalesHistory.tallyLoaded=false;posSalesHistory.tallyError='Could not load the drink tally. Check your connection and try again.';
+    renderPosHistoryPreservingScroll();return false;
+  }
+  posSalesHistory.tallyRows=(result.rows||[]).filter(function(row){return row&&typeof row==='object';});
+  posSalesHistory.tallyLoaded=true;posSalesHistory.tallyError='';renderPosHistoryPreservingScroll();return true;
 }
 async function loadPosSalesHistoryPage(loadOlder){
   if(!cloud.client||!session||!session.user||!posContext.businessId||!posOpsModal.open||
-    posOpsModal.type!=='salesHistory'||posSalesHistory.loading||(loadOlder&&!posSalesHistory.hasMore))return false;
+    posOpsModal.type!=='salesHistory'||posSalesHistory.view!=='receipts'||posSalesHistoryBusy()||(loadOlder&&!posSalesHistory.hasMore))return false;
   if(!loadOlder){
-    var selectedMode=posSalesHistory.mode;
-    posSalesHistory=freshPosSalesHistory();posSalesHistory.mode=selectedMode;
+    posSalesHistory.rows=[];posSalesHistory.summary=null;posSalesHistory.loaded=false;posSalesHistory.error='';posSalesHistory.summaryError='';
+    posSalesHistory.hasMore=true;posSalesHistory.cursorCompletedAt=null;posSalesHistory.cursorSaleId=null;
   }
   var generation=++posHistoryGeneration,userId=String(session.user.id||''),businessId=String(posContext.businessId||''),mode=posSalesHistory.mode;
   posSalesHistory.loading=true;posSalesHistory.error='';renderPosHistoryPreservingScroll();
@@ -2487,7 +2534,7 @@ async function loadPosSalesHistoryPage(loadOlder){
   var requests=[request('pos_get_sales_history_page',pageArgs)];
   if(!loadOlder)requests.push(request('pos_get_sales_history_summary',{p_business_id:businessId,p_is_training:mode==='training'}));
   var responses=await Promise.all(requests);
-  if(!posHistoryRequestStillCurrent(generation,userId,businessId,mode))return false;
+  if(!posHistoryRequestStillCurrent(generation,userId,businessId,mode,'receipts'))return false;
   var pageResult=responses[0],summaryResult=responses[1]||null;
   if(posHandleAccessDenied(pageResult.error||(summaryResult&&summaryResult.error)))return false;
   if(pageResult.error){
@@ -2556,7 +2603,7 @@ function posHistoryDateLabel(value){
   var date=new Date(String(value)+'T00:00:00');return isNaN(date.getTime())?String(value):date.toLocaleDateString('en-PH',{year:'numeric',month:'short',day:'numeric'});
 }
 function posSalesHistorySummaryHtml(summary){
-  if(!summary)return posSalesHistory.loading?'<div class="pos-loading">Loading all-time totals…</div>':'<div class="note">All-time totals are unavailable. Receipt history can still be reviewed below.</div>';
+  if(!summary)return posSalesHistoryBusy()?'<div class="pos-loading">Loading all-time totals…</div>':'<div class="note">All-time totals are unavailable. Sales details can still be reviewed below.</div>';
   var first=posHistoryDateLabel(summary.first_business_date),last=posHistoryDateLabel(summary.last_business_date);
   var span=first?(first+(last&&last!==first?' – '+last:'')):'No completed sales yet';
   var canView=!!summary.can_view_costs;
@@ -2572,6 +2619,15 @@ function posSalesHistorySummaryHtml(summary){
       '<div class="metric"><div class="lbl">GoTyme net</div><div class="val">'+peso(Number(summary.gotyme_net_centavos||0)/100)+'</div></div>'+
       '<div class="metric"><div class="lbl">Estimated gross profit</div><div class="val">'+(canView?peso(Number(summary.estimated_gross_profit_centavos||0)/100):'Owner only')+'</div></div>'+
     '</div><p class="hint">Complete database totals across all '+escapeHtml(posModeName(summary.is_training===true))+' receipts. Voided sales stay in the audit history but are removed from net collected.</p>';
+}
+function posSalesProductTallyHtml(rows){
+  return '<div class="pos-tally-list" role="list" aria-label="Drink sales tally">'+(rows||[]).map(function(row){
+    var units=Math.max(0,Number(row.units_sold)||0),orders=Math.max(0,Number(row.order_count)||0);
+    var size=String(row.size_label||'').trim();
+    return '<div class="pos-tally-row" role="listitem"><div><div class="pos-tally-name">'+escapeHtml(row.item_name||'Unnamed drink')+'</div>'+
+      '<div class="pos-tally-meta">'+(size?escapeHtml(size)+' · ':'')+orders.toLocaleString('en-PH')+' order'+(orders===1?'':'s')+'</div></div>'+
+      '<div class="pos-tally-units"><strong>'+units.toLocaleString('en-PH')+'</strong><span>sold</span></div></div>';
+  }).join('')+'</div>';
 }
 function posCsvCell(value){
   var text=String(value==null?'':value);
@@ -2690,20 +2746,29 @@ function renderPosOpsModal(){
         '<button class="btn danger" data-act="'+(reviewing?'submitPosVoidSale':'reviewPosVoidSale')+'"'+disabled+'>'+escapeHtml(posOpsModal.submitting?'Checking…':(reviewing?(posOpsModal.uncertain?'Retry exact void':'Confirm void'):'Review void'))+'</button></div>';
     }
   }else if(posOpsModal.type==='salesHistory'){
-    var history=posSalesHistory,historyTraining=history.mode==='training',canSwitchHistory=posCanManageOperations();
-    var historyModes=canSwitchHistory?'<div class="pos-payment-tabs"><button data-act="setPosSalesHistoryMode" data-mode="live" class="'+(!historyTraining?'active':'')+'"'+(history.loading?' disabled':'')+'>Live sales</button><button data-act="setPosSalesHistoryMode" data-mode="training" class="'+(historyTraining?'active':'')+'"'+(history.loading?' disabled':'')+'>Training sales</button></div>':'';
+    var history=posSalesHistory,historyTraining=history.mode==='training',canSwitchHistory=posCanManageOperations(),historyBusy=posSalesHistoryBusy();
+    var historyModes=canSwitchHistory?'<div class="pos-payment-tabs" aria-label="Sales mode"><button data-act="setPosSalesHistoryMode" data-mode="live" class="'+(!historyTraining?'active':'')+'" aria-pressed="'+(!historyTraining)+'"'+(historyBusy?' disabled':'')+'>Live sales</button><button data-act="setPosSalesHistoryMode" data-mode="training" class="'+(historyTraining?'active':'')+'" aria-pressed="'+historyTraining+'"'+(historyBusy?' disabled':'')+'>Training sales</button></div>':'';
+    var tallyView=history.view==='tally';
+    var historyViews='<div class="pos-history-view-tabs" role="tablist" aria-label="Sales history view"><button id="posHistoryReceiptsTab" role="tab" aria-controls="posSalesHistoryPanel" aria-selected="'+(!tallyView)+'" tabindex="'+(!tallyView?'0':'-1')+'" aria-disabled="'+historyBusy+'" data-act="setPosSalesHistoryView" data-view="receipts" class="'+(!tallyView?'active':'')+'">Receipts</button><button id="posHistoryTallyTab" role="tab" aria-controls="posSalesHistoryPanel" aria-selected="'+tallyView+'" tabindex="'+(tallyView?'0':'-1')+'" aria-disabled="'+historyBusy+'" data-act="setPosSalesHistoryView" data-view="tally" class="'+(tallyView?'active':'')+'">Drink tally</button></div>';
     var historyRows=history.rows.length?'<div class="pos-history-list">'+posSalesRowsHtml(history.rows,false)+'</div>':(history.loading?'<div class="pos-loading">Loading receipts…</div>':(history.loaded?'<p class="empty">No completed '+escapeHtml(posModeName(historyTraining))+' sales yet.</p>':''));
     var historyCount=history.rows.length+' receipt'+(history.rows.length===1?'':'s')+' loaded'+(history.loaded&&!history.hasMore?' · complete history':'');
     var showLoad=history.loading||history.hasMore||!!history.error;
     var loadLabel=history.loading?'Loading…':(history.error?'Retry':'Load older sales');
-    content.innerHTML='<div class="modal-head"><div style="flex:1"><h2 id="posOpsModalTitle" tabindex="-1">Sales history</h2><p class="hint">Complete totals plus older receipts without crowding the register.</p></div>'+close+'</div>'+
-      historyModes+(historyTraining?'<div class="pos-mode-banner"><span class="pos-mode-training">Training</span><span>Practice receipts and totals stay separate from real sales.</span></div>':'')+
-      '<div class="row"><strong>All-time '+escapeHtml(posModeName(historyTraining))+' totals</strong></div>'+posSalesHistorySummaryHtml(history.summary)+
+    var receiptsBody='<div class="row"><strong>All-time '+escapeHtml(posModeName(historyTraining))+' totals</strong></div>'+posSalesHistorySummaryHtml(history.summary)+
       (history.summaryError?'<div class="note">'+escapeHtml(history.summaryError)+'</div>':'')+
       '<div class="row" style="margin-top:16px"><h3 style="margin:0;color:var(--brown)">Receipts</h3><span class="spacer"></span><span class="pos-history-count">'+escapeHtml(historyCount)+'</span></div>'+historyRows+
-      (history.error?'<div class="note" style="margin-top:10px">'+escapeHtml(history.error)+'</div>':'')+
-      '<div class="modal-actions">'+(history.summaryError?'<button class="btn secondary" data-act="reloadPosSalesHistory"'+(history.loading?' disabled':'')+'>Retry totals</button>':'')+
-      (showLoad?'<button class="btn secondary" data-act="loadOlderPosSalesHistory"'+(history.loading?' disabled':'')+'>'+escapeHtml(loadLabel)+'</button>':'')+
+      (history.error?'<div class="note" style="margin-top:10px">'+escapeHtml(history.error)+'</div>':'');
+    var tallyUnits=history.tallyRows.reduce(function(total,row){return total+Math.max(0,Number(row.units_sold)||0);},0);
+    var tallyRows=history.tallyRows.length?posSalesProductTallyHtml(history.tallyRows):(history.tallyLoading?'<div class="pos-loading">Loading drink tally…</div>':(history.tallyLoaded?'<p class="empty">No drinks sold in '+escapeHtml(posModeName(historyTraining))+' sales yet.</p>':''));
+    var tallyBody='<div class="row"><div><strong>All-time '+escapeHtml(posModeName(historyTraining))+' drink tally</strong><p class="pos-history-count">Completed sales minus voided and refunded receipts</p></div><span class="spacer"></span>'+
+      (history.tallyLoaded?'<span class="pos-history-count">'+tallyUnits.toLocaleString('en-PH')+' drink'+(tallyUnits===1?'':'s')+' sold · '+history.tallyRows.length+' product'+(history.tallyRows.length===1?'':'s')+'</span>':'')+'</div>'+tallyRows+
+      (history.tallyError?'<div class="note" style="margin-top:10px">'+escapeHtml(history.tallyError)+'</div>':'');
+    content.innerHTML='<div class="modal-head"><div style="flex:1"><h2 id="posOpsModalTitle" tabindex="-1">Sales history</h2><p class="hint">Complete totals plus older receipts without crowding the register.</p></div>'+close+'</div>'+
+      historyModes+historyViews+(historyTraining?'<div class="pos-mode-banner"><span class="pos-mode-training">Training</span><span>Practice receipts and totals stay separate from real sales.</span></div>':'')+
+      '<div id="posSalesHistoryPanel" role="tabpanel" aria-labelledby="'+(tallyView?'posHistoryTallyTab':'posHistoryReceiptsTab')+'" aria-busy="'+historyBusy+'">'+(tallyView?tallyBody:receiptsBody)+'</div>'+
+      '<div class="modal-actions">'+(!tallyView&&history.summaryError?'<button class="btn secondary" data-act="reloadPosSalesHistory"'+(historyBusy?' disabled':'')+'>Retry totals</button>':'')+
+      (!tallyView&&showLoad?'<button class="btn secondary" data-act="loadOlderPosSalesHistory"'+(historyBusy?' disabled':'')+'>'+escapeHtml(loadLabel)+'</button>':'')+
+      (tallyView&&history.tallyError?'<button class="btn secondary" data-act="retryPosSalesProductTally"'+(historyBusy?' disabled':'')+'>Retry tally</button>':'')+
       '<button class="btn" data-act="closePosOpsModal">Close</button></div>';
   }else if(posOpsModal.type==='report'){
     var canChoose=!posCheckout.shift&&posCanManageOperations();
@@ -4244,6 +4309,8 @@ document.body.addEventListener('click', function(e){
     case 'loadOlderPosSalesHistory': loadPosSalesHistoryPage(posSalesHistory.rows.length>0).catch(function(){});return;
     case 'reloadPosSalesHistory': reloadPosSalesHistory().catch(function(){});return;
     case 'setPosSalesHistoryMode': setPosSalesHistoryMode(b.dataset.mode).catch(function(){});return;
+    case 'setPosSalesHistoryView': setPosSalesHistoryView(b.dataset.view).catch(function(){});return;
+    case 'retryPosSalesProductTally': loadPosSalesProductTally().catch(function(){});return;
     case 'setPosReportMode': setPosReportMode(b.dataset.mode).catch(function(){});return;
     case 'downloadPosReport': downloadPosReport();return;
     case 'printPosReport': printPosReport();return;
@@ -4378,6 +4445,20 @@ document.body.addEventListener('focusout', function(){
 });
 /* press Enter in the login form to submit it */
 document.body.addEventListener('keydown', function(e){
+  var historyViewTab=e.target&&e.target.matches&&e.target.matches('.pos-history-view-tabs [role="tab"]')?e.target:null;
+  if(historyViewTab&&['ArrowLeft','ArrowRight','Home','End'].indexOf(e.key)>=0){
+    e.preventDefault();
+    if(posSalesHistoryBusy())return;
+    var historyViewTabs=Array.from(historyViewTab.parentElement.querySelectorAll('[role="tab"]'));
+    var historyViewIndex=historyViewTabs.indexOf(historyViewTab),nextHistoryViewIndex=historyViewIndex;
+    if(e.key==='Home')nextHistoryViewIndex=0;
+    else if(e.key==='End')nextHistoryViewIndex=historyViewTabs.length-1;
+    else if(e.key==='ArrowLeft')nextHistoryViewIndex=(historyViewIndex-1+historyViewTabs.length)%historyViewTabs.length;
+    else nextHistoryViewIndex=(historyViewIndex+1)%historyViewTabs.length;
+    var nextHistoryView=historyViewTabs[nextHistoryViewIndex];
+    if(nextHistoryView)setPosSalesHistoryView(nextHistoryView.dataset.view).catch(function(){});
+    return;
+  }
   if(e.key==='Escape'){
     if(stockModal.open){e.preventDefault();closeStockModal(false);return;}
     if(posOpsModal.open){e.preventDefault();posCloseOpsModal(false);return;}

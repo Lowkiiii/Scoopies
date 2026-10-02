@@ -203,6 +203,12 @@ document.getElementById('app').addEventListener('load', async () => {
       estimated_cost_centavos: 180000, estimated_gross_profit_centavos: 313000, can_view_costs: true
     }, overrides);
   }
+  function salesProductTallyFixture(overrides = {}) {
+    return Object.assign({
+      item_name: 'Sea Salt Cream Matcha', size_label: '12oz',
+      order_count: 12, units_sold: 16
+    }, overrides);
+  }
   function closeResultFixture(overrides = {}) {
     return Object.assign({
       shift_id: '88888888-8888-4888-8888-888888888888',
@@ -1967,6 +1973,126 @@ document.getElementById('app').addEventListener('load', async () => {
     assert(trainingCalls.some(call => call.name === 'pos_get_sales_history_page') && trainingCalls.some(call => call.name === 'pos_get_sales_history_summary'), 'Training history mixed with Live RPC arguments');
     assert(/All-time Training totals/.test(app.document.getElementById('posOpsModal').textContent), 'Training history was not visibly separated');
     app.posCloseOpsModal(true);
+  });
+  test('sales history drink tally is lazy, accessible, complete, and safely escaped', async () => {
+    installCheckout('owner');
+    const calls = [];
+    app.cloud.client = { rpc(name, args) {
+      calls.push({ name, args });
+      if (name === 'pos_get_sales_history_page') return rpcResult([]);
+      if (name === 'pos_get_sales_history_summary') return rpcResult([salesHistorySummaryFixture()]);
+      if (name === 'pos_get_sales_product_tally') return rpcResult([
+        salesProductTallyFixture({ item_name: '<img id="unsafe-tally"> Sea Salt Cream Matcha' }),
+        salesProductTallyFixture({ item_name: 'Cereal Matcha', order_count: 5, units_sold: 5 })
+      ]);
+      throw new Error('unexpected RPC ' + name);
+    }};
+
+    assert(await app.openPosSalesHistory(), 'sales history did not open before tally test');
+    await new Promise(resolve => app.setTimeout(resolve, 0));
+    assert(!calls.some(call => call.name === 'pos_get_sales_product_tally'), 'drink tally loaded before its tab was selected');
+    const modal = app.document.getElementById('posOpsModal');
+    assert(/All-time Live totals/.test(modal.textContent), 'receipt view lost the authoritative all-time totals');
+    const tallyTab = modal.querySelector('[data-act=setPosSalesHistoryView][data-view=tally]');
+    const initialReceiptsTab = modal.querySelector('[data-act=setPosSalesHistoryView][data-view=receipts]');
+    assert(tallyTab && tallyTab.getAttribute('role') === 'tab' && tallyTab.getAttribute('aria-selected') === 'false' && tallyTab.tabIndex === -1, 'inactive tally tab semantics were missing');
+    assert(initialReceiptsTab && initialReceiptsTab.getAttribute('aria-selected') === 'true' && initialReceiptsTab.tabIndex === 0, 'selected receipt tab was not the keyboard tab stop');
+    tallyTab.click();
+    await new Promise(resolve => app.setTimeout(resolve, 0));
+    await new Promise(resolve => app.setTimeout(resolve, 0));
+
+    const tallyCalls = calls.filter(call => call.name === 'pos_get_sales_product_tally');
+    assert(tallyCalls.length === 1 && tallyCalls[0].args.p_is_training === false, 'Live tally used the wrong mode or loaded more than once');
+    assert(app.posSalesHistory.view === 'tally' && app.posSalesHistory.tallyLoaded, 'tally tab did not load or retain its state');
+    const panel = modal.querySelector('#posSalesHistoryPanel');
+    assert(panel && panel.getAttribute('aria-labelledby') === 'posHistoryTallyTab', 'tally panel was not associated with its selected tab');
+    assert(/21 drinks sold/.test(panel.textContent) && /2 products/.test(panel.textContent), 'complete tally counts were missing');
+    assert(/16\s*sold/i.test(panel.textContent) && /12 orders/.test(panel.textContent), 'product units and order count were not rendered');
+    assert(/minus voided and refunded receipts/i.test(panel.textContent), 'net product-sales reversal semantics were not explained');
+    assert(!app.document.getElementById('unsafe-tally') && /<img id="unsafe-tally">/.test(panel.textContent), 'tally product text was not escaped');
+    assert(app.document.activeElement && app.document.activeElement.id === 'posHistoryTallyTab', 'selected tally tab did not regain focus after loading');
+    assert(modal.querySelector('#posHistoryTallyTab').tabIndex === 0 && modal.querySelector('#posHistoryReceiptsTab').tabIndex === -1, 'tally selection did not update roving tab stops');
+
+    modal.querySelector('#posHistoryTallyTab').dispatchEvent(new app.KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true }));
+    await new Promise(resolve => app.setTimeout(resolve, 0));
+    assert(app.posSalesHistory.view === 'receipts' && calls.filter(call => call.name === 'pos_get_sales_history_page').length === 1, 'returning to cached receipts performed an unnecessary reload');
+    assert(app.posSalesHistory.tallyLoaded && app.posSalesHistory.tallyRows.length === 2, 'returning to receipts discarded the cached tally');
+    assert(app.document.activeElement && app.document.activeElement.id === 'posHistoryReceiptsTab', 'ArrowLeft did not select and focus Receipts');
+
+    modal.querySelector('#posHistoryReceiptsTab').dispatchEvent(new app.KeyboardEvent('keydown', { key: 'End', bubbles: true }));
+    await new Promise(resolve => app.setTimeout(resolve, 0));
+    assert(app.posSalesHistory.view === 'tally' && calls.filter(call => call.name === 'pos_get_sales_product_tally').length === 1, 'End did not return to the cached tally');
+    assert(app.document.activeElement && app.document.activeElement.id === 'posHistoryTallyTab', 'End did not focus the last history tab');
+
+    modal.querySelector('#posHistoryTallyTab').dispatchEvent(new app.KeyboardEvent('keydown', { key: 'Home', bubbles: true }));
+    await new Promise(resolve => app.setTimeout(resolve, 0));
+    assert(app.posSalesHistory.view === 'receipts' && app.document.activeElement && app.document.activeElement.id === 'posHistoryReceiptsTab', 'Home did not focus the first history tab');
+
+    modal.querySelector('#posHistoryReceiptsTab').dispatchEvent(new app.KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
+    await new Promise(resolve => app.setTimeout(resolve, 0));
+    assert(app.posSalesHistory.view === 'tally' && app.document.activeElement && app.document.activeElement.id === 'posHistoryTallyTab', 'ArrowRight did not select and focus Drink tally');
+    assert(calls.filter(call => call.name === 'pos_get_sales_product_tally').length === 1, 'keyboard view changes refetched a cached tally');
+    app.posCloseOpsModal(true);
+  });
+  test('drink tally retries failures and preserves the tally view across Live and Training', async () => {
+    installNoShift('owner');
+    let failLiveTally = true;
+    const calls = [];
+    app.cloud.client = { rpc(name, args) {
+      calls.push({ name, args });
+      if (name === 'pos_get_sales_history_page') return rpcResult([]);
+      if (name === 'pos_get_sales_history_summary') return rpcResult([salesHistorySummaryFixture({
+        is_training: args.p_is_training,
+        gross_sale_count: args.p_is_training ? 3 : 29,
+        net_items_sold: args.p_is_training ? 4 : 30
+      })]);
+      if (name === 'pos_get_sales_product_tally') {
+        if (!args.p_is_training && failLiveTally) return Promise.reject({ code: 'NETWORK' });
+        return rpcResult([salesProductTallyFixture({
+          item_name: args.p_is_training ? 'Training Matcha' : 'Live Matcha',
+          order_count: args.p_is_training ? 2 : 12,
+          units_sold: args.p_is_training ? 4 : 16
+        })]);
+      }
+      throw new Error('unexpected RPC ' + name);
+    }};
+
+    assert(await app.openPosSalesHistory(), 'history did not open for tally retry test');
+    assert(!(await app.setPosSalesHistoryView('tally')), 'failed tally request reported success');
+    assert(app.posSalesHistory.view === 'tally' && !app.posSalesHistory.tallyLoaded && /Could not load the drink tally/.test(app.document.getElementById('posOpsModal').textContent), 'tally failure was not retained and explained');
+    failLiveTally = false;
+    assert(await app.loadPosSalesProductTally(), 'tally retry failed');
+    assert(app.posSalesHistory.tallyRows[0].item_name === 'Live Matcha' && !app.posSalesHistory.tallyError, 'tally retry did not replace the failed state');
+
+    assert(await app.setPosSalesHistoryMode('training'), 'Training tally mode switch failed');
+    const trainingCalls = calls.filter(call => call.args && call.args.p_is_training === true);
+    assert(app.posSalesHistory.view === 'tally' && app.posSalesHistory.mode === 'training', 'mode switch did not preserve the tally view');
+    assert(trainingCalls.some(call => call.name === 'pos_get_sales_product_tally') && !trainingCalls.some(call => call.name === 'pos_get_sales_history_page'), 'Training mode did not reload only the preserved tally view');
+    const modalText = app.document.getElementById('posOpsModal').textContent;
+    assert(/All-time Training drink tally/.test(modalText) && /Training Matcha/.test(modalText) && /4 drinks/.test(modalText), 'Training tally was not visibly separated');
+    assert(await app.setPosSalesHistoryView('receipts'), 'Training receipts failed to load after entering through the tally view');
+    assert(app.posSalesHistory.tallyLoaded && app.posSalesHistory.tallyRows[0].item_name === 'Training Matcha', 'loading uncached receipts discarded the Training tally cache');
+    const trainingTallyCallCount = calls.filter(call => call.name === 'pos_get_sales_product_tally' && call.args.p_is_training === true).length;
+    assert(await app.setPosSalesHistoryView('tally'), 'could not return to the cached Training tally');
+    assert(calls.filter(call => call.name === 'pos_get_sales_product_tally' && call.args.p_is_training === true).length === trainingTallyCallCount, 'returning to the Training tally performed an unnecessary reload');
+    app.posCloseOpsModal(true);
+  });
+  test('drink tally ignores a response that arrives after the history modal closes', async () => {
+    installCheckout('owner');
+    let resolveTally;
+    const deferred = new Promise(resolve => { resolveTally = resolve; });
+    app.cloud.client = { rpc(name) {
+      if (name === 'pos_get_sales_history_page') return rpcResult([]);
+      if (name === 'pos_get_sales_history_summary') return rpcResult([salesHistorySummaryFixture()]);
+      if (name === 'pos_get_sales_product_tally') return deferred;
+      throw new Error('unexpected RPC ' + name);
+    }};
+    assert(await app.openPosSalesHistory(), 'history did not open for late tally test');
+    const loading = app.setPosSalesHistoryView('tally');
+    assert(app.posSalesHistory.tallyLoading, 'tally did not enter its loading state');
+    app.posCloseOpsModal(true);
+    resolveTally(rpcResult([salesProductTallyFixture()]));
+    assert(!(await loading) && !app.posOpsModal.open && app.posSalesHistory.tallyRows.length === 0, 'late tally response repopulated the closed modal');
   });
   test('silent refresh applies an authoritative cashier downgrade while stale workspace role remains owner', async () => {
     const catalog = installCheckout('owner');
