@@ -58,7 +58,8 @@ declare
   v_can_view_costs boolean;
   v_page_count integer;
   v_distinct_count integer;
-  v_has_more boolean;
+  v_all_has_more boolean;
+  v_any_has_more boolean;
   v_cursor_time timestamptz;
   v_cursor_id uuid;
   v_older_count integer;
@@ -86,15 +87,17 @@ begin
 
   select count(*)::integer,
          count(distinct page.sale_id)::integer,
-         coalesce(bool_and(page.has_more), false)
-    into v_page_count, v_distinct_count, v_has_more
+         coalesce(bool_and(page.has_more), false),
+         coalesce(bool_or(page.has_more), false)
+    into v_page_count, v_distinct_count, v_all_has_more, v_any_has_more
   from public.pos_get_sales_history_page(
     v_business_id, false, null, null, 20
   ) as page;
 
   if v_page_count <> least(v_live_count, 20)
     or v_distinct_count <> v_page_count
-    or v_has_more is distinct from (v_live_count > 20) then
+    or v_all_has_more is distinct from (v_live_count > 20)
+    or v_any_has_more is distinct from (v_live_count > 20) then
     raise exception 'First live history page count, uniqueness, or has-more flag is wrong.';
   end if;
 
@@ -121,6 +124,5 @@ end;
 $$;
 
 reset role;
-rollback;
-
 select 'PASS: POS sales-history live access checks' as result;
+rollback;
