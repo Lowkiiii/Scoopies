@@ -90,7 +90,7 @@
   .ingredient-name-text{font-weight:650;min-width:160px}
   .mixture-meta{font-size:12px;color:var(--muted);margin-top:3px}
   .search-status{font-size:12px;color:var(--muted);margin:2px 0 8px;min-height:18px}
-  .modal-backdrop{position:fixed;inset:0;z-index:80;background:rgba(43,32,24,.58);display:flex;
+  .modal-backdrop{position:fixed;inset:0;z-index:100;background:rgba(43,32,24,.58);display:flex;
     align-items:center;justify-content:center;padding:18px}
   .modal-backdrop[hidden]{display:none}
   .modal{background:#fff;border-radius:16px;border:1px solid var(--line);box-shadow:0 18px 55px rgba(0,0,0,.3);
@@ -272,6 +272,11 @@
   .pos-recent-row.voided{background:#faf5f2;opacity:.82}
   .pos-void-label{display:inline-flex;align-items:center;padding:3px 7px;border-radius:999px;background:#fbe1de;color:#8d2720;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;margin-left:6px}
   .pos-recent-actions{display:flex;align-items:center;justify-content:flex-end;gap:7px;flex-wrap:wrap}
+  .pos-history-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:8px;margin:12px 0}
+  .pos-history-summary .metric{background:#fff;min-width:0}
+  .pos-history-list{border-top:1px solid var(--line);margin-top:8px}
+  .pos-history-list .pos-item-summary{display:block;-webkit-line-clamp:unset;overflow:visible}
+  .pos-history-count{font-size:12px;color:var(--muted);margin:4px 0 0}
   .pos-closed-result{border:1px solid #c9e5cb;border-radius:11px;background:#eef7ef;padding:12px;margin:10px 0}
   body.pos-training header{background:#6f3e00}
   @media print{
@@ -283,6 +288,7 @@
   }
   .btn[disabled]{cursor:not-allowed;opacity:.55}
   body.modal-open{overflow:hidden}
+  body.modal-open .pos-mobile-order-bar{visibility:hidden}
   @media(max-width:700px){
     .pos-summary{grid-template-columns:repeat(2,minmax(0,1fr))}
     .pos-workspace{grid-template-columns:1fr}
@@ -655,10 +661,12 @@ var STOCK_PENDING_KEY = TEST_MODE ? 'scoopies_stock_pending_test' : 'scoopies_st
 var STOCK_SOURCE_DELETE_KEY = TEST_MODE ? 'scoopies_stock_source_delete_test' : 'scoopies_stock_source_delete_v1';
 var POS_CATALOG_CACHE_KEY = TEST_MODE ? 'scoopies_pos_catalog_cache_test' : 'scoopies_pos_catalog_cache_v1';
 var POS_CATALOG_CACHE_MAX_AGE_MS = 30*60*1000, POS_SILENT_REFRESH_MIN_AGE_MS = 30*1000;
+var POS_HISTORY_PAGE_SIZE = 20;
 var posCheckoutLoadGeneration = 0, posCheckoutSubmitGeneration = 0, posCatalogGeneration = 0;
 var posSilentRefreshPromise = null, posLastSilentRefreshAttemptAt = 0;
-var posOpsGeneration = 0, posOpsModalReturnFocus = null;
+var posOpsGeneration = 0, posHistoryGeneration = 0, posOpsModalReturnFocus = null;
 var posOpsModal = freshPosOpsModal();
+var posSalesHistory = freshPosSalesHistory();
 var posCheckout = {
   catalog:[], catalogLoading:false, catalogError:'', search:'', category:'all', cart:{}, catalogChanged:false,
   paymentMethod:'cash', cashReceived:'', referenceNumber:'', confirming:false, submitting:false, error:'', notice:'', pending:null,
@@ -1377,6 +1385,10 @@ function freshPosOpsModal(){
     countedCash:'',verifiedGcash:'',verifiedGotyme:'',notes:'',sale:null,reason:'',result:null,uncertain:false,rpcArgs:null,
     cartAction:'',cartProductId:'',cartProductName:'',cartQuantity:0};
 }
+function freshPosSalesHistory(){
+  return {rows:[],summary:null,mode:'live',loading:false,loaded:false,error:'',summaryError:'',hasMore:true,
+    cursorCompletedAt:null,cursorSaleId:null};
+}
 function freshStockState(){
   return {loaded:false,loading:false,refreshing:false,error:'',notice:'',sourceConflict:'',items:[],transactions:[],search:'',status:'all',kind:'all',lastUpdatedAt:0};
 }
@@ -1393,14 +1405,16 @@ function resetStocks(message){
   if(typeof renderStocks==='function')renderStocks();
 }
 function resetPosCheckout(){
-  posCheckoutLoadGeneration++;posCheckoutSubmitGeneration++;posCatalogGeneration++;posOpsGeneration++;
+  posCheckoutLoadGeneration++;posCheckoutSubmitGeneration++;posCatalogGeneration++;posOpsGeneration++;posHistoryGeneration++;
   posSilentRefreshPromise=null;posLastSilentRefreshAttemptAt=0;
   posCheckout=freshPosCheckout();
+  posSalesHistory=freshPosSalesHistory();
   posOpsModal=freshPosOpsModal();
   document.body.classList.remove('pos-training');
   setPosReportsLoading(false);
-  document.body.classList.remove('modal-open');posOpsModalReturnFocus=null;
+  posOpsModalReturnFocus=null;
   var modal=document.getElementById('posOpsModal');if(modal)modal.hidden=true;
+  refreshModalBodyClass();
   renderPos();
 }
 function posUuid(){
@@ -1596,7 +1610,7 @@ function confirmPosCartAction(){
 }
 function resetPosContext(message,preserveCheckout){
   posLoadGeneration++;posStatusGeneration++;
-  posOpsGeneration++;if(posOpsModal.open)posCloseOpsModal(true);
+  posOpsGeneration++;posHistoryGeneration++;posSalesHistory=freshPosSalesHistory();if(posOpsModal.open)posCloseOpsModal(true);
   posContext={loaded:!!message,loading:false,businessId:'',businessName:'',role:'',publications:{},error:message||''};
   resetStocks(message||'');
   if(preserveCheckout){posCheckoutLoadGeneration++;posCatalogGeneration++;}
@@ -2365,9 +2379,10 @@ function posOperationDeterministic(error){
 }
 function posCloseOpsModal(force){
   if((posOpsModal.submitting||posOpsModal.uncertain)&&!force)return false;
+  if(posOpsModal.type==='salesHistory'){posHistoryGeneration++;posSalesHistory=freshPosSalesHistory();}
   posOpsModal=freshPosOpsModal();
   var modal=document.getElementById('posOpsModal');if(modal)modal.hidden=true;
-  document.body.classList.remove('modal-open');
+  refreshModalBodyClass();
   if(posOpsModalReturnFocus&&document.contains(posOpsModalReturnFocus))posOpsModalReturnFocus.focus();
   posOpsModalReturnFocus=null;return true;
 }
@@ -2375,7 +2390,7 @@ function posOpenOpsModal(type,details){
   posOpsModalReturnFocus=document.activeElement;
   posOpsModal=freshPosOpsModal();posOpsModal.open=true;posOpsModal.type=type;
   if(details&&typeof details==='object')Object.assign(posOpsModal,details);
-  document.body.classList.add('modal-open');renderPosOpsModal();return true;
+  refreshModalBodyClass();renderPosOpsModal();return true;
 }
 function openPosShiftModal(){
   if(posCheckout.shift||posCheckout.shiftLoading||posCheckout.shiftError||posCheckout.pending||posCheckout.refreshing||posCheckout.checkoutRefreshRequired)return false;
@@ -2421,6 +2436,80 @@ function openPosReportModal(){
   if(posCheckout.reportsLoading)return false;
   posOpenOpsModal('report');posOpsModal.result=posCheckout.dailyReport;renderPosOpsModal();return true;
 }
+function posHistoryRequestStillCurrent(generation,userId,businessId,mode){
+  return generation===posHistoryGeneration&&posOpsModal.open&&posOpsModal.type==='salesHistory'&&
+    !!session&&!!session.user&&String(session.user.id||'')===String(userId||'')&&
+    String(posContext.businessId||'')===String(businessId||'')&&posSalesHistory.mode===mode;
+}
+function renderPosHistoryPreservingScroll(){
+  var panel=document.querySelector('#posOpsModal .modal'),scrollTop=panel?panel.scrollTop:0;
+  renderPosOpsModal();panel=document.querySelector('#posOpsModal .modal');if(panel)panel.scrollTop=scrollTop;
+}
+function posHistoryErrorText(error){
+  if(error&&String(error.code||'')==='42501')return 'Your account no longer has access to this sales history.';
+  if(error&&String(error.code||'')==='22023')return 'The history request was rejected. Close this window and try again.';
+  return 'Could not load older sales. Your already loaded receipts are still shown.';
+}
+async function openPosSalesHistory(){
+  if(!cloud.client||!session||!session.user||!posContext.businessId||posOpsModal.submitting)return false;
+  posHistoryGeneration++;posSalesHistory=freshPosSalesHistory();
+  posSalesHistory.mode=posCheckout.reportMode==='training'?'training':'live';
+  posOpenOpsModal('salesHistory');focusSoon('#posOpsModalTitle');
+  return loadPosSalesHistoryPage(false);
+}
+async function reloadPosSalesHistory(){
+  if(!posOpsModal.open||posOpsModal.type!=='salesHistory'||posSalesHistory.loading)return false;
+  return loadPosSalesHistoryPage(false);
+}
+async function setPosSalesHistoryMode(mode){
+  if(['live','training'].indexOf(mode)<0||!posCanManageOperations()||posSalesHistory.loading||
+    !posOpsModal.open||posOpsModal.type!=='salesHistory')return false;
+  if(posSalesHistory.mode===mode&&posSalesHistory.loaded)return true;
+  posHistoryGeneration++;posSalesHistory=freshPosSalesHistory();posSalesHistory.mode=mode;
+  renderPosOpsModal();return loadPosSalesHistoryPage(false);
+}
+async function loadPosSalesHistoryPage(loadOlder){
+  if(!cloud.client||!session||!session.user||!posContext.businessId||!posOpsModal.open||
+    posOpsModal.type!=='salesHistory'||posSalesHistory.loading||(loadOlder&&!posSalesHistory.hasMore))return false;
+  if(!loadOlder){
+    var selectedMode=posSalesHistory.mode;
+    posSalesHistory=freshPosSalesHistory();posSalesHistory.mode=selectedMode;
+  }
+  var generation=++posHistoryGeneration,userId=String(session.user.id||''),businessId=String(posContext.businessId||''),mode=posSalesHistory.mode;
+  posSalesHistory.loading=true;posSalesHistory.error='';renderPosHistoryPreservingScroll();
+  function request(name,args){
+    try{return Promise.resolve(cloud.client.rpc(name,args)).then(function(result){return {rows:rpcRows(result),error:null};}).catch(function(error){return {rows:[],error:error};});}
+    catch(error){return Promise.resolve({rows:[],error:error});}
+  }
+  var pageArgs={p_business_id:businessId,p_is_training:mode==='training',
+    p_before_completed_at:loadOlder?posSalesHistory.cursorCompletedAt:null,
+    p_before_sale_id:loadOlder?posSalesHistory.cursorSaleId:null,p_limit:POS_HISTORY_PAGE_SIZE};
+  var requests=[request('pos_get_sales_history_page',pageArgs)];
+  if(!loadOlder)requests.push(request('pos_get_sales_history_summary',{p_business_id:businessId,p_is_training:mode==='training'}));
+  var responses=await Promise.all(requests);
+  if(!posHistoryRequestStillCurrent(generation,userId,businessId,mode))return false;
+  var pageResult=responses[0],summaryResult=responses[1]||null;
+  if(posHandleAccessDenied(pageResult.error||(summaryResult&&summaryResult.error)))return false;
+  if(pageResult.error){
+    posSalesHistory.loading=false;posSalesHistory.loaded=true;posSalesHistory.error=posHistoryErrorText(pageResult.error);
+    renderPosHistoryPreservingScroll();return false;
+  }
+  var page=(pageResult.rows||[]).slice(0,POS_HISTORY_PAGE_SIZE),last=page[page.length-1]||null;
+  if(last&&(!last.completed_at||!last.sale_id)){
+    posSalesHistory.loading=false;posSalesHistory.loaded=true;posSalesHistory.error='The server returned an incomplete history cursor. Close this window and try again.';
+    renderPosHistoryPreservingScroll();return false;
+  }
+  var seen={};posSalesHistory.rows.forEach(function(row){seen[String(row.sale_id||'')]=true;});
+  page.forEach(function(row){var key=String(row.sale_id||'');if(key&&!seen[key]){seen[key]=true;posSalesHistory.rows.push(row);}});
+  posSalesHistory.hasMore=page.some(function(row){return row.has_more===true;});
+  posSalesHistory.cursorCompletedAt=last?last.completed_at:posSalesHistory.cursorCompletedAt;
+  posSalesHistory.cursorSaleId=last?last.sale_id:posSalesHistory.cursorSaleId;
+  if(summaryResult){
+    if(summaryResult.error)posSalesHistory.summaryError='All-time totals could not load. Receipt history is still available.';
+    else{posSalesHistory.summary=summaryResult.rows[0]||null;posSalesHistory.summaryError='';}
+  }
+  posSalesHistory.loading=false;posSalesHistory.loaded=true;posSalesHistory.error='';renderPosHistoryPreservingScroll();return true;
+}
 function posVarianceHtml(label,expected,actual,variance){
   var value=Number(variance||0),cls=value===0?'good':'bad',sign=value>0?'+':'';
   return '<div class="metric"><div class="lbl">'+escapeHtml(label)+'</div><div class="val">'+peso(Number(actual||0)/100)+'</div>'+
@@ -2461,6 +2550,28 @@ function posReportHtml(report){
       '<div class="metric"><div class="lbl">GoTyme net</div><div class="val">'+peso(Number(report.gotyme_net_centavos||0)/100)+'</div></div>'+
     '</div><p class="hint">Estimated gross profit is net sales minus published ingredient and packaging costs for non-voided items. It is not take-home profit and excludes rent, labor, utilities, spoilage, and payment or delivery fees.</p>'+
     '<p class="hint">This report exports the database’s complete daily aggregates. The separate Recent sales list is only the latest 20 receipts and is intentionally not treated as a complete daily ledger.</p>';
+}
+function posHistoryDateLabel(value){
+  if(!value)return '';
+  var date=new Date(String(value)+'T00:00:00');return isNaN(date.getTime())?String(value):date.toLocaleDateString('en-PH',{year:'numeric',month:'short',day:'numeric'});
+}
+function posSalesHistorySummaryHtml(summary){
+  if(!summary)return posSalesHistory.loading?'<div class="pos-loading">Loading all-time totals…</div>':'<div class="note">All-time totals are unavailable. Receipt history can still be reviewed below.</div>';
+  var first=posHistoryDateLabel(summary.first_business_date),last=posHistoryDateLabel(summary.last_business_date);
+  var span=first?(first+(last&&last!==first?' – '+last:'')):'No completed sales yet';
+  var canView=!!summary.can_view_costs;
+  return '<div class="pos-report-meta">'+escapeHtml(span)+' · '+escapeHtml(summary.business_timezone||'Business timezone')+'</div>'+
+    '<div class="pos-history-summary">'+
+      '<div class="metric"><div class="lbl">Gross sales</div><div class="val">'+peso(Number(summary.gross_sales_centavos||0)/100)+'</div></div>'+
+      '<div class="metric"><div class="lbl">Voids</div><div class="val">'+peso(Number(summary.voided_sales_centavos||0)/100)+'</div></div>'+
+      '<div class="metric"><div class="lbl">Net collected</div><div class="val">'+peso(Number(summary.net_sales_centavos||0)/100)+'</div></div>'+
+      '<div class="metric"><div class="lbl">Net orders</div><div class="val">'+Number(summary.net_sale_count||0)+'</div></div>'+
+      '<div class="metric"><div class="lbl">Drinks sold</div><div class="val">'+Number(summary.net_items_sold||0)+'</div></div>'+
+      '<div class="metric"><div class="lbl">Cash net</div><div class="val">'+peso(Number(summary.cash_net_centavos||0)/100)+'</div></div>'+
+      '<div class="metric"><div class="lbl">GCash net</div><div class="val">'+peso(Number(summary.gcash_net_centavos||0)/100)+'</div></div>'+
+      '<div class="metric"><div class="lbl">GoTyme net</div><div class="val">'+peso(Number(summary.gotyme_net_centavos||0)/100)+'</div></div>'+
+      '<div class="metric"><div class="lbl">Estimated gross profit</div><div class="val">'+(canView?peso(Number(summary.estimated_gross_profit_centavos||0)/100):'Owner only')+'</div></div>'+
+    '</div><p class="hint">Complete database totals across all '+escapeHtml(posModeName(summary.is_training===true))+' receipts. Voided sales stay in the audit history but are removed from net collected.</p>';
 }
 function posCsvCell(value){
   var text=String(value==null?'':value);
@@ -2578,6 +2689,22 @@ function renderPosOpsModal(){
         (reviewing?'<button class="btn secondary" data-act="backPosVoidSale"'+frozen+'>Back</button>':'<button class="btn secondary" data-act="closePosOpsModal"'+frozen+'>Cancel</button>')+
         '<button class="btn danger" data-act="'+(reviewing?'submitPosVoidSale':'reviewPosVoidSale')+'"'+disabled+'>'+escapeHtml(posOpsModal.submitting?'Checking…':(reviewing?(posOpsModal.uncertain?'Retry exact void':'Confirm void'):'Review void'))+'</button></div>';
     }
+  }else if(posOpsModal.type==='salesHistory'){
+    var history=posSalesHistory,historyTraining=history.mode==='training',canSwitchHistory=posCanManageOperations();
+    var historyModes=canSwitchHistory?'<div class="pos-payment-tabs"><button data-act="setPosSalesHistoryMode" data-mode="live" class="'+(!historyTraining?'active':'')+'"'+(history.loading?' disabled':'')+'>Live sales</button><button data-act="setPosSalesHistoryMode" data-mode="training" class="'+(historyTraining?'active':'')+'"'+(history.loading?' disabled':'')+'>Training sales</button></div>':'';
+    var historyRows=history.rows.length?'<div class="pos-history-list">'+posSalesRowsHtml(history.rows,false)+'</div>':(history.loading?'<div class="pos-loading">Loading receipts…</div>':(history.loaded?'<p class="empty">No completed '+escapeHtml(posModeName(historyTraining))+' sales yet.</p>':''));
+    var historyCount=history.rows.length+' receipt'+(history.rows.length===1?'':'s')+' loaded'+(history.loaded&&!history.hasMore?' · complete history':'');
+    var showLoad=history.loading||history.hasMore||!!history.error;
+    var loadLabel=history.loading?'Loading…':(history.error?'Retry':'Load older sales');
+    content.innerHTML='<div class="modal-head"><div style="flex:1"><h2 id="posOpsModalTitle" tabindex="-1">Sales history</h2><p class="hint">Complete totals plus older receipts without crowding the register.</p></div>'+close+'</div>'+
+      historyModes+(historyTraining?'<div class="pos-mode-banner"><span class="pos-mode-training">Training</span><span>Practice receipts and totals stay separate from real sales.</span></div>':'')+
+      '<div class="row"><strong>All-time '+escapeHtml(posModeName(historyTraining))+' totals</strong></div>'+posSalesHistorySummaryHtml(history.summary)+
+      (history.summaryError?'<div class="note">'+escapeHtml(history.summaryError)+'</div>':'')+
+      '<div class="row" style="margin-top:16px"><h3 style="margin:0;color:var(--brown)">Receipts</h3><span class="spacer"></span><span class="pos-history-count">'+escapeHtml(historyCount)+'</span></div>'+historyRows+
+      (history.error?'<div class="note" style="margin-top:10px">'+escapeHtml(history.error)+'</div>':'')+
+      '<div class="modal-actions">'+(history.summaryError?'<button class="btn secondary" data-act="reloadPosSalesHistory"'+(history.loading?' disabled':'')+'>Retry totals</button>':'')+
+      (showLoad?'<button class="btn secondary" data-act="loadOlderPosSalesHistory"'+(history.loading?' disabled':'')+'>'+escapeHtml(loadLabel)+'</button>':'')+
+      '<button class="btn" data-act="closePosOpsModal">Close</button></div>';
   }else if(posOpsModal.type==='report'){
     var canChoose=!posCheckout.shift&&posCanManageOperations();
     content.innerHTML='<div class="modal-head"><div style="flex:1">'+posReportHtml(posCheckout.dailyReport)+'</div>'+close+'</div>'+
@@ -3148,7 +3275,7 @@ function renderProducts(){
   }).join('');
 }
 function refreshModalBodyClass(){
-  var open=categoryModalOpen||purchasedIngredientModalOpen||mixtureModalOpen||draftsModalOpen||publishModalOpen||(stockModal&&stockModal.open); document.body.classList.toggle('modal-open',open);
+  var open=categoryModalOpen||purchasedIngredientModalOpen||mixtureModalOpen||draftsModalOpen||publishModalOpen||(stockModal&&stockModal.open)||(posOpsModal&&posOpsModal.open); document.body.classList.toggle('modal-open',open);
   [document.querySelector('header'),document.querySelector('.wrap')].forEach(function(el){if(!el)return;el.inert=!!open;if(open)el.setAttribute('aria-hidden','true');else el.removeAttribute('aria-hidden');});
 }
 function focusSoon(selector){setTimeout(function(){var el=document.querySelector(selector);if(el)el.focus();},0);}
@@ -3639,10 +3766,8 @@ function posCartHtml(){
     actionHtml+
     '<p class="hint" style="margin:9px 0 0">'+(posCheckout.pending?'Only an exact retry is allowed until the server returns this receipt.':(noShift?'Choose drinks now, then start the register before confirming payment.':('This order belongs to the locked '+escapeHtml(posModeName(!!posCheckout.shift.is_training))+' shift.')))+'</p>';
 }
-function posRecentHtml(){
-  if(posCheckout.reportsLoading&&!posCheckout.recent.length)return '<div class="pos-loading">Loading recent sales…</div>';
-  if(!posCheckout.recent.length)return '<p class="empty">No completed sales yet.</p>';
-  return posCheckout.recent.map(function(sale){
+function posSalesRowsHtml(sales,allowVoid){
+  return (sales||[]).map(function(sale){
     var completed=sale.completed_at?new Date(sale.completed_at):null,time=completed?completed.toLocaleTimeString('en-PH',{hour:'numeric',minute:'2-digit'}):'';
     var today=posCheckout.summary&&String(sale.business_date||'')===String(posCheckout.summary.business_date||'');
     var when=(today?'Today':(completed?completed.toLocaleDateString('en-PH',{month:'short',day:'numeric'}):String(sale.business_date||'')))+(time?' · '+time:'');
@@ -3651,10 +3776,15 @@ function posRecentHtml(){
     if(sale.can_view_costs&&!voided)detail+=' · est. profit '+peso(Number(sale.estimated_gross_profit_centavos||0)/100);
     var voidDetail=voided?'<div class="pos-recent-meta">Void reason: '+escapeHtml(sale.void_reason||'Not provided')+(sale.voided_by_display_name?' · '+escapeHtml(sale.voided_by_display_name):'')+'</div>':'';
     var action='<div class="pos-recent-actions"><span class="pos-recent-method pill">'+escapeHtml(posPaymentLabel(sale.payment_method))+'</span><strong>'+peso(Number((voided?sale.gross_total_centavos:sale.net_total_centavos)||0)/100)+'</strong>';
-    if(sale.can_void&&posCanManageOperations())action+='<button class="btn small danger" data-act="openPosVoid" data-id="'+escapeHtml(sale.sale_id)+'"'+(posCheckout.refreshing||posCheckout.checkoutRefreshRequired?' disabled':'')+'>Void</button>';
+    if(allowVoid&&sale.can_void&&posCanManageOperations())action+='<button class="btn small danger" data-act="openPosVoid" data-id="'+escapeHtml(sale.sale_id)+'"'+(posCheckout.refreshing||posCheckout.checkoutRefreshRequired?' disabled':'')+'>Void</button>';
     action+='</div>';
     return '<div class="pos-recent-row'+(voided?' voided':'')+'"><div><strong>'+escapeHtml(sale.receipt_number||'Receipt')+(voided?'<span class="pos-void-label">Void</span>':'')+'</strong><div class="pos-recent-meta">'+detail+'</div>'+voidDetail+(sale.item_summary?'<div class="pos-item-summary">'+escapeHtml(sale.item_summary)+'</div>':'')+'</div>'+action+'</div>';
   }).join('');
+}
+function posRecentHtml(){
+  if(posCheckout.reportsLoading&&!posCheckout.recent.length)return '<div class="pos-loading">Loading recent sales…</div>';
+  if(!posCheckout.recent.length)return '<p class="empty">No completed sales yet.</p>';
+  return posSalesRowsHtml(posCheckout.recent,true);
 }
 function posShiftBarHtml(){
   if(posCheckout.pending&&!posCheckout.shift){
@@ -3960,7 +4090,7 @@ function renderPos(){
   var trainingView=posCheckout.reportMode==='training';
   var modeBanner=trainingView?'<div class="pos-mode-banner"><span class="pos-mode-training">Training</span><strong>Practice only — excluded from Live sales, cash, and reports.</strong></div>':'';
   var reports=posSummaryHtml()+(posCheckout.reportsError?'<p class="hint">'+escapeHtml(posCheckout.reportsError)+'</p>':'');
-  var recent='<div class="card" style="margin-top:14px"><div class="row"><h2 style="margin:0">Recent '+escapeHtml(posModeName(trainingView))+' sales</h2><span class="spacer"></span><span class="hint" style="margin:0">Latest 20 only</span></div>'+posRecentHtml()+'</div>';
+  var recent='<div class="card" style="margin-top:14px"><div class="row"><div><h2 style="margin:0">Recent '+escapeHtml(posModeName(trainingView))+' sales</h2><p class="hint" style="margin:2px 0 0">Latest 20 receipts</p></div><span class="spacer"></span><button class="btn small secondary" data-act="openPosSalesHistory"'+(posCheckout.reportsLoading?' disabled':'')+'>View sales history</button></div>'+posRecentHtml()+'</div>';
   var shiftHeader=!posCheckout.shift&&!posCheckout.pending?posNoShiftGateHtml():posShiftBarHtml();
   root.innerHTML=top+posCriticalRefreshNoticeHtml()+shiftHeader+modeBanner+posReceiptHtml()+reports+posWorkspaceHtml()+posMobileOrderBarHtml()+recent;
 }
@@ -4110,6 +4240,10 @@ document.body.addEventListener('click', function(e){
     case 'backPosVoidSale': backPosVoidSale();return;
     case 'submitPosVoidSale': submitPosVoidSale().catch(function(){});return;
     case 'openPosReport': openPosReportModal();return;
+    case 'openPosSalesHistory': openPosSalesHistory().catch(function(){});return;
+    case 'loadOlderPosSalesHistory': loadPosSalesHistoryPage(posSalesHistory.rows.length>0).catch(function(){});return;
+    case 'reloadPosSalesHistory': reloadPosSalesHistory().catch(function(){});return;
+    case 'setPosSalesHistoryMode': setPosSalesHistoryMode(b.dataset.mode).catch(function(){});return;
     case 'setPosReportMode': setPosReportMode(b.dataset.mode).catch(function(){});return;
     case 'downloadPosReport': downloadPosReport();return;
     case 'printPosReport': printPosReport();return;

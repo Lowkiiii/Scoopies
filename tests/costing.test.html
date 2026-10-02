@@ -192,6 +192,17 @@ document.getElementById('app').addEventListener('load', async () => {
       estimated_cost_centavos: 6242, estimated_gross_profit_centavos: 10758, can_view_costs: true, can_void: true
     }, overrides);
   }
+  function salesHistorySummaryFixture(overrides = {}) {
+    return Object.assign({
+      first_business_date: '2026-09-28', last_business_date: '2026-10-02',
+      business_timezone: 'Asia/Manila', is_training: false,
+      gross_sale_count: 29, voided_sale_count: 1, net_sale_count: 28,
+      gross_items_sold: 31, voided_items_sold: 1, net_items_sold: 30,
+      gross_sales_centavos: 510000, voided_sales_centavos: 17000, net_sales_centavos: 493000,
+      cash_net_centavos: 293000, gcash_net_centavos: 150000, gotyme_net_centavos: 50000,
+      estimated_cost_centavos: 180000, estimated_gross_profit_centavos: 313000, can_view_costs: true
+    }, overrides);
+  }
   function closeResultFixture(overrides = {}) {
     return Object.assign({
       shift_id: '88888888-8888-4888-8888-888888888888',
@@ -1859,6 +1870,103 @@ document.getElementById('app').addEventListener('load', async () => {
     const summaryText = app.document.getElementById('posRoot').textContent;
     assert(/Drinks sold/.test(summaryText), 'simple counter summary omitted the sold-drink count');
     assert(!/Estimated gross profit|Owner only/.test(summaryText), 'cost or profit leaked into the cashier main screen');
+  });
+  test('sales history is on-demand, shows authoritative totals, and appends cursor pages', async () => {
+    installCheckout('owner');
+    const button = app.document.querySelector('[data-act=openPosSalesHistory]');
+    assert(button && /View sales history/.test(button.textContent), 'recent sales did not expose the history action');
+    const makeSale = (index, overrides = {}) => recentSaleFixture(Object.assign({
+      sale_id: `00000000-0000-4000-8000-${String(index).padStart(12, '0')}`,
+      receipt_number: `SCP-H-${String(index).padStart(4, '0')}`,
+      completed_at: `2026-10-02T${String(23 - ((index - 1) % 20)).padStart(2, '0')}:00:00.000Z`,
+      business_date: '2026-10-02', can_void: true
+    }, overrides));
+    const firstPage = Array.from({ length: 20 }, (_, index) => makeSale(index + 1, {
+      item_summary: index === 0 ? '<img id="unsafe-history"> Matcha' : `${index + 1} Matcha`, has_more: true
+    }));
+    const secondPage = [Object.assign({}, firstPage[19], { has_more: false })].concat(Array.from({ length: 9 }, (_, index) => makeSale(index + 21, {
+      completed_at: `2026-10-01T${String(22 - index).padStart(2, '0')}:00:00.000Z`, has_more: false
+    })));
+    const calls = [];
+    app.cloud.client = { rpc(name, args) {
+      calls.push({ name, args });
+      if (name === 'pos_get_sales_history_summary') return rpcResult([salesHistorySummaryFixture()]);
+      if (name === 'pos_get_sales_history_page') return rpcResult(args.p_before_sale_id ? secondPage : firstPage);
+      throw new Error('unexpected RPC ' + name);
+    }};
+    assert(!calls.length, 'history fetched before the user opened it');
+    assert(await app.openPosSalesHistory(), 'history modal did not load');
+    const firstCall = calls.find(call => call.name === 'pos_get_sales_history_page');
+    assert(firstCall && firstCall.args.p_is_training === false && firstCall.args.p_limit === 20 && firstCall.args.p_before_completed_at === null && firstCall.args.p_before_sale_id === null, 'initial history page used the wrong mode, size, or cursor');
+    assert(app.posSalesHistory.rows.length === 20 && app.posSalesHistory.hasMore, 'initial history page or has-more state was wrong');
+    const modal = app.document.getElementById('posOpsModal');
+    assert(/All-time Live totals/.test(modal.textContent) && /₱4,930\.00/.test(modal.textContent), 'authoritative all-time net total was not shown');
+    assert(!app.document.getElementById('unsafe-history') && /<img id="unsafe-history"> Matcha/.test(modal.textContent), 'history server text was not safely escaped');
+    assert(!modal.querySelector('[data-act=openPosVoid]'), 'read-only history exposed a void action');
+    assert(app.document.querySelector('.wrap').getAttribute('aria-hidden') === 'true', 'history modal did not hide the background from assistive technology');
+    await new Promise(resolve => app.setTimeout(resolve, 0));
+    assert(app.document.activeElement === app.document.getElementById('posOpsModalTitle'), 'history heading did not receive initial focus');
+    assert(await app.loadPosSalesHistoryPage(true), 'older history page did not load');
+    const pageCalls = calls.filter(call => call.name === 'pos_get_sales_history_page');
+    assert(pageCalls[1].args.p_before_completed_at === firstPage[19].completed_at && pageCalls[1].args.p_before_sale_id === firstPage[19].sale_id, 'older page did not use the last visible keyset cursor');
+    assert(app.posSalesHistory.rows.length === 29 && new Set(app.posSalesHistory.rows.map(row => row.sale_id)).size === 29, 'older receipts were lost or duplicated');
+    assert(!app.posSalesHistory.hasMore, 'final history page still claimed older receipts existed');
+    assert(!modal.querySelector('[data-act=loadOlderPosSalesHistory]'), 'Load older remained visible at the end of history');
+    assert(/29 receipts loaded/.test(modal.textContent) && /complete history/.test(modal.textContent), 'complete-history receipt count was not clear');
+    app.posCloseOpsModal(true);
+    assert(!app.document.querySelector('.wrap').hasAttribute('aria-hidden'), 'closing history left the application background hidden');
+  });
+  test('sales history keeps loaded receipts on page failure and retries safely', async () => {
+    installCheckout('owner');
+    const newest = recentSaleFixture({ sale_id: '10000000-0000-4000-8000-000000000001', completed_at: '2026-10-02T10:00:00Z', has_more: true });
+    const older = recentSaleFixture({ sale_id: '10000000-0000-4000-8000-000000000002', receipt_number: 'SCP-OLDER', completed_at: '2026-10-01T10:00:00Z', has_more: false });
+    let failOlder = true;
+    app.cloud.client = { rpc(name, args) {
+      if (name === 'pos_get_sales_history_summary') return rpcResult([salesHistorySummaryFixture()]);
+      if (name === 'pos_get_sales_history_page') {
+        if (!args.p_before_sale_id) return rpcResult([newest]);
+        if (failOlder) return Promise.reject({ code: 'NETWORK' });
+        return rpcResult([older]);
+      }
+      throw new Error('unexpected RPC ' + name);
+    }};
+    assert(await app.openPosSalesHistory(), 'initial history page failed');
+    assert(!(await app.loadPosSalesHistoryPage(true)), 'failed older page reported success');
+    assert(app.posSalesHistory.rows.length === 1 && app.posSalesHistory.rows[0].sale_id === newest.sale_id, 'failed page discarded already loaded receipts');
+    assert(/Could not load older sales/.test(app.document.getElementById('posOpsModal').textContent), 'page failure was not explained');
+    failOlder = false;
+    assert(await app.loadPosSalesHistoryPage(true), 'older-page retry failed');
+    assert(app.posSalesHistory.rows.length === 2 && !app.posSalesHistory.error && !app.posSalesHistory.hasMore, 'retry did not append and clear the page error');
+    app.posCloseOpsModal(true);
+  });
+  test('sales history ignores late closed-modal responses and keeps modes separate', async () => {
+    installNoShift('owner');
+    let resolvePage;
+    const deferred = new Promise(resolve => { resolvePage = resolve; });
+    app.cloud.client = { rpc(name) {
+      if (name === 'pos_get_sales_history_page') return deferred;
+      if (name === 'pos_get_sales_history_summary') return rpcResult([salesHistorySummaryFixture()]);
+      throw new Error('unexpected RPC ' + name);
+    }};
+    const opening = app.openPosSalesHistory();
+    assert(app.posOpsModal.open && app.posSalesHistory.loading, 'history did not open in a loading state');
+    app.posCloseOpsModal(true);
+    resolvePage(rpcResult([recentSaleFixture({ has_more: false })]));
+    assert(!(await opening) && !app.posOpsModal.open && app.posSalesHistory.rows.length === 0, 'late closed-modal response repopulated history');
+
+    const modes = [];
+    app.cloud.client = { rpc(name, args) {
+      modes.push({ name, args });
+      if (name === 'pos_get_sales_history_page') return rpcResult([]);
+      if (name === 'pos_get_sales_history_summary') return rpcResult([salesHistorySummaryFixture({ is_training: args.p_is_training })]);
+      throw new Error('unexpected RPC ' + name);
+    }};
+    assert(await app.openPosSalesHistory(), 'history did not reopen');
+    assert(await app.setPosSalesHistoryMode('training'), 'owner could not switch history to Training');
+    const trainingCalls = modes.filter(call => call.args && call.args.p_is_training === true);
+    assert(trainingCalls.some(call => call.name === 'pos_get_sales_history_page') && trainingCalls.some(call => call.name === 'pos_get_sales_history_summary'), 'Training history mixed with Live RPC arguments');
+    assert(/All-time Training totals/.test(app.document.getElementById('posOpsModal').textContent), 'Training history was not visibly separated');
+    app.posCloseOpsModal(true);
   });
   test('silent refresh applies an authoritative cashier downgrade while stale workspace role remains owner', async () => {
     const catalog = installCheckout('owner');
