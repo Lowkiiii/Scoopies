@@ -15,19 +15,20 @@
     /* Compatibility aliases keep the established components on the new brand palette. */
     --brown:var(--forest); --brown2:var(--forest2); --accent:var(--pink-dark);
   }
+  html{min-height:100%;background:var(--forest)}
   *{box-sizing:border-box}
   body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
-    background:var(--cream);color:var(--ink);line-height:1.45}
+    min-height:100vh;background:var(--forest);color:var(--ink);line-height:1.45}
   header{background:var(--forest);color:var(--cream);padding:16px 18px;border-bottom:3px solid var(--pink)}
   .hwrap{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
   header h1{margin:0;font-size:20px;letter-spacing:.3px}
   header p{margin:4px 0 0;font-size:13px;opacity:.85}
   .wrap{width:100%;max-width:1000px;min-width:0;margin:0 auto;padding:0 14px 60px}
-  nav{display:flex;flex-wrap:wrap;gap:6px;position:sticky;top:0;background:var(--cream);
-    padding:10px 0;z-index:5;border-bottom:1px solid var(--line)}
+  nav{display:flex;flex-wrap:wrap;gap:6px;position:sticky;top:0;background:var(--forest);
+    padding:10px 0;z-index:5;border-bottom:1px solid rgba(249,243,232,.28)}
   nav button{flex:1 1 auto;min-width:96px;padding:10px 8px;border:1px solid var(--control-line);
     background:var(--card);border-radius:10px;font-size:14px;cursor:pointer;color:var(--brown);font-weight:600}
-  nav button.active{background:var(--brown);color:#fff;border-color:var(--brown)}
+  nav button.active{background:var(--pink-dark);color:#fff;border-color:var(--pink-dark)}
   section{display:none;margin-top:16px}
   section.active{display:block}
   .card{background:var(--card);border:1px solid var(--line);border-radius:14px;max-width:100%;min-width:0;
@@ -145,6 +146,8 @@
   .publish-note{font-size:13px;background:#eef7ef;border:1px solid #c9e5cb;border-radius:10px;padding:10px 12px;color:#285e2c}
   .pos-topbar{display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:12px}
   .pos-topbar h2{margin:0}
+  #posRoot>.pos-topbar h2,#stockRoot>.stock-head h2{color:var(--cream)}
+  #posRoot>.pos-topbar .hint,#stockRoot>.stock-head .hint,#stockRoot>.stock-head .stock-sync{color:#eadfd1}
   .pos-role{display:inline-flex;align-items:center;min-height:28px;padding:4px 10px;border-radius:999px;background:#f3eee8;border:1px solid var(--line);color:var(--brown2);font-size:12px;font-weight:700;text-transform:capitalize}
   .pos-sync{display:inline-flex;align-items:center;gap:6px;min-height:28px;padding:4px 9px;border-radius:999px;border:1px solid #bfe3c1;background:#e9f6ea;color:#285e2c;font-size:12px;font-weight:750;white-space:nowrap}
   .pos-sync::before{content:'';width:7px;height:7px;border-radius:50%;background:currentColor;flex:0 0 auto}
@@ -3272,8 +3275,8 @@ function renderPosOpsModal(){
         '<div class="pos-error">'+escapeHtml(posOpsModal.error)+'</div><div class="modal-actions"><button id="posCancelRemoveImage" class="btn secondary" data-act="cancelRemovePosDrinkImage"'+frozen+'>Keep photo</button><button class="btn danger" data-act="confirmRemovePosDrinkImage"'+frozen+'>'+(posOpsModal.submitting?'Removing\u2026':'Remove photo')+'</button></div>';
     }else{
       var mediaRows=(posOpsModal.mediaRows||[]).map(function(row){var productId=String(row.product_id||''),busy=posOpsModal.submitting&&String(posOpsModal.mediaProductId||'')===productId,hasImage=!!row.image_object_path;
-        return '<div class="pos-media-row">'+posDrinkImageHtml(row,'thumb')+'<div class="pos-media-copy"><strong>'+escapeHtml(row.product_name||'Drink')+'</strong><small>'+escapeHtml(row.size_snapshot||'')+(row.available===false?' \u00B7 Hidden from POS':'')+'</small></div><div class="pos-media-actions"><label class="btn small secondary'+(posOpsModal.submitting?' disabled':'')+'">'+(busy?'Saving\u2026':(hasImage?'Replace':'Upload'))+'<input type="file" accept="image/jpeg,image/png,image/webp" data-pos-image-product="'+escapeHtml(productId)+'"'+(posOpsModal.submitting?' disabled':'')+'></label>'+(hasImage?'<button class="btn small danger" data-act="requestRemovePosDrinkImage" data-id="'+escapeHtml(productId)+'"'+(posOpsModal.submitting?' disabled':'')+'>Remove</button>':'')+'</div></div>';}).join('');
-      content.innerHTML='<div class="modal-head"><div><h2 id="posOpsModalTitle">Drink photos</h2><p class="hint">Upload a clear JPG, PNG, or WebP. Photos are optimized and shared on every POS device.</p></div>'+close+'</div>'+
+        return '<div class="pos-media-row">'+posDrinkImageHtml(row,'thumb')+'<div class="pos-media-copy"><strong>'+escapeHtml(row.product_name||'Drink')+'</strong><small>'+escapeHtml(row.size_snapshot||'')+(row.available===false?' \u00B7 Hidden from POS':'')+'</small></div><div class="pos-media-actions"><label class="btn small secondary'+(posOpsModal.submitting?' disabled':'')+'">'+(busy?'Saving\u2026':(hasImage?'Replace photo':'Upload photo'))+'<input type="file" accept="image/jpeg,image/png,image/webp" data-pos-image-product="'+escapeHtml(productId)+'"'+(posOpsModal.submitting?' disabled':'')+'></label>'+(hasImage?'<button class="btn small danger" data-act="requestRemovePosDrinkImage" data-id="'+escapeHtml(productId)+'"'+(posOpsModal.submitting?' disabled':'')+'>Remove photo</button>':'')+'</div></div>';}).join('');
+      content.innerHTML='<div class="modal-head"><div><h2 id="posOpsModalTitle">Drink photos</h2><p class="hint">Choose a drink below, then upload a clear JPG, PNG, or WebP (max 5 MB). Photos are optimized and shared on every POS device.</p></div>'+close+'</div>'+
         '<div id="posManageDrinksList" class="pos-media-list" tabindex="-1">'+(posOpsModal.mediaLoading?'<div class="pos-loading">Loading drinks\u2026</div>':(mediaRows||'<p class="empty">No published drinks yet.</p>'))+'</div>'+
         (posOpsModal.notice?'<div class="publish-note">'+escapeHtml(posOpsModal.notice)+'</div>':'')+'<div class="pos-error" aria-live="assertive">'+escapeHtml(posOpsModal.error)+'</div><div class="modal-actions"><button class="btn secondary" data-act="managePosMenu"'+frozen+'>Edit pricing &amp; publication</button><button class="btn" data-act="closePosOpsModal"'+frozen+'>Done</button></div>';
     }
@@ -4476,7 +4479,7 @@ function managePosMenu(){
   focusSoon('#products [data-act="openPublishModal"]');return true;
 }
 function posWorkspaceHtml(){
-  var manage=posCanManageMedia()?'<button class="btn small secondary" data-act="openManageDrinks">Manage drinks</button>':'';
+  var manage=posCanManageMedia()?'<button class="btn small secondary" data-act="openManageDrinks">Manage drink photos</button>':'';
   return '<div class="pos-workspace"><div class="card pos-catalog-card"><div class="pos-catalog-head"><h2>Drinks</h2><span class="spacer"></span>'+manage+'</div><div id="posCatalogBody">'+posCatalogHtml()+'</div></div>'+
     '<aside id="posCartPanel" class="card pos-cart-card" tabindex="-1">'+posCartHtml()+'</aside></div>';
 }

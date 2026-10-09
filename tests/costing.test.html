@@ -3230,12 +3230,14 @@ document.getElementById('app').addEventListener('load', async () => {
     assert(fallback && fallback.hidden, 'successful drink image displayed its fallback');
     image.dispatchEvent(new app.Event('error'));
     assert(image.hidden && !fallback.hidden, 'broken drink image did not reveal its safe fallback');
-    assert(app.document.querySelector('[data-act=openManageDrinks]'), 'manager did not receive the Manage drinks action');
+    const managePhotos = app.document.querySelector('[data-act=openManageDrinks]');
+    assert(managePhotos && managePhotos.textContent.trim() === 'Manage drink photos', 'manager did not receive the clearly labelled drink-photo action');
     assert(await app.openManageDrinksModal(), 'manager could not open drink photo management');
     assert(mediaCalls.length === 1 && mediaCalls[0].name === 'pos_get_product_media', 'photo manager used the wrong read RPC');
     assert(app.posOpsModal.type === 'manageDrinks' && app.document.getElementById('posManageDrinksList'), 'photo manager did not render its dedicated modal list');
     assert(app.document.querySelector('.pos-drink-photo.thumb .pos-drink-image'), 'photo manager did not render the saved thumbnail');
-    assert(app.document.querySelector(`input[data-pos-image-product="${product.product_id}"]`), 'photo manager did not render a product-scoped upload input');
+    const uploadInput = app.document.querySelector(`input[data-pos-image-product="${product.product_id}"]`);
+    assert(uploadInput && /Replace photo/.test(uploadInput.closest('label').textContent), 'photo manager did not render a clearly labelled product-scoped upload input');
     app.posCloseOpsModal(true);
 
     installCheckout('cashier', [product]);
@@ -3335,8 +3337,12 @@ document.getElementById('app').addEventListener('load', async () => {
     assert(tokens.getPropertyValue('--brown').trim() === '#173f2b', 'legacy components no longer inherit the whole-app forest theme');
     const headerStyle = app.getComputedStyle(app.document.querySelector('header'));
     const bodyStyle = app.getComputedStyle(app.document.body);
+    const navStyle = app.getComputedStyle(app.document.querySelector('nav'));
+    const activeTabStyle = app.getComputedStyle(app.document.querySelector('nav button.active'));
     assert(headerStyle.backgroundColor === 'rgb(23, 63, 43)', 'app header did not use forest green');
-    assert(bodyStyle.backgroundColor === 'rgb(249, 243, 232)', 'app canvas did not use the cream background');
+    assert(bodyStyle.backgroundColor === 'rgb(23, 63, 43)', 'app canvas did not use the forest background');
+    assert(navStyle.backgroundColor === 'rgb(23, 63, 43)', 'sticky navigation did not continue the forest canvas');
+    assert(activeTabStyle.backgroundColor === 'rgb(183, 53, 102)', 'active navigation did not use the pink brand accent');
   });
   test('all drinks display as cards and Matcha or Hojicha filters group the menu', () => {
     assert(app.posDrinkGroupKey({ product_name: 'SEA SALT HOJICHA LATTE' }) === 'hojicha', 'Hojicha grouping was case-sensitive');
