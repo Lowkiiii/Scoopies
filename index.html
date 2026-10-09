@@ -1508,11 +1508,15 @@ function posRememberCatalogCache(){
   }catch(error){return false;}
 }
 function posClearCatalogCache(){try{sessionStorage.removeItem(POS_CATALOG_CACHE_KEY);}catch(error){}}
+function posDrinkGroupKey(item){
+  var text=(String(item&&item.product_name||'')+' '+String(item&&item.category_name||'')).toLowerCase();
+  // The current register menu is intentionally binary: anything not Hojicha is a Matcha drink.
+  return text.indexOf('hojicha')>=0?'hojicha':'matcha';
+}
 function normalizePosCategory(){
   if(posCheckout.category==='all')return false;
   var exists=(posCheckout.catalog||[]).some(function(item){
-    var key=item.category_id?String(item.category_id):'other';
-    return key===posCheckout.category;
+    return posDrinkGroupKey(item)===posCheckout.category;
   });
   if(exists)return false;
   posCheckout.category='all';return true;
@@ -3966,15 +3970,14 @@ function posCatalogHtml(){
   if(posCheckout.catalogLoading&&!posCheckout.catalog.length)return '<div class="pos-loading">Loading the published menu…</div>';
   if(posCheckout.catalogError)return '<div class="note"><strong>Menu unavailable.</strong> '+escapeHtml(posCheckout.catalogError)+' <button class="btn small secondary" data-act="refreshPos" style="margin-left:6px">Retry</button></div>';
   normalizePosCategory();
-  var categories={},all=posCheckout.catalog||[];
-  all.forEach(function(item){var key=item.category_id?String(item.category_id):'other';if(!categories[key])categories[key]=String(item.category_name||'Other');});
-  var categoryKeys=Object.keys(categories),chips='';
-  if(categoryKeys.length>1){
+  var all=posCheckout.catalog||[],groups=[{key:'matcha',label:'Matcha'},{key:'hojicha',label:'Hojicha'}];
+  var visibleGroups=groups.filter(function(group){return all.some(function(item){return posDrinkGroupKey(item)===group.key;});}),chips='';
+  if(visibleGroups.length>1){
     chips='<button class="category-chip'+(posCheckout.category==='all'?' active':'')+'" data-act="setPosCategory" data-id="all">All ('+all.length+')</button>';
-    categoryKeys.forEach(function(key){var count=all.filter(function(item){return (item.category_id?String(item.category_id):'other')===key;}).length;
-      chips+='<button class="category-chip'+(posCheckout.category===key?' active':'')+'" data-act="setPosCategory" data-id="'+escapeHtml(key)+'">'+escapeHtml(categories[key])+' ('+count+')</button>';});
+    visibleGroups.forEach(function(group){var count=all.filter(function(item){return posDrinkGroupKey(item)===group.key;}).length;
+      chips+='<button class="category-chip'+(posCheckout.category===group.key?' active':'')+'" data-act="setPosCategory" data-id="'+group.key+'">'+group.label+' ('+count+')</button>';});
   }
-  var filtered=all.filter(function(item){var key=item.category_id?String(item.category_id):'other';return posCheckout.category==='all'||posCheckout.category===key;});
+  var filtered=all.filter(function(item){return posCheckout.category==='all'||posCheckout.category===posDrinkGroupKey(item);});
   var locked=!!(posCheckout.pending||posCheckout.submitting||posCheckout.confirming);
   var products=filtered.map(function(item){return posProductCardHtml(item,locked);}).join('');
   if(!all.length){

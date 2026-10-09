@@ -3026,22 +3026,38 @@ document.getElementById('app').addEventListener('load', async () => {
     click(app.document.querySelector('[data-act=confirmPosCartAction]'));
     assert(!app.document.querySelector('.pos-mobile-order-bar'), 'mobile shortcut remained after the cart became empty');
   });
-  test('all drinks display as cards and categories remain optional filters', () => {
-    const first = checkoutCatalogFixture();
+  test('all drinks display as cards and Matcha or Hojicha filters group the menu', () => {
+    assert(app.posDrinkGroupKey({ product_name: 'SEA SALT HOJICHA LATTE' }) === 'hojicha', 'Hojicha grouping was case-sensitive');
+    assert(app.posDrinkGroupKey({ product_name: 'Roasted Latte', category_name: 'HOJICHA' }) === 'hojicha', 'category-only Hojicha grouping was ignored');
+    const first = checkoutCatalogFixture({ category_name: 'Banana Bread', product_name: 'Banana Bread Matcha' });
     const second = checkoutCatalogFixture({
       product_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
       active_version_id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
-      category_id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', category_name: 'Cloud Series',
-      product_name: 'Sea Salt Matcha', selling_price_centavos: 18000
+      category_id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', category_name: 'Sea Salt Hojicha',
+      product_name: 'Sea Salt Hojicha Latte', selling_price_centavos: 18500
     });
-    installCheckout('owner', [first, second]);
+    const third = checkoutCatalogFixture({
+      product_id: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+      active_version_id: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',
+      category_id: 'ffffffff-ffff-4fff-8fff-ffffffffffff', category_name: 'Cloud Series',
+      product_name: 'Pink Cloud', selling_price_centavos: 18000
+    });
+    installCheckout('owner', [first, second, third]);
     let cards = app.document.querySelectorAll('.pos-product');
-    assert(cards.length === 2 && !app.document.getElementById('posSearch'), 'all drink cards were not visible without search');
-    click(app.document.querySelector('[data-act=setPosCategory][data-id="cccccccc-cccc-4ccc-8ccc-cccccccccccc"]'));
+    assert(cards.length === 3 && !app.document.getElementById('posSearch'), 'all drink cards were not visible without search');
+    const chips = Array.from(app.document.querySelectorAll('.pos-category-bar .category-chip')).map(chip => chip.textContent.trim());
+    assert(JSON.stringify(chips) === JSON.stringify(['All (3)', 'Matcha (2)', 'Hojicha (1)']), 'menu filters did not collapse drink names into Matcha and Hojicha groups');
+    click(app.document.querySelector('[data-act=setPosCategory][data-id="hojicha"]'));
     cards = app.document.querySelectorAll('.pos-product');
-    assert(cards.length === 1 && /Sea Salt Matcha/.test(cards[0].textContent), 'category button did not narrow the visible cards');
+    assert(cards.length === 1 && /Sea Salt Hojicha Latte/.test(cards[0].textContent), 'Hojicha did not narrow the visible cards');
+    click(app.document.querySelector('[data-act=setPosCategory][data-id="matcha"]'));
+    cards = app.document.querySelectorAll('.pos-product');
+    assert(cards.length === 2 && /Banana Bread Matcha/.test(cards[0].textContent) && /Pink Cloud/.test(cards[1].textContent), 'Matcha did not include the non-Hojicha drinks');
     click(app.document.querySelector('[data-act=setPosCategory][data-id="all"]'));
-    assert(app.document.querySelectorAll('.pos-product').length === 2, 'All did not restore every drink card');
+    assert(app.document.querySelectorAll('.pos-product').length === 3, 'All did not restore every drink card');
+    app.posCheckout.category = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+    app.renderPos();
+    assert(app.posCheckout.category === 'all' && app.document.querySelectorAll('.pos-product').length === 3, 'a stale per-drink category selection did not reset to All');
   });
   test('empty POS gives owners a setup path but never gives cashiers publishing controls', () => {
     installPublishableProduct();
