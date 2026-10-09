@@ -7,21 +7,26 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root{
-    --brown:#5b3a29; --brown2:#7a4f37; --cream:#fdf6ec; --card:#ffffff;
-    --line:#e9ddcf; --accent:#c9852b; --good:#2e7d32; --bad:#c0392b; --muted:#8a7a6a;
+    --forest:#173f2b; --forest-2:#1b4d33; --forest2:var(--forest-2);
+    --cream:#f9f3e8; --surface:#fffdfc; --card:var(--surface);
+    --ink:#173126; --ink-soft:#405247; --muted:#6b5c52; --line:#ded2c5;
+    --control-line:#928477; --pink:#d46287; --pink-dark:#b73566; --pink-soft:#f6d7e2; --focus:var(--pink);
+    --good:#2e7d32; --bad:#b3261e; --warn:#8a5a00;
+    /* Compatibility aliases keep the established components on the new brand palette. */
+    --brown:var(--forest); --brown2:var(--forest2); --accent:var(--pink-dark);
   }
   *{box-sizing:border-box}
   body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
-    background:var(--cream);color:#2b2018;line-height:1.45}
-  header{background:var(--brown);color:#fff;padding:16px 18px}
+    background:var(--cream);color:var(--ink);line-height:1.45}
+  header{background:var(--forest);color:var(--cream);padding:16px 18px;border-bottom:3px solid var(--pink)}
   .hwrap{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
   header h1{margin:0;font-size:20px;letter-spacing:.3px}
   header p{margin:4px 0 0;font-size:13px;opacity:.85}
   .wrap{width:100%;max-width:1000px;min-width:0;margin:0 auto;padding:0 14px 60px}
   nav{display:flex;flex-wrap:wrap;gap:6px;position:sticky;top:0;background:var(--cream);
     padding:10px 0;z-index:5;border-bottom:1px solid var(--line)}
-  nav button{flex:1 1 auto;min-width:96px;padding:10px 8px;border:1px solid var(--line);
-    background:#fff;border-radius:10px;font-size:14px;cursor:pointer;color:var(--brown);font-weight:600}
+  nav button{flex:1 1 auto;min-width:96px;padding:10px 8px;border:1px solid var(--control-line);
+    background:var(--card);border-radius:10px;font-size:14px;cursor:pointer;color:var(--brown);font-weight:600}
   nav button.active{background:var(--brown);color:#fff;border-color:var(--brown)}
   section{display:none;margin-top:16px}
   section.active{display:block}
@@ -33,15 +38,19 @@
   .scroll{overflow-x:auto;max-width:100%;-webkit-overflow-scrolling:touch}
   th,td{padding:8px 6px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle}
   th{font-size:12px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted)}
-  input,select,textarea{font:inherit;padding:8px;border:1px solid var(--line);border-radius:8px;
-    background:#fff;width:100%}
+  input,select,textarea{font:inherit;padding:8px;border:1px solid var(--control-line);border-radius:8px;
+    background:var(--card);color:var(--ink);width:100%}
+  input::placeholder,textarea::placeholder{color:var(--muted);opacity:1}
+  button,input,select,textarea{accent-color:var(--pink-dark)}
+  button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible,a:focus-visible{
+    outline:3px solid var(--pink);outline-offset:2px}
   textarea{min-height:92px;resize:vertical}
   input[type=number]{width:100px}
   td .calc{font-weight:600}
   .btn{display:inline-block;padding:9px 14px;border:none;border-radius:9px;background:var(--accent);
-    color:#fff;font-weight:600;cursor:pointer;font-size:14px}
-  .btn.secondary{background:#fff;color:var(--brown);border:1px solid var(--line)}
-  .btn.danger{background:#fff;color:var(--bad);border:1px solid #e7c7c2;padding:6px 10px;font-size:13px}
+    color:#fff;font-weight:650;cursor:pointer;font-size:14px}
+  .btn.secondary{background:var(--card);color:var(--brown);border:1px solid var(--control-line)}
+  .btn.danger{background:var(--card);color:var(--bad);border:1px solid #d9a39d;padding:6px 10px;font-size:13px}
   .btn.small{padding:6px 10px;font-size:13px}
   .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
   .spacer{flex:1}
@@ -53,24 +62,24 @@
   .pill{display:inline-block;font-size:12px;background:var(--cream);border:1px solid var(--line);
     border-radius:999px;padding:3px 9px;color:var(--brown2)}
   .lines td{border-bottom:1px dashed var(--line)}
-  .note{font-size:13px;background:#fff7e8;border:1px solid #f0dcae;border-radius:10px;padding:10px 12px;color:#7a5a14}
+  .note{font-size:13px;background:#fff7e8;border:1px solid #d8b866;border-radius:10px;padding:10px 12px;color:#6e4b00}
   .empty{color:var(--muted);font-style:italic;padding:10px 0}
   label.fld{font-size:12px;color:var(--muted);display:block;margin-bottom:3px}
   .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
   @media(max-width:560px){.grid2{grid-template-columns:1fr}}
   code{background:#f1e7d8;padding:1px 5px;border-radius:5px;font-size:13px}
-  .status{font-size:12px;padding:4px 11px;border-radius:999px;background:#fff;color:var(--brown);
+  .status{font-size:12px;padding:4px 11px;border-radius:999px;background:var(--card);color:var(--brown);
     border:1px solid var(--line);white-space:nowrap}
   .status.good{background:#e9f6ea;color:var(--good);border-color:#bfe3c1}
   .status.bad{background:#fdecea;color:var(--bad);border-color:#f0c8c2}
-  pre.sql{background:#2b2018;color:#f3e9d8;padding:12px;border-radius:10px;overflow-x:auto;
+  pre.sql{background:var(--forest);color:var(--cream);padding:12px;border-radius:10px;overflow-x:auto;
     font-size:12px;line-height:1.55;white-space:pre;margin:10px 0}
   .steps{font-size:14px;padding-left:20px;margin:8px 0}
   .steps li{margin:7px 0}
   summary{cursor:pointer;font-weight:600;color:var(--brown)}
-  #authGate{display:flex;position:fixed;inset:0;z-index:120;background:linear-gradient(160deg,#5b3a29,#7a4f37);
+  #authGate{display:flex;position:fixed;inset:0;z-index:120;background:linear-gradient(160deg,var(--forest),var(--forest2));
     align-items:center;justify-content:center;padding:18px}
-  .gatecard{background:#fff;border:1px solid var(--line);border-radius:16px;max-width:380px;width:100%;
+  .gatecard{background:var(--card);border:1px solid var(--line);border-radius:16px;max-width:380px;width:100%;
     padding:24px;box-shadow:0 12px 40px rgba(0,0,0,.28)}
   .gatecard h2{margin:6px 0 2px;text-align:center}
   .gatelogo{font-size:38px;text-align:center;line-height:1}
@@ -80,27 +89,27 @@
   .ingredient-toolbar{display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin:14px 0 10px}
   .ingredient-search{flex:1 1 260px;min-width:190px}
   .category-bar{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin:6px 0 10px}
-  .category-chip{border:1px solid var(--line);background:#fff;color:var(--brown);border-radius:999px;
+  .category-chip{border:1px solid var(--control-line);background:var(--card);color:var(--brown);border-radius:999px;
     padding:7px 11px;cursor:pointer;font:inherit;font-size:13px;font-weight:600}
   .category-chip.active{background:var(--brown);border-color:var(--brown);color:#fff}
   .category-tools{display:flex;gap:6px;margin-left:auto}
   .type-badge{display:inline-block;border-radius:999px;padding:2px 7px;margin-top:4px;font-size:11px;
     font-weight:700;background:#eef5ff;color:#315b8a;border:1px solid #cfdef0}
-  .type-badge.purchased{background:#f8f3ec;color:var(--brown2);border-color:var(--line)}
+  .type-badge.purchased{background:var(--cream);color:var(--brown2);border-color:var(--line)}
   .ingredient-name-text{font-weight:650;min-width:160px}
   .mixture-meta{font-size:12px;color:var(--muted);margin-top:3px}
   .search-status{font-size:12px;color:var(--muted);margin:2px 0 8px;min-height:18px}
-  .modal-backdrop{position:fixed;inset:0;z-index:100;background:rgba(43,32,24,.58);display:flex;
+  .modal-backdrop{position:fixed;inset:0;z-index:100;background:rgba(8,27,17,.64);display:flex;
     align-items:center;justify-content:center;padding:18px}
   .modal-backdrop[hidden]{display:none}
-  .modal{background:#fff;border-radius:16px;border:1px solid var(--line);box-shadow:0 18px 55px rgba(0,0,0,.3);
+  .modal{background:var(--card);border-radius:16px;border:1px solid var(--line);box-shadow:0 18px 55px rgba(8,27,17,.32);
     width:min(760px,100%);max-height:calc(100vh - 36px);overflow:auto;padding:18px}
   .modal.small{width:min(430px,100%)}
   .modal-head{display:flex;gap:12px;align-items:flex-start;margin-bottom:12px}
   .modal-head h2{margin:0;flex:1}
   .modal-close{border:0;background:transparent;color:var(--muted);font-size:24px;line-height:1;cursor:pointer;padding:0 4px;min-width:44px;min-height:44px}
   .modal-actions{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin-top:16px;position:sticky;bottom:-18px;
-    background:#fff;padding:12px 0 2px;border-top:1px solid var(--line)}
+    background:var(--card);padding:12px 0 2px;border-top:1px solid var(--line)}
   .modal-error{color:var(--bad);font-size:13px;min-height:19px;margin-top:8px}
   .component-grid{display:grid;grid-template-columns:minmax(190px,1fr) 110px 100px 110px 42px;gap:7px;
     align-items:center;margin:7px 0}
@@ -108,11 +117,11 @@
   .component-grid input[type=number]{width:100%;min-width:0}
   .component-grid.head{font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.3px}
   .component-cost{text-align:right;font-weight:650;white-space:nowrap}
-  .icon-btn{border:1px solid #e7c7c2;background:#fff;color:var(--bad);border-radius:8px;cursor:pointer;
+  .icon-btn{border:1px solid #d9a39d;background:var(--card);color:var(--bad);border-radius:8px;cursor:pointer;
     min-height:44px;font-size:18px}
   .quick-panel{background:var(--cream);border:1px solid var(--line);border-radius:10px;padding:12px;margin-top:10px}
   .mixture-totals{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
-  .cost-breakdown{margin:10px 0;border:1px solid var(--line);border-radius:10px;padding:9px 11px;background:#fff}
+  .cost-breakdown{margin:10px 0;border:1px solid var(--line);border-radius:10px;padding:9px 11px;background:var(--card)}
   .cost-breakdown summary{font-size:13px}
   .draft-list{display:grid;gap:10px;margin-top:12px}
   .draft-card{border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--cream)}
@@ -122,7 +131,7 @@
   .draft-actions{display:flex;gap:7px;justify-content:flex-end;flex-wrap:wrap;margin-top:10px}
   .draft-saved-note{font-size:13px;color:var(--good);min-height:19px;margin-top:8px}
   .pos-publish-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:14px;padding:11px 12px;
-    border:1px solid var(--line);border-radius:10px;background:#fffaf3}
+    border:1px solid var(--line);border-radius:10px;background:#fff8fa}
   .pos-publish-copy{flex:1 1 260px;min-width:0}
   .pos-publish-title{font-size:13px;font-weight:700;color:var(--brown)}
   .pos-publish-detail{font-size:12px;color:var(--muted);margin-top:2px}
@@ -147,9 +156,10 @@
     .pos-sync.syncing::before{animation:none}
     #pos button,#posOpsModal button{transition:none!important}
     #pos button:active:not([disabled]),#posOpsModal button:active:not([disabled]){transform:none!important}
+    .pos-photo-progress span{transition:none!important}
   }
   .pos-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:14px}
-  .pos-summary .metric{background:#fff}
+  .pos-summary .metric{background:var(--card)}
   .pos-workspace{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(310px,.8fr);gap:14px;align-items:start}
   .pos-catalog-card,.pos-cart-card{margin:0}
   .pos-cart-card{position:sticky;top:72px}
@@ -158,9 +168,10 @@
   .pos-category-bar{display:flex;gap:7px;overflow-x:auto;padding:1px 1px 8px;scrollbar-width:thin}
   .pos-category-bar .category-chip{white-space:nowrap;min-height:40px}
   .pos-product-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin-top:5px}
-  .pos-product{position:relative;min-height:112px;border:1px solid var(--line);border-radius:12px;background:#fff;padding:12px;color:#2b2018;text-align:left;cursor:pointer;display:flex;flex-direction:column;justify-content:space-between;font:inherit;touch-action:manipulation}
-  .pos-product:hover,.pos-product:focus-visible{border-color:var(--accent);box-shadow:0 0 0 2px rgba(201,133,43,.14);outline:0}
-  .pos-product.selected{border:2px solid var(--accent);background:#fff8ec;padding:11px;box-shadow:0 0 0 2px rgba(201,133,43,.10)}
+  .pos-product{position:relative;min-height:112px;border:1px solid var(--control-line);border-radius:12px;background:var(--card);padding:12px;color:var(--ink);text-align:left;cursor:pointer;display:flex;flex-direction:column;justify-content:space-between;font:inherit;touch-action:manipulation;overflow:hidden}
+  .pos-product:hover{border-color:var(--accent);box-shadow:0 0 0 2px var(--pink-soft)}
+  .pos-product:focus-visible{border-color:var(--accent);box-shadow:0 0 0 3px var(--pink-soft);outline:3px solid var(--pink);outline-offset:2px}
+  .pos-product.selected{border:2px solid var(--accent);background:#fff8fa;padding:11px;box-shadow:0 0 0 2px var(--pink-soft)}
   .pos-product.needs-review{border-color:#d59a3a;background:#fff8e8}
   .pos-product-count{position:absolute;right:9px;top:9px;display:inline-flex;align-items:center;justify-content:center;min-width:30px;height:30px;padding:0 8px;border-radius:999px;background:var(--brown);color:#fff;font-size:13px;font-weight:850;line-height:1}
   .pos-product-count.warn{min-width:auto;background:#9a5a00}
@@ -169,37 +180,138 @@
   .pos-product-name{font-weight:750;line-height:1.25}
   .pos-product-size{font-size:12px;color:var(--muted);margin-top:3px}
   .pos-product-price{font-size:17px;font-weight:800;color:var(--brown);margin-top:10px}
+  .pos-product.has-image{min-height:190px}
+  .pos-product:has(.pos-drink-photo.card){min-height:190px}
+  .pos-product-media,.pos-product-image-wrap{position:relative;display:grid;place-items:center;aspect-ratio:4/3;
+    width:100%;overflow:hidden;border-radius:9px;background:linear-gradient(145deg,var(--pink-soft),var(--cream));margin:0 0 10px}
+  .pos-product-image{display:block;width:100%;height:100%;object-fit:contain;padding:5px}
+  .pos-product-image[hidden],.pos-product-image.is-broken{display:none}
+  .pos-product-image-fallback{display:grid;place-items:center;width:100%;height:100%;min-height:82px;color:var(--forest2);
+    font-size:30px;font-weight:800;background:linear-gradient(145deg,var(--pink-soft),var(--cream))}
+  .pos-product-image:not([hidden]):not(.is-broken)+.pos-product-image-fallback{display:none}
+  .pos-product-copy,.pos-product-body{display:flex;flex:1;min-width:0;flex-direction:column;justify-content:space-between;width:100%}
+  .pos-product.has-image .pos-product-count{z-index:2;box-shadow:0 1px 4px rgba(8,27,17,.22)}
+  .pos-product:has(.pos-drink-photo.card) .pos-product-count{z-index:2;box-shadow:0 1px 4px rgba(8,27,17,.22)}
+  .pos-drink-photo{position:relative;display:grid;place-items:center;overflow:hidden;border:1px solid var(--line);
+    background:linear-gradient(145deg,var(--pink-soft),var(--cream));color:var(--forest2)}
+  .pos-drink-photo.card{width:100%;aspect-ratio:4/3;margin-bottom:10px;border-radius:9px}
+  .pos-drink-photo.large{width:min(100%,300px);aspect-ratio:4/3;margin:0 auto 13px;border-radius:12px}
+  .pos-drink-photo.thumb{width:82px;aspect-ratio:4/3;border-radius:9px}
+  .pos-drink-photo .pos-drink-image{display:block;width:100%;height:100%;object-fit:contain;padding:5px}
+  .pos-drink-photo .pos-drink-image[hidden],.pos-drink-photo .pos-drink-image.is-broken{display:none}
+  .pos-drink-image-fallback{display:grid;place-items:center;width:100%;height:100%;min-height:54px;color:var(--forest2);
+    font-size:28px;font-weight:850;text-transform:uppercase}
+  .pos-drink-photo .pos-drink-image:not([hidden]):not(.is-broken)+.pos-drink-image-fallback{display:none}
   .pos-cart-list{display:grid;gap:8px;margin:10px 0}
-  .pos-cart-line{border:1px solid var(--line);border-radius:11px;padding:10px;background:#fff}
+  .pos-cart-line{border:1px solid var(--line);border-radius:11px;padding:10px;background:var(--card)}
   .pos-cart-line-top{display:flex;gap:8px;align-items:flex-start}
   .pos-cart-name{font-weight:700;line-height:1.25;flex:1;min-width:0}
   .pos-cart-price{font-weight:700;white-space:nowrap}
+  .pos-cart-modifier{display:inline-flex;align-items:center;max-width:100%;margin-top:5px;border:1px solid #e6a9bd;
+    border-radius:999px;background:var(--pink-soft);color:#7f2149;padding:3px 8px;font-size:11px;font-weight:750;line-height:1.25}
+  .pos-cart-unit-price{margin-top:3px;color:var(--muted);font-size:11px}
   .pos-qty{display:flex;align-items:center;gap:7px;margin-top:8px}
-  .pos-qty button{width:44px;height:44px;border:1px solid var(--line);background:#fff;color:var(--brown);border-radius:9px;font-size:21px;font-weight:700;cursor:pointer;touch-action:manipulation}
+  .pos-qty button{width:44px;height:44px;border:1px solid var(--control-line);background:var(--card);color:var(--brown);border-radius:9px;font-size:21px;font-weight:700;cursor:pointer;touch-action:manipulation}
   .pos-qty-value{min-width:30px;text-align:center;font-weight:800}
   .pos-qty .pos-remove{display:inline-flex;align-items:center;justify-content:center;flex:0 0 44px;margin-left:auto;padding:0;border-color:#ecc5bf;background:#fff7f6;color:var(--bad);font-size:0}
   .pos-remove svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
   .pos-cart-confirm{text-align:center;padding:2px 4px 0}
   .pos-cart-confirm-icon{display:inline-flex;align-items:center;justify-content:center;width:58px;height:58px;border-radius:50%;background:#fff0ee;color:var(--bad);margin:2px auto 12px}
   .pos-cart-confirm-icon svg{width:28px;height:28px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-  .pos-cart-confirm-copy{margin:0 auto;max-width:330px;color:#3f3026;font-size:15px;line-height:1.5}
+  .pos-cart-confirm-copy{margin:0 auto;max-width:330px;color:var(--ink);font-size:15px;line-height:1.5}
   .pos-cart-confirm-note{margin:8px auto 0;max-width:330px;color:var(--muted);font-size:12px;line-height:1.4}
   .pos-cart-confirm .modal-actions{position:static;bottom:auto;justify-content:center;margin-top:18px}
   .pos-cart-confirm .modal-actions .btn{min-width:128px}
+  .pos-customize{display:grid;gap:14px}
+  .pos-customize-hero{display:grid;grid-template-columns:112px minmax(0,1fr);gap:14px;align-items:center;padding:10px;
+    border:1px solid var(--line);border-radius:12px;background:var(--cream)}
+  .pos-customize-media{display:grid;place-items:center;width:112px;aspect-ratio:4/3;overflow:hidden;border-radius:10px;
+    background:linear-gradient(145deg,var(--pink-soft),var(--card))}
+  .pos-customize-image{display:block;width:100%;height:100%;object-fit:contain;padding:5px}
+  .pos-customize-image[hidden],.pos-customize-image.is-broken{display:none}
+  .pos-customize-image-fallback{display:grid;place-items:center;width:100%;height:100%;color:var(--forest2);font-size:30px;font-weight:800}
+  .pos-customize-image:not([hidden]):not(.is-broken)+.pos-customize-image-fallback{display:none}
+  .pos-customize-name{font-size:18px;font-weight:800;color:var(--forest);line-height:1.25;overflow-wrap:anywhere}
+  .pos-customize-meta{margin-top:4px;color:var(--muted);font-size:12px}
+  .pos-customize-base-price{margin-top:7px;color:var(--forest);font-size:17px;font-weight:800}
+  .pos-upgrade-heading{margin:0;color:var(--forest);font-size:15px}
+  .pos-upgrade-options{display:grid;gap:8px;margin-top:7px}
+  .pos-upgrade-list{min-width:0;margin:13px 0 0;padding:0;border:0}
+  .pos-upgrade-list legend{margin-bottom:7px;padding:0;color:var(--forest);font-size:15px;font-weight:800}
+  .pos-upgrade-list .pos-upgrade-option+.pos-upgrade-option{margin-top:8px}
+  .pos-upgrade-option{display:grid;grid-template-columns:22px minmax(0,1fr) auto;gap:10px;align-items:center;min-height:58px;
+    padding:10px 12px;border:1px solid var(--control-line);border-radius:11px;background:var(--card);color:var(--ink);cursor:pointer}
+  .pos-upgrade-option:hover{border-color:var(--pink-dark);background:#fff8fa}
+  .pos-upgrade-option:focus-within{outline:3px solid var(--pink);outline-offset:2px}
+  .pos-upgrade-option.selected,.pos-upgrade-option:has(input:checked){border:2px solid var(--pink-dark);padding:9px 11px;background:var(--pink-soft)}
+  .pos-upgrade-option input{width:20px;height:20px;margin:0;cursor:pointer}
+  .pos-upgrade-option-copy{min-width:0}
+  .pos-upgrade-option-name{display:block;color:var(--forest);font-weight:800;overflow-wrap:anywhere}
+  .pos-upgrade-option-detail{display:block;margin-top:2px;color:var(--muted);font-size:12px}
+  .pos-upgrade-option-price{color:var(--forest);font-weight:800;white-space:nowrap}
+  .pos-upgrade-option-price.included{color:var(--good);font-size:12px;text-transform:uppercase;letter-spacing:.03em}
+  .pos-upgrade-option>span{min-width:0}
+  .pos-upgrade-option>span>strong{display:block;color:var(--forest);overflow-wrap:anywhere}
+  .pos-upgrade-option>span>small{display:block;margin-top:2px;color:var(--muted);font-size:12px}
+  .pos-upgrade-option>b{color:var(--forest);white-space:nowrap}
+  .pos-customize-unavailable{border:1px solid var(--line);border-radius:10px;background:var(--cream);padding:10px 12px;color:var(--muted);font-size:13px}
+  .pos-customize-total{display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid #e6a9bd;
+    border-radius:11px;background:#fff8fa;padding:11px 13px}
+  .pos-customize-total span{color:var(--muted);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+  .pos-customize-total strong{color:var(--forest);font-size:24px;white-space:nowrap}
+  .pos-upgrade-total{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px;border:1px solid #e6a9bd;
+    border-radius:11px;background:#fff8fa;padding:11px 13px}
+  .pos-upgrade-total span{color:var(--muted);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+  .pos-upgrade-total strong{color:var(--forest);font-size:24px;white-space:nowrap}
+  .pos-customize .modal-actions{margin-top:2px}
+  .pos-photo-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:4px 0 12px}
+  .pos-photo-list{display:grid;gap:9px}
+  .pos-photo-row{display:grid;grid-template-columns:82px minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px;
+    border:1px solid var(--line);border-radius:12px;background:var(--card)}
+  .pos-photo-thumb,.pos-photo-preview{position:relative;display:grid;place-items:center;width:82px;aspect-ratio:4/3;overflow:hidden;
+    border:1px solid var(--line);border-radius:9px;background:linear-gradient(145deg,var(--pink-soft),var(--cream));color:var(--forest2);
+    font-size:24px;font-weight:800}
+  .pos-photo-thumb img,.pos-photo-preview img{display:block;width:100%;height:100%;object-fit:contain;padding:4px}
+  .pos-photo-info{min-width:0}
+  .pos-photo-name{color:var(--forest);font-weight:800;overflow-wrap:anywhere}
+  .pos-photo-status{margin-top:3px;color:var(--muted);font-size:12px;overflow-wrap:anywhere}
+  .pos-photo-actions{display:flex;align-items:center;justify-content:flex-end;gap:7px;flex-wrap:wrap}
+  .pos-photo-actions .btn{min-height:44px}
+  .pos-photo-file{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;
+    overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
+  .pos-photo-progress{height:5px;margin-top:7px;overflow:hidden;border-radius:999px;background:var(--pink-soft)}
+  .pos-photo-progress span{display:block;height:100%;background:var(--pink-dark);transition:width .18s ease}
+  .pos-photo-empty{padding:22px 12px;border:1px dashed var(--control-line);border-radius:12px;background:var(--cream);
+    color:var(--muted);text-align:center}
+  .pos-media-list{display:grid;gap:9px}
+  .pos-media-row{display:grid;grid-template-columns:82px minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px;
+    border:1px solid var(--line);border-radius:12px;background:var(--card)}
+  .pos-media-copy{min-width:0}
+  .pos-media-copy strong{display:block;color:var(--forest);font-weight:800;overflow-wrap:anywhere}
+  .pos-media-copy small{display:block;margin-top:3px;color:var(--muted);font-size:12px;overflow-wrap:anywhere}
+  .pos-media-actions{display:flex;align-items:center;justify-content:flex-end;gap:7px;flex-wrap:wrap}
+  .pos-media-actions .btn{min-height:44px}
+  .pos-media-actions label.btn{position:relative}
+  .pos-media-actions label.disabled{cursor:not-allowed;opacity:.55}
+  .pos-media-actions input[type=file]{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;
+    overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
+  .pos-media-actions label:focus-within{outline:3px solid var(--pink);outline-offset:2px}
+  .pos-media-remove-confirm{text-align:center;color:var(--ink)}
+  .pos-media-remove-confirm>p{margin:12px auto 0;max-width:330px;color:var(--ink-soft)}
   .stock-head{display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap;margin-bottom:12px}
   .stock-head h2{margin:0}
   .stock-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:12px 0}
   .stock-summary button{font:inherit;text-align:left;cursor:pointer}
-  .stock-summary button.active{border-color:var(--brown);box-shadow:0 0 0 2px rgba(91,58,41,.10)}
+  .stock-summary button.active{border-color:var(--brown);box-shadow:0 0 0 2px rgba(23,63,43,.14)}
   .stock-toolbar{display:grid;grid-template-columns:minmax(220px,1fr) 180px;gap:8px;align-items:end;margin:12px 0 8px}
   .stock-filter-bar{display:flex;gap:7px;overflow-x:auto;padding:2px 1px 8px;scrollbar-width:thin}
   .stock-filter-bar .category-chip{white-space:nowrap;min-height:40px}
   .stock-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:8px}
-  .stock-card{border:1px solid var(--line);border-radius:12px;background:#fff;padding:12px;min-width:0}
+  .stock-card{border:1px solid var(--line);border-radius:12px;background:var(--card);padding:12px;min-width:0}
   .stock-card-head{display:flex;align-items:flex-start;gap:8px}
-  .stock-card-title{flex:1;min-width:0;font-weight:750;color:#2b2018;overflow-wrap:anywhere}
+  .stock-card-title{flex:1;min-width:0;font-weight:750;color:var(--ink);overflow-wrap:anywhere}
   .stock-badges{display:flex;gap:5px;flex-wrap:wrap;margin-top:5px}
-  .stock-badge{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:999px;padding:2px 7px;font-size:11px;font-weight:700;background:#f8f3ec;color:var(--brown2)}
+  .stock-badge{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:999px;padding:2px 7px;font-size:11px;font-weight:700;background:var(--cream);color:var(--brown2)}
   .stock-badge.mixture{background:#eef5ff;color:#315b8a;border-color:#cfdef0}
   .stock-badge.good{background:#e9f6ea;color:var(--good);border-color:#bfe3c1}
   .stock-badge.warn{background:#fff4dd;color:#8a5a00;border-color:#efd49b}
@@ -215,7 +327,7 @@
   .stock-history-delta.good{color:var(--good)}
   .stock-history-delta.bad{color:var(--bad)}
   .stock-modal-preview{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:center;margin:14px 0;padding:12px;border:1px solid var(--line);border-radius:11px;background:var(--cream)}
-  .stock-modal-preview .metric{text-align:center;background:#fff}
+  .stock-modal-preview .metric{text-align:center;background:var(--card)}
   .stock-preview-arrow{font-size:22px;color:var(--muted);font-weight:800}
   .stock-negative-warning{border:1px solid #e5b4ae;border-radius:10px;background:#fff0ee;color:#7d251d;padding:9px 11px;margin-top:9px;font-size:13px}
   .stock-phase-note{margin:10px 0 14px}
@@ -223,12 +335,12 @@
   .pos-total{display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--line);padding-top:12px;margin-top:10px}
   .pos-total strong{font-size:24px;color:var(--brown)}
   .pos-payment-tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin:12px 0}
-  .pos-payment-tabs button{min-height:46px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--brown);font:inherit;font-weight:700;cursor:pointer}
+  .pos-payment-tabs button{min-height:46px;border:1px solid var(--control-line);border-radius:10px;background:var(--card);color:var(--brown);font:inherit;font-weight:700;cursor:pointer}
   .pos-payment-tabs button.active{background:var(--brown);border-color:var(--brown);color:#fff}
   .pos-quick-cash{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px}
-  .pos-quick-cash button{min-height:42px;padding:7px;border:1px solid var(--line);border-radius:9px;background:#fff;color:var(--brown);font-weight:700;cursor:pointer}
+  .pos-quick-cash button{min-height:42px;padding:7px;border:1px solid var(--control-line);border-radius:9px;background:var(--card);color:var(--brown);font-weight:700;cursor:pointer}
   #pos button,#posOpsModal button{transition:transform .08s ease,box-shadow .08s ease,filter .08s ease;-webkit-tap-highlight-color:transparent}
-  #pos button:active:not([disabled]),#posOpsModal button:active:not([disabled]){transform:translateY(2px) scale(.98);box-shadow:inset 0 2px 5px rgba(60,35,20,.22);filter:brightness(.96)}
+  #pos button:active:not([disabled]),#posOpsModal button:active:not([disabled]){transform:translateY(2px) scale(.98);box-shadow:inset 0 2px 5px rgba(23,63,43,.24);filter:brightness(.96)}
   .pos-change{border-radius:10px;background:#eef7ef;border:1px solid #c9e5cb;padding:10px 12px;margin-top:9px;color:#285e2c}
   .pos-checkout{width:100%;min-height:50px;font-size:16px;margin-top:12px}
   .pos-error{min-height:20px;color:var(--bad);font-size:13px;margin-top:8px}
@@ -237,14 +349,14 @@
   .pos-recent-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line)}
   .pos-recent-row:last-child{border-bottom:0}
   .pos-recent-meta{font-size:12px;color:var(--muted)}
-  .pos-item-summary{font-size:12px;color:#4e4036;margin-top:3px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .pos-item-summary{font-size:12px;color:var(--ink-soft);margin-top:3px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
   .pos-loading{padding:24px 8px;text-align:center;color:var(--muted)}
   .pos-reports-loading [data-act='openPosReport']{pointer-events:none;cursor:not-allowed;opacity:.55}
   .pos-mode-banner{display:flex;align-items:center;gap:10px;flex-wrap:wrap;border:2px solid #9a5a00;border-radius:12px;background:#fff3d6;color:#6f3e00;padding:11px 13px;margin-bottom:12px;font-weight:750}
   .pos-mode-banner strong{font-size:16px;letter-spacing:.03em}
   .pos-mode-live{display:inline-flex;align-items:center;min-height:32px;padding:5px 11px;border-radius:999px;background:#e9f6ea;border:1px solid #bfe3c1;color:#22622a;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.04em}
   .pos-mode-training{display:inline-flex;align-items:center;min-height:32px;padding:5px 11px;border-radius:999px;background:#8b4b00;color:#fff;font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:.08em}
-  .pos-shift-bar{display:flex;align-items:center;gap:9px;flex-wrap:wrap;border:1px solid var(--line);border-radius:12px;background:#fff;padding:10px 12px;margin-bottom:12px}
+  .pos-shift-bar{display:flex;align-items:center;gap:9px;flex-wrap:wrap;border:1px solid var(--line);border-radius:12px;background:var(--card);padding:10px 12px;margin-bottom:12px}
   .pos-shift-copy{flex:1 1 220px;min-width:0}
   .pos-shift-copy strong{display:block;color:var(--brown)}
   .pos-shift-copy span{display:block;color:var(--muted);font-size:12px;margin-top:2px}
@@ -257,11 +369,11 @@
   .pos-gate .pos-gate-icon{font-size:38px;margin-bottom:7px}
   .pos-gate-actions{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-top:16px}
   .pos-mode-choice{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:7px}
-  .pos-mode-choice button{min-height:62px;border:1px solid var(--line);border-radius:11px;background:#fff;color:var(--brown);font:inherit;font-weight:750;cursor:pointer;padding:9px}
-  .pos-mode-choice button.active{border:2px solid var(--brown);background:#f7eee5}
+  .pos-mode-choice button{min-height:62px;border:1px solid var(--control-line);border-radius:11px;background:var(--card);color:var(--brown);font:inherit;font-weight:750;cursor:pointer;padding:9px}
+  .pos-mode-choice button.active{border:2px solid var(--brown);background:var(--pink-soft)}
   .pos-mode-choice button[data-mode='training'].active{border-color:#8b4b00;background:#fff3d6;color:#6f3e00}
   .pos-operation-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:12px 0}
-  .pos-operation-summary .metric{background:#fff}
+  .pos-operation-summary .metric{background:var(--card)}
   .pos-variance{font-weight:800}
   .pos-variance.good{color:var(--good)}
   .pos-variance.bad{color:var(--bad)}
@@ -273,29 +385,29 @@
   .pos-void-label{display:inline-flex;align-items:center;padding:3px 7px;border-radius:999px;background:#fbe1de;color:#8d2720;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;margin-left:6px}
   .pos-recent-actions{display:flex;align-items:center;justify-content:flex-end;gap:7px;flex-wrap:wrap}
   .pos-history-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:8px;margin:12px 0}
-  .pos-history-summary .metric{background:#fff;min-width:0}
+  .pos-history-summary .metric{background:var(--card);min-width:0}
   .pos-history-list{border-top:1px solid var(--line);margin-top:8px}
   .pos-history-list .pos-item-summary{display:block;-webkit-line-clamp:unset;overflow:visible}
   .pos-history-count{font-size:12px;color:var(--muted);margin:4px 0 0}
-  .pos-history-view-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin:10px 0 14px;padding:4px;border:1px solid var(--line);border-radius:12px;background:#f8f3ec}
+  .pos-history-view-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin:10px 0 14px;padding:4px;border:1px solid var(--line);border-radius:12px;background:var(--cream)}
   .pos-history-view-tabs.two{grid-template-columns:repeat(2,minmax(0,1fr))}
   .pos-history-view-tabs button{min-height:42px;border:0;border-radius:8px;background:transparent;color:var(--brown);font:inherit;font-weight:750;cursor:pointer}
-  .pos-history-view-tabs button.active{background:#fff;box-shadow:0 1px 4px rgba(60,35,20,.16)}
-  .pos-history-filter{display:grid;grid-template-columns:minmax(180px,1fr) auto;gap:8px;align-items:end;margin:0 0 14px;padding:11px;border:1px solid var(--line);border-radius:11px;background:#fffaf3}
+  .pos-history-view-tabs button.active{background:var(--card);box-shadow:0 1px 4px rgba(23,63,43,.16)}
+  .pos-history-filter{display:grid;grid-template-columns:minmax(180px,1fr) auto;gap:8px;align-items:end;margin:0 0 14px;padding:11px;border:1px solid var(--line);border-radius:11px;background:#fff8fa}
   .pos-history-filter .fld{margin-top:0}
   .pos-history-filter-actions{display:flex;gap:7px;align-items:end}
   .pos-history-shift-filter{grid-column:1 / -1}
   .pos-history-shift-filter select{width:100%}
   .pos-tally-list{display:grid;gap:8px;margin-top:10px}
-  .pos-tally-row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:14px;padding:12px 14px;border:1px solid var(--line);border-radius:11px;background:#fff}
-  .pos-tally-name{color:#2b2018;font-weight:800;overflow-wrap:anywhere}
+  .pos-tally-row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:14px;padding:12px 14px;border:1px solid var(--line);border-radius:11px;background:var(--card)}
+  .pos-tally-name{color:var(--ink);font-weight:800;overflow-wrap:anywhere}
   .pos-tally-meta{margin-top:3px;color:var(--muted);font-size:12px}
   .pos-tally-values{display:flex;align-items:center;justify-content:flex-end;gap:18px;text-align:right;white-space:nowrap}
   .pos-tally-value strong{display:block;color:var(--brown);font-size:20px;line-height:1.1}
   .pos-tally-value.units strong{font-size:24px}
   .pos-tally-value span{display:block;margin-top:3px;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.04em}
   .pos-shift-history-list{display:grid;gap:10px;margin-top:10px}
-  .pos-shift-history-card{border:1px solid var(--line);border-radius:12px;background:#fff;padding:13px}
+  .pos-shift-history-card{border:1px solid var(--line);border-radius:12px;background:var(--card);padding:13px}
   .pos-shift-history-head{display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap}
   .pos-shift-history-title{flex:1 1 220px;min-width:0}
   .pos-shift-history-title strong{display:block;color:var(--brown);font-size:16px}
@@ -304,7 +416,7 @@
   .pos-shift-reconcile .lbl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em}
   .pos-shift-reconcile strong{display:block;margin-top:3px;color:var(--brown)}
   .pos-shift-reconcile .hint{margin-top:2px}
-  .pos-shift-note{margin-top:10px;padding:8px 10px;border-radius:9px;background:#f8f3ec;color:#4e4036;font-size:12px;overflow-wrap:anywhere}
+  .pos-shift-note{margin-top:10px;padding:8px 10px;border-radius:9px;background:var(--cream);color:var(--ink-soft);font-size:12px;overflow-wrap:anywhere}
   .pos-closed-result{border:1px solid #c9e5cb;border-radius:11px;background:#eef7ef;padding:12px;margin:10px 0}
   body.pos-training header{background:#6f3e00}
   @media print{
@@ -323,9 +435,11 @@
     .pos-cart-card{position:static;scroll-margin-top:160px}
     section#pos.active{padding-bottom:82px}
     .pos-mobile-order-bar{display:block;position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));z-index:80;max-width:680px;margin:0 auto}
-    .pos-mobile-order-bar .btn{width:100%;min-height:54px;display:flex;align-items:center;justify-content:space-between;gap:12px;box-shadow:0 8px 24px rgba(60,35,20,.28);font-size:15px}
+    .pos-mobile-order-bar .btn{width:100%;min-height:54px;display:flex;align-items:center;justify-content:space-between;gap:12px;box-shadow:0 8px 24px rgba(23,63,43,.28);font-size:15px}
     .pos-mobile-order-bar strong{font-size:17px}
     .pos-product-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .pos-product.has-image{min-height:178px}
+    .pos-product:has(.pos-drink-photo.card){min-height:178px}
     .component-grid{grid-template-columns:1fr 88px 82px 38px}
     .component-grid .component-cost{grid-column:1 / -1;grid-row:2;text-align:left;padding:0 2px 6px}
     .component-grid .icon-btn{grid-column:4;grid-row:1}
@@ -340,6 +454,23 @@
     nav button[data-tab='pos']{grid-column:span 2}
     .pos-topbar .btn{min-height:44px}
     .pos-product{min-height:106px;padding:11px}
+    .pos-product.has-image{min-height:170px}
+    .pos-product:has(.pos-drink-photo.card){min-height:170px}
+    .pos-product-media,.pos-product-image-wrap{margin-bottom:8px}
+    .pos-customize-hero{grid-template-columns:88px minmax(0,1fr);gap:10px;padding:9px}
+    .pos-customize-media{width:88px}
+    .pos-upgrade-option{grid-template-columns:22px minmax(0,1fr) auto;min-height:56px;padding:9px 10px}
+    .pos-upgrade-option.selected,.pos-upgrade-option:has(input:checked){padding:8px 9px}
+    .pos-customize-total strong{font-size:21px}
+    .pos-customize .modal-actions .btn{flex:1 1 130px;min-height:48px}
+    .pos-photo-row{grid-template-columns:72px minmax(0,1fr);gap:10px}
+    .pos-photo-thumb,.pos-photo-preview{width:72px}
+    .pos-photo-actions{grid-column:1 / -1;justify-content:stretch}
+    .pos-photo-actions .btn{flex:1 1 110px}
+    .pos-media-row{grid-template-columns:72px minmax(0,1fr);gap:10px}
+    .pos-drink-photo.thumb{width:72px}
+    .pos-media-actions{grid-column:1 / -1;justify-content:stretch}
+    .pos-media-actions .btn{flex:1 1 110px}
     .pos-recent-row{grid-template-columns:minmax(0,1fr) auto}
     .pos-recent-row .pos-recent-method{display:none}
     .pos-operation-summary{grid-template-columns:1fr}
@@ -375,6 +506,10 @@
     .component-grid .icon-btn{grid-column:3;grid-row:2}
     .component-grid .component-cost{grid-column:1 / -1;grid-row:3;padding:0 2px 7px}
     .component-grid .component-cost::before{content:'Cost: ';color:var(--muted);font-weight:500}
+  }
+  @media(forced-colors:active){
+    .pos-product.selected,.pos-upgrade-option.selected,.pos-upgrade-option:has(input:checked){outline:3px solid SelectedItem;outline-offset:2px}
+    .pos-product-image-fallback,.pos-customize-image-fallback,.pos-photo-thumb,.pos-photo-preview{forced-color-adjust:auto}
   }
 </style>
 </head>
@@ -696,11 +831,12 @@ var POS_PENDING_KEY = TEST_MODE ? 'scoopies_pos_pending_test' : 'scoopies_pos_pe
 var STOCK_PENDING_KEY = TEST_MODE ? 'scoopies_stock_pending_test' : 'scoopies_stock_pending_v1';
 var STOCK_SOURCE_DELETE_KEY = TEST_MODE ? 'scoopies_stock_source_delete_test' : 'scoopies_stock_source_delete_v1';
 var POS_CATALOG_CACHE_KEY = TEST_MODE ? 'scoopies_pos_catalog_cache_test' : 'scoopies_pos_catalog_cache_v1';
+var POS_IMAGE_BUCKET = 'pos-product-images';
 var POS_CATALOG_CACHE_MAX_AGE_MS = 30*60*1000, POS_SILENT_REFRESH_MIN_AGE_MS = 30*1000;
 var POS_HISTORY_PAGE_SIZE = 20, POS_SHIFT_HISTORY_PAGE_SIZE = 20;
 var posCheckoutLoadGeneration = 0, posCheckoutSubmitGeneration = 0, posCatalogGeneration = 0;
 var posSilentRefreshPromise = null, posLastSilentRefreshAttemptAt = 0;
-var posOpsGeneration = 0, posHistoryGeneration = 0, posOpsModalReturnFocus = null;
+var posOpsGeneration = 0, posHistoryGeneration = 0, posMediaGeneration = 0, posOpsModalReturnFocus = null;
 var posOpsModal = freshPosOpsModal();
 var posSalesHistory = freshPosSalesHistory();
 var posCheckout = {
@@ -1419,7 +1555,8 @@ function syncOpenPosReportModal(){
 function freshPosOpsModal(){
   return {open:false,type:'',submitting:false,error:'',notice:'',step:'edit',mode:'live',openingCash:'0.00',
     countedCash:'',verifiedGcash:'',verifiedGotyme:'',notes:'',sale:null,reason:'',result:null,uncertain:false,rpcArgs:null,
-    cartAction:'',cartProductId:'',cartProductName:'',cartQuantity:0};
+    cartAction:'',cartProductId:'',cartProductName:'',cartQuantity:0,
+    productId:'',selectedMatchaOptionId:'',mediaRows:[],mediaLoading:false,mediaLoaded:false,mediaProductId:'',mediaRemoveProductId:''};
 }
 function freshPosSalesHistory(){
   return {rows:[],summary:null,mode:'live',view:'receipts',loading:false,loaded:false,error:'',summaryError:'',hasMore:true,
@@ -1443,7 +1580,7 @@ function resetStocks(message){
   if(typeof renderStocks==='function')renderStocks();
 }
 function resetPosCheckout(){
-  posCheckoutLoadGeneration++;posCheckoutSubmitGeneration++;posCatalogGeneration++;posOpsGeneration++;posHistoryGeneration++;
+  posCheckoutLoadGeneration++;posCheckoutSubmitGeneration++;posCatalogGeneration++;posOpsGeneration++;posHistoryGeneration++;posMediaGeneration++;
   posSilentRefreshPromise=null;posLastSilentRefreshAttemptAt=0;
   posCheckout=freshPosCheckout();
   posSalesHistory=freshPosSalesHistory();
@@ -1465,6 +1602,22 @@ function posUuid(){
   return hex.slice(0,8)+'-'+hex.slice(8,12)+'-'+hex.slice(12,16)+'-'+hex.slice(16,20)+'-'+hex.slice(20);
 }
 function posCartLines(){return Object.keys(posCheckout.cart).map(function(id){return posCheckout.cart[id];}).filter(Boolean);}
+function posCatalogMatchaOptions(product){
+  var options=product&&product.matcha_upgrades;
+  if(typeof options==='string'){try{options=JSON.parse(options);}catch(error){options=[];}}
+  return Array.isArray(options)?options.filter(function(option){
+    return option&&option.id&&Number(option.revision)>0&&Number(option.surcharge_centavos)>=0;
+  }).sort(function(a,b){return Number(a.sort_order||0)-Number(b.sort_order||0)||String(a.display_name||'').localeCompare(String(b.display_name||''));}):[];
+}
+function posVariantKey(productId,productVersionId,optionId,optionRevision){
+  return [String(productId||''),String(productVersionId||''),String(optionId||'standard'),String(optionRevision==null?'standard':optionRevision)].join('|');
+}
+function posProductCartLines(productId){
+  return posCartLines().filter(function(line){return String(line.productId||'')===String(productId||'');});
+}
+function posProductCartQuantity(productId){
+  return posProductCartLines(productId).reduce(function(total,line){return total+(Number(line.quantity)||0);},0);
+}
 function posCartTotalCentavos(){
   return posCartLines().reduce(function(total,line){return total+(Number(line.priceCentavos)||0)*(Number(line.quantity)||0);},0);
 }
@@ -1492,7 +1645,7 @@ function posHydrateCatalogCache(){
   var scope=posCatalogCacheScope();if(!scope||posCheckout.loaded||posCheckout.catalogFromCache)return false;
   try{
     var record=JSON.parse(sessionStorage.getItem(POS_CATALOG_CACHE_KEY));
-    if(!record||record.schemaVersion!==1||record.scope!==scope||!Array.isArray(record.catalog)||
+    if(!record||record.schemaVersion!==2||record.scope!==scope||!Array.isArray(record.catalog)||
       !(Number(record.savedAt)>0)||Date.now()-Number(record.savedAt)>POS_CATALOG_CACHE_MAX_AGE_MS){return false;}
     posCheckout.catalog=snapshot(record.catalog);posCheckout.catalogFromCache=true;
     posCheckout.catalogLoading=false;posCheckout.catalogError='';normalizePosCategory();
@@ -1503,7 +1656,7 @@ function posHydrateCatalogCache(){
 function posRememberCatalogCache(){
   var scope=posCatalogCacheScope();if(!scope||!Array.isArray(posCheckout.catalog))return false;
   try{
-    sessionStorage.setItem(POS_CATALOG_CACHE_KEY,JSON.stringify({schemaVersion:1,scope:scope,savedAt:Date.now(),catalog:posCheckout.catalog}));
+    sessionStorage.setItem(POS_CATALOG_CACHE_KEY,JSON.stringify({schemaVersion:2,scope:scope,savedAt:Date.now(),catalog:posCheckout.catalog}));
     return true;
   }catch(error){return false;}
 }
@@ -1558,8 +1711,13 @@ function posRestorePending(){
   var cart={};
   record.cartSnapshot.forEach(function(saved){
     if(!saved||!saved.productId||!saved.productVersionId||!(Number(saved.quantity)>0))return;
-    cart[String(saved.productId)]={productId:String(saved.productId),productVersionId:String(saved.productVersionId),name:String(saved.name||'Product'),
-      size:String(saved.size||''),priceCentavos:Number(saved.priceCentavos)||0,quantity:Number(saved.quantity)||1,stale:false,latest:null};
+    var optionId=saved.matchaOptionId?String(saved.matchaOptionId):'',optionRevision=saved.matchaOptionRevision==null?null:Number(saved.matchaOptionRevision);
+    var key=Number(record.schemaVersion)>=3?posVariantKey(saved.productId,saved.productVersionId,optionId,optionRevision):String(saved.productId);
+    cart[key]={key:key,productId:String(saved.productId),productVersionId:String(saved.productVersionId),name:String(saved.name||'Product'),
+      size:String(saved.size||''),basePriceCentavos:Number(saved.basePriceCentavos==null?saved.priceCentavos:saved.basePriceCentavos)||0,
+      priceCentavos:Number(saved.priceCentavos)||0,quantity:Number(saved.quantity)||1,matchaOptionId:optionId,
+      matchaOptionRevision:optionRevision,matchaOptionCode:String(saved.matchaOptionCode||''),matchaOptionName:String(saved.matchaOptionName||''),
+      matchaSurchargeCentavos:Number(saved.matchaSurchargeCentavos)||0,stale:false,latest:null};
   });
   if(!Object.keys(cart).length)return false;
   posCheckout.cart=cart;posCheckout.pending=record;
@@ -1574,15 +1732,20 @@ function posRestorePending(){
 function posLatestCatalogProduct(productId){
   return posCheckout.catalog.find(function(item){return String(item.product_id||'')===String(productId||'');})||null;
 }
+function posLatestMatchaOption(product,optionId){
+  return posCatalogMatchaOptions(product).find(function(option){return String(option.id||'')===String(optionId||'');})||null;
+}
 function markPosCartAgainstCatalog(){
   var changed=false;
   posCartLines().forEach(function(line){
-    var latest=posLatestCatalogProduct(line.productId);
+    var latest=posLatestCatalogProduct(line.productId),option=line.matchaOptionId?posLatestMatchaOption(latest,line.matchaOptionId):null;
     line.latest=latest;
     line.stale=!latest||String(latest.active_version_id||'')!==String(line.productVersionId||'')||
-      Number(latest.selling_price_centavos||0)!==Number(line.priceCentavos||0)||
+      Number(latest.selling_price_centavos||0)!==Number(line.basePriceCentavos==null?line.priceCentavos:line.basePriceCentavos)||
       String(latest.product_name||'Product')!==String(line.name||'Product')||
-      String(latest.size_snapshot||'')!==String(line.size||'');
+      String(latest.size_snapshot||'')!==String(line.size||'')||
+      (!!line.matchaOptionId&&(!option||Number(option.revision)!==Number(line.matchaOptionRevision)||
+        Number(option.surcharge_centavos||0)!==Number(line.matchaSurchargeCentavos||0)));
     if(line.stale)changed=true;
   });
   if(changed){posCheckout.catalogChanged=true;posCheckout.confirming=false;}
@@ -1592,12 +1755,20 @@ function acceptPosCatalogChanges(){
   if(posCheckout.pending||posCheckout.submitting||posCheckout.confirming)return false;
   var next={},removed=0,updated=0;
   posCartLines().forEach(function(line){
-    var latest=posLatestCatalogProduct(line.productId);
+    var latest=posLatestCatalogProduct(line.productId),option=line.matchaOptionId?posLatestMatchaOption(latest,line.matchaOptionId):null;
     if(!latest){removed++;return;}
-    if(String(latest.active_version_id||'')!==String(line.productVersionId||''))updated++;
-    next[String(latest.product_id)]={productId:String(latest.product_id),productVersionId:String(latest.active_version_id),
-      name:String(latest.product_name||'Product'),size:String(latest.size_snapshot||''),priceCentavos:Number(latest.selling_price_centavos)||0,
-      quantity:line.quantity,stale:false,latest:null};
+    if(line.matchaOptionId&&!option){removed++;return;}
+    var optionId=option?String(option.id):'',optionRevision=option?Number(option.revision):null;
+    var basePrice=Number(latest.selling_price_centavos)||0,surcharge=option?Number(option.surcharge_centavos)||0:0;
+    var key=posVariantKey(latest.product_id,latest.active_version_id,optionId,optionRevision);
+    if(String(latest.active_version_id||'')!==String(line.productVersionId||'')||basePrice!==Number(line.basePriceCentavos==null?line.priceCentavos:line.basePriceCentavos)||
+      surcharge!==Number(line.matchaSurchargeCentavos||0)||optionRevision!==line.matchaOptionRevision)updated++;
+    var rebuilt={key:key,productId:String(latest.product_id),productVersionId:String(latest.active_version_id),
+      name:String(latest.product_name||'Product'),size:String(latest.size_snapshot||''),basePriceCentavos:basePrice,
+      priceCentavos:basePrice+surcharge,quantity:Number(line.quantity)||1,matchaOptionId:optionId,matchaOptionRevision:optionRevision,
+      matchaOptionCode:String(option&&option.code||''),matchaOptionName:String(option&&option.display_name||''),
+      matchaSurchargeCentavos:surcharge,stale:false,latest:null};
+    if(next[key])next[key].quantity=Math.min(10000,next[key].quantity+rebuilt.quantity);else next[key]=rebuilt;
   });
   posCheckout.cart=next;posCheckout.catalogChanged=false;posCheckout.error='';
   posCheckout.notice=(updated?updated+' price'+(updated===1?' was':'s were')+' updated. ':'')+(removed?removed+' unavailable item'+(removed===1?' was':'s were')+' removed.':'');
@@ -1606,29 +1777,52 @@ function acceptPosCatalogChanges(){
 function addPosProduct(productId){
   if(posCheckout.pending||posCheckout.submitting||posCheckout.confirming)return false;
   var product=posLatestCatalogProduct(productId);if(!product)return false;
-  var key=String(product.product_id),line=posCheckout.cart[key];
-  if(line&&String(line.productVersionId)!==String(product.active_version_id)){
-    line.latest=product;line.stale=true;posCheckout.catalogChanged=true;
+  var existing=posProductCartLines(productId);
+  if(existing.some(function(line){return line.stale||String(line.productVersionId||'')!==String(product.active_version_id||'');})){
+    posCheckout.catalogChanged=true;
     posCheckout.error='This drink has a newer menu version. Review the cart update before adding more.';
     renderPos();return false;
   }
+  if(posCatalogMatchaOptions(product).length){
+    posOpenOpsModal('productOptions',{productId:String(product.product_id),selectedMatchaOptionId:''});
+    focusSoon('#posMatchaOptionStandard');return true;
+  }
+  return addPosProductVariant(product,null);
+}
+function addPosProductVariant(product,option){
+  if(!product||posCheckout.pending||posCheckout.submitting||posCheckout.confirming)return false;
+  var optionId=option?String(option.id||''):'',optionRevision=option?Number(option.revision):null;
+  var key=posVariantKey(product.product_id,product.active_version_id,optionId,optionRevision),line=posCheckout.cart[key];
+  var basePrice=Number(product.selling_price_centavos)||0,surcharge=option?Number(option.surcharge_centavos)||0:0;
   if(line)line.quantity=Math.min(10000,(Number(line.quantity)||0)+1);
-  else posCheckout.cart[key]={productId:key,productVersionId:String(product.active_version_id),name:String(product.product_name||'Product'),
-    size:String(product.size_snapshot||''),priceCentavos:Number(product.selling_price_centavos)||0,quantity:1,stale:false,latest:null};
+  else posCheckout.cart[key]={key:key,productId:String(product.product_id),productVersionId:String(product.active_version_id),
+    name:String(product.product_name||'Product'),size:String(product.size_snapshot||''),basePriceCentavos:basePrice,
+    priceCentavos:basePrice+surcharge,quantity:1,matchaOptionId:optionId,matchaOptionRevision:optionRevision,
+    matchaOptionCode:String(option&&option.code||''),matchaOptionName:String(option&&option.display_name||''),
+    matchaSurchargeCentavos:surcharge,stale:false,latest:null};
   posCheckout.lastReceipt=null;posCheckout.error='';posCheckout.notice='';renderPos();return true;
 }
-function changePosQuantity(productId,delta){
+function confirmPosProductOption(){
+  if(!posOpsModal.open||posOpsModal.type!=='productOptions'||posOpsModal.submitting)return false;
+  var product=posLatestCatalogProduct(posOpsModal.productId);if(!product){posOpsModal.error='This drink is no longer available. Refresh the menu.';renderPosOpsModal();return false;}
+  var optionId=String(posOpsModal.selectedMatchaOptionId||''),option=optionId?posLatestMatchaOption(product,optionId):null;
+  if(optionId&&!option){posOpsModal.error='That matcha upgrade changed. Close this window and try again.';renderPosOpsModal();return false;}
+  var productId=String(product.product_id);if(!addPosProductVariant(product,option))return false;
+  posOpsModalReturnFocus=null;posCloseOpsModal(true);renderPos();focusSoon('[data-act="addPosProduct"][data-id="'+productId+'"]');return true;
+}
+function changePosQuantity(lineKey,delta){
   if(posCheckout.pending||posCheckout.submitting||posCheckout.confirming)return false;
-  var line=posCheckout.cart[String(productId)];if(!line)return false;
+  var key=String(lineKey||''),line=posCheckout.cart[key];if(!line)return false;
   line.quantity=(Number(line.quantity)||0)+delta;
-  if(line.quantity<=0)delete posCheckout.cart[String(productId)];
+  if(line.quantity<=0)delete posCheckout.cart[key];
   else line.quantity=Math.min(10000,line.quantity);
   posCheckout.error='';posCheckout.notice='';renderPos();return true;
 }
-function removePosLine(productId){
+function removePosLine(lineKey){
   if(posCheckout.pending||posCheckout.submitting||posCheckout.confirming||posOpsModal.open)return false;
-  var key=String(productId||''),line=posCheckout.cart[key];if(!line)return false;
-  posOpenOpsModal('cartConfirm',{cartAction:'removeLine',cartProductId:key,cartProductName:String(line.name||'this drink'),cartQuantity:Number(line.quantity)||1});
+  var key=String(lineKey||''),line=posCheckout.cart[key];if(!line)return false;
+  var label=String(line.name||'this drink')+(line.matchaOptionName?' with '+line.matchaOptionName:'');
+  posOpenOpsModal('cartConfirm',{cartAction:'removeLine',cartProductId:key,cartProductName:label,cartQuantity:Number(line.quantity)||1});
   focusSoon('#posCartConfirmCancel');return true;
 }
 function clearPosCart(){
@@ -1652,7 +1846,7 @@ function confirmPosCartAction(){
 }
 function resetPosContext(message,preserveCheckout){
   posLoadGeneration++;posStatusGeneration++;
-  posOpsGeneration++;posHistoryGeneration++;posSalesHistory=freshPosSalesHistory();if(posOpsModal.open)posCloseOpsModal(true);
+  posOpsGeneration++;posHistoryGeneration++;posMediaGeneration++;posSalesHistory=freshPosSalesHistory();if(posOpsModal.open)posCloseOpsModal(true);
   posContext={loaded:!!message,loading:false,businessId:'',businessName:'',role:'',publications:{},error:message||''};
   resetStocks(message||'');
   if(preserveCheckout){posCheckoutLoadGeneration++;posCatalogGeneration++;}
@@ -1670,6 +1864,171 @@ function rpcRows(result){
   if(result&&result.error)throw result.error;
   if(!result||result.data==null)return [];
   return Array.isArray(result.data)?result.data:[result.data];
+}
+function posCanManageMedia(){
+  return !!(session&&session.user&&cloud.client&&posContext.businessId&&posCanManageOperations());
+}
+function posPublicImageUrl(path){
+  path=String(path||'').trim();if(!path||!cloud.client||!cloud.client.storage)return '';
+  try{
+    var result=cloud.client.storage.from(POS_IMAGE_BUCKET).getPublicUrl(path);
+    return String(result&&result.data&&result.data.publicUrl||'');
+  }catch(error){return '';}
+}
+function posDrinkImageHtml(item,extraClass){
+  var name=String(item&&item.product_name||item&&item.name||'Drink'),url=posPublicImageUrl(item&&item.image_object_path);
+  return '<span class="pos-drink-photo '+escapeHtml(extraClass||'')+'" aria-hidden="true">'+
+    (url?'<img class="pos-drink-image" src="'+escapeHtml(url)+'" alt="" width="480" height="360" loading="lazy" decoding="async">':'')+
+    '<span class="pos-drink-image-fallback"'+(url?' hidden':'')+'><span>\uD83C\uDF75</span><small>'+escapeHtml(name.charAt(0).toUpperCase())+'</small></span></span>';
+}
+function posMediaRequestCurrent(generation,userId,businessId){
+  return generation===posMediaGeneration&&posOpsModal.open&&posOpsModal.type==='manageDrinks'&&!!session&&!!session.user&&
+    String(session.user.id||'')===String(userId||'')&&String(posContext.businessId||'')===String(businessId||'');
+}
+function posMediaRow(productId){
+  return (posOpsModal.mediaRows||[]).find(function(row){return String(row.product_id||'')===String(productId||'');})||null;
+}
+function posPatchProductImage(productId,path,updatedAt){
+  productId=String(productId||'');path=path?String(path):null;
+  (posOpsModal.mediaRows||[]).forEach(function(row){if(String(row.product_id||'')===productId){row.image_object_path=path;row.updated_at=updatedAt||new Date().toISOString();}});
+  (posCheckout.catalog||[]).forEach(function(row){if(String(row.product_id||'')===productId)row.image_object_path=path;});
+  posRememberCatalogCache();return true;
+}
+async function openManageDrinksModal(){
+  if(!posCanManageMedia())return false;
+  posOpenOpsModal('manageDrinks',{mediaLoading:true,mediaLoaded:false,mediaRows:[]});
+  var generation=++posMediaGeneration,userId=String(session.user.id||''),businessId=String(posContext.businessId||'');
+  renderPosOpsModal();
+  try{
+    var rows=rpcRows(await cloud.client.rpc('pos_get_product_media',{p_business_id:businessId}));
+    if(!posMediaRequestCurrent(generation,userId,businessId))return false;
+    posOpsModal.mediaRows=rows;posOpsModal.mediaLoading=false;posOpsModal.mediaLoaded=true;posOpsModal.error='';renderPosOpsModal();
+    focusSoon('#posManageDrinksList');return true;
+  }catch(error){
+    if(!posMediaRequestCurrent(generation,userId,businessId))return false;
+    posOpsModal.mediaLoading=false;posOpsModal.mediaLoaded=true;posOpsModal.error=posFriendlyError(error);renderPosOpsModal();return false;
+  }
+}
+function posLoadImageElement(file){
+  return new Promise(function(resolve,reject){
+    var url=URL.createObjectURL(file),img=new Image();
+    img.onload=function(){URL.revokeObjectURL(url);resolve(img);};
+    img.onerror=function(){URL.revokeObjectURL(url);reject(new Error('The selected file is not a readable image.'));};
+    img.src=url;
+  });
+}
+async function posPrepareDrinkImage(file){
+  if(!file||['image/jpeg','image/png','image/webp'].indexOf(String(file.type||'').toLowerCase())<0)throw {posMessage:'Choose a JPG, PNG, or WebP image.'};
+  if(!(Number(file.size)>0)||Number(file.size)>5*1024*1024)throw {posMessage:'Choose an image no larger than 5 MB.'};
+  var source=null,width=0,height=0;
+  try{
+    if(typeof createImageBitmap==='function'){
+      source=await createImageBitmap(file,{imageOrientation:'from-image'});width=source.width;height=source.height;
+    }else{source=await posLoadImageElement(file);width=source.naturalWidth;height=source.naturalHeight;}
+    if(!(width>0&&height>0))throw new Error('Invalid image dimensions');
+    var scale=Math.min(1,1200/Math.max(width,height)),canvas=document.createElement('canvas');
+    canvas.width=Math.max(1,Math.round(width*scale));canvas.height=Math.max(1,Math.round(height*scale));
+    var context=canvas.getContext('2d');if(!context)throw new Error('Image processing is unavailable');
+    context.drawImage(source,0,0,canvas.width,canvas.height);
+    var quality=.84,blob=null;
+    for(var attempt=0;attempt<4;attempt++){
+      blob=await new Promise(function(resolve){canvas.toBlob(resolve,'image/webp',quality);});
+      if(blob&&blob.size<=2*1024*1024)break;
+      quality-=.12;
+    }
+    if(!blob)throw new Error('Image conversion failed');
+    if(blob.size>2*1024*1024)throw {posMessage:'The optimized image is still too large. Choose a smaller photo.'};
+    return blob;
+  }finally{if(source&&typeof source.close==='function')source.close();}
+}
+async function posReloadMediaRows(generation,userId,businessId){
+  if(!posCanManageMedia()||!posOpsModal.open||posOpsModal.type!=='manageDrinks')return [];
+  var rows=rpcRows(await cloud.client.rpc('pos_get_product_media',{p_business_id:String(posContext.businessId)}));
+  if(generation!=null&&!posMediaRequestCurrent(generation,userId,businessId))return [];
+  posOpsModal.mediaRows=rows;posOpsModal.mediaLoaded=true;return rows;
+}
+async function uploadPosDrinkImage(productId,file){
+  if(!posCanManageMedia()||!posOpsModal.open||posOpsModal.type!=='manageDrinks'||posOpsModal.submitting)return false;
+  var media=posMediaRow(productId);if(!media)return false;
+  var generation=posMediaGeneration,userId=String(session.user.id||''),businessId=String(posContext.businessId||''),oldPath=media.image_object_path||null;
+  posOpsModal.submitting=true;posOpsModal.mediaProductId=String(productId);posOpsModal.error='';posOpsModal.notice='Optimizing photo\u2026';renderPosOpsModal();
+  var newPath='';
+  try{
+    var blob=await posPrepareDrinkImage(file);
+    if(!posMediaRequestCurrent(generation,userId,businessId))return false;
+    newPath=businessId+'/'+String(productId)+'/'+posUuid()+'.webp';posOpsModal.notice='Uploading photo\u2026';renderPosOpsModal();
+    var upload=await cloud.client.storage.from(POS_IMAGE_BUCKET).upload(newPath,blob,{contentType:'image/webp',cacheControl:'31536000',upsert:false});
+    if(upload&&upload.error)throw upload.error;
+    if(!posMediaRequestCurrent(generation,userId,businessId))return false;
+    var rows=rpcRows(await cloud.client.rpc('pos_set_product_image',{p_business_id:businessId,p_product_id:String(productId),p_new_path:newPath,p_expected_old_path:oldPath}));
+    var saved=rows[0];if(!saved)throw new Error('Missing image update response');
+    if(!posMediaRequestCurrent(generation,userId,businessId))return false;
+    posPatchProductImage(productId,saved.image_object_path==null?newPath:saved.image_object_path,saved.updated_at);
+    var cleanupWarning=false;
+    if(oldPath&&oldPath!==newPath){
+      try{var oldCleanup=await cloud.client.storage.from(POS_IMAGE_BUCKET).remove([oldPath]);cleanupWarning=!!(oldCleanup&&oldCleanup.error);}
+      catch(cleanupError){cleanupWarning=true;}
+    }
+    if(!posMediaRequestCurrent(generation,userId,businessId))return false;
+    posOpsModal.submitting=false;posOpsModal.mediaProductId='';
+    posOpsModal.notice=cleanupWarning?'Photo saved to the shared menu. The previous file could not be cleaned up, but customers will see the new photo.':'Photo saved to the shared menu.';
+    renderPosOpsModal();renderPos();return true;
+  }catch(error){
+    if(!posMediaRequestCurrent(generation,userId,businessId))return false;
+    var recovered=false,verified=false,authoritative=null;
+    if(newPath){
+      try{
+        var latest=await posReloadMediaRows(generation,userId,businessId);
+        if(!posMediaRequestCurrent(generation,userId,businessId))return false;
+        verified=true;authoritative=latest.find(function(row){return String(row.product_id||'')===String(productId);})||null;
+        if(authoritative&&String(authoritative.image_object_path||'')===newPath){posPatchProductImage(productId,newPath,authoritative.updated_at);recovered=true;}
+      }catch(refreshError){}
+      // A lost attach response may already have committed. If its verification
+      // also fails, keep the immutable object; the database DELETE policy is a
+      // second guard, but the browser must not attempt ambiguous cleanup.
+      if(!recovered&&verified&&authoritative&&String(authoritative.image_object_path||'')!==newPath){
+        try{await cloud.client.storage.from(POS_IMAGE_BUCKET).remove([newPath]);}catch(cleanupError){}
+      }
+    }
+    if(!posMediaRequestCurrent(generation,userId,businessId))return recovered;
+    posOpsModal.submitting=false;posOpsModal.mediaProductId='';posOpsModal.notice=recovered?'Photo saved and recovered after the connection stopped.':'';
+    posOpsModal.error=recovered?'':(error&&error.posMessage?error.posMessage:posFriendlyError(error));renderPosOpsModal();renderPos();return recovered;
+  }
+}
+function requestRemovePosDrinkImage(productId){
+  if(!posCanManageMedia()||posOpsModal.submitting||!posMediaRow(productId))return false;
+  posOpsModal.mediaRemoveProductId=String(productId);posOpsModal.error='';posOpsModal.notice='';renderPosOpsModal();focusSoon('#posCancelRemoveImage');return true;
+}
+function cancelRemovePosDrinkImage(){
+  if(posOpsModal.submitting)return false;posOpsModal.mediaRemoveProductId='';posOpsModal.error='';renderPosOpsModal();return true;
+}
+async function confirmRemovePosDrinkImage(){
+  if(!posCanManageMedia()||posOpsModal.submitting||!posOpsModal.mediaRemoveProductId)return false;
+  var productId=String(posOpsModal.mediaRemoveProductId),media=posMediaRow(productId),oldPath=media&&media.image_object_path||null;
+  if(!media||!oldPath){posOpsModal.mediaRemoveProductId='';renderPosOpsModal();return false;}
+  var generation=posMediaGeneration,userId=String(session.user.id||''),businessId=String(posContext.businessId||'');
+  posOpsModal.submitting=true;posOpsModal.mediaProductId=productId;posOpsModal.error='';renderPosOpsModal();
+  try{
+    var rows=rpcRows(await cloud.client.rpc('pos_set_product_image',{p_business_id:businessId,p_product_id:productId,p_new_path:null,p_expected_old_path:oldPath}));
+    if(!rows[0]||!posMediaRequestCurrent(generation,userId,businessId))return false;
+    posPatchProductImage(productId,null,rows[0].updated_at);
+    var cleanup=await cloud.client.storage.from(POS_IMAGE_BUCKET).remove([oldPath]);
+    if(!posMediaRequestCurrent(generation,userId,businessId))return false;
+    posOpsModal.notice=cleanup&&cleanup.error?'Photo was removed from the menu, but cloud cleanup should be retried later.':'Photo removed from the shared menu.';
+    posOpsModal.submitting=false;posOpsModal.mediaProductId='';posOpsModal.mediaRemoveProductId='';renderPosOpsModal();renderPos();return true;
+  }catch(error){
+    if(!posMediaRequestCurrent(generation,userId,businessId))return false;
+    try{
+      var latest=await posReloadMediaRows(generation,userId,businessId);
+      if(!posMediaRequestCurrent(generation,userId,businessId))return false;
+      var authoritative=latest.find(function(row){return String(row.product_id||'')===productId;});
+      if(authoritative&&!authoritative.image_object_path){
+        posPatchProductImage(productId,null,authoritative.updated_at);posOpsModal.submitting=false;posOpsModal.mediaProductId='';
+        posOpsModal.mediaRemoveProductId='';posOpsModal.notice='Photo removal recovered after the connection stopped.';renderPosOpsModal();renderPos();return true;
+      }
+    }catch(refreshError){}
+    posOpsModal.submitting=false;posOpsModal.mediaProductId='';posOpsModal.error=posFriendlyError(error);renderPosOpsModal();return false;
+  }
 }
 function stockRequestIsCurrent(generation,userId,businessId){
   return generation===stockLoadGeneration&&!!session&&!!session.user&&
@@ -2162,7 +2521,7 @@ async function loadPosCheckoutData(options){
     catch(error){return Promise.resolve({rows:[],error:error});}
   }
   var initial=await Promise.all([
-    request('pos_get_catalog',{p_business_id:businessId}),
+    request('pos_get_catalog_v2',{p_business_id:businessId}),
     request('pos_get_shift_status',{p_business_id:businessId})
   ]);
   if(!posLoadRequestStillCurrent(generation,userId,businessId))return false;
@@ -2270,7 +2629,7 @@ async function refreshPosCatalogOnly(){
   if(!posCheckout.catalog.length)posCheckout.catalogLoading=true;
   posCheckout.catalogError='';renderPos();
   try{
-    var rows=rpcRows(await cloud.client.rpc('pos_get_catalog',{p_business_id:businessId}));
+    var rows=rpcRows(await cloud.client.rpc('pos_get_catalog_v2',{p_business_id:businessId}));
     if(!posCatalogRequestStillCurrent(generation,userId,businessId))return false;
     posCheckout.catalog=rows||[];posCheckout.catalogLoading=false;posCheckout.catalogError='';posCheckout.catalogFromCache=false;posCheckout.catalogVerifiedGeneration=generation;normalizePosCategory();
     markPosCartAgainstCatalog();posRestorePending();posRememberCatalogCache();
@@ -2318,13 +2677,17 @@ function posCheckoutValidation(){
 }
 function buildPosPendingSale(validation){
   var userId=String(session&&session.user&&session.user.id||''),businessId=String(posContext.businessId||'');
-  var items=posCartLines().map(function(line){return {product_id:String(line.productId),product_version_id:String(line.productVersionId),quantity:Number(line.quantity)};});
+  var items=posCartLines().map(function(line){return {product_id:String(line.productId),product_version_id:String(line.productVersionId),quantity:Number(line.quantity),
+    matcha_option_id:line.matchaOptionId?String(line.matchaOptionId):null,matcha_option_revision:line.matchaOptionId?Number(line.matchaOptionRevision):null};});
   var args={p_business_id:businessId,p_shift_id:String(posCheckout.shift.shift_id),p_is_training:!!posCheckout.shift.is_training,
     p_client_sale_id:posUuid(),p_items:items,p_payment_method:posCheckout.paymentMethod,
     p_cash_tendered_centavos:posCheckout.paymentMethod==='cash'?validation.cashCentavos:null,
     p_reference_number:String(posCheckout.referenceNumber||'').trim()||null,p_note:null};
-  return {schemaVersion:2,rpcName:'pos_complete_shift_sale',userId:userId,businessId:businessId,createdAt:new Date().toISOString(),rpcArgs:args,
-    cartSnapshot:posCartLines().map(function(line){return {productId:line.productId,productVersionId:line.productVersionId,name:line.name,size:line.size,priceCentavos:line.priceCentavos,quantity:line.quantity};})};
+  return {schemaVersion:3,rpcName:'pos_complete_shift_sale_v3',userId:userId,businessId:businessId,createdAt:new Date().toISOString(),rpcArgs:args,
+    cartSnapshot:posCartLines().map(function(line){return {key:line.key,productId:line.productId,productVersionId:line.productVersionId,name:line.name,size:line.size,
+      basePriceCentavos:line.basePriceCentavos,priceCentavos:line.priceCentavos,quantity:line.quantity,matchaOptionId:line.matchaOptionId||'',
+      matchaOptionRevision:line.matchaOptionRevision,matchaOptionCode:line.matchaOptionCode||'',matchaOptionName:line.matchaOptionName||'',
+      matchaSurchargeCentavos:line.matchaSurchargeCentavos||0};})};
 }
 function posDeterministicError(error){
   var code=String(error&&error.code||'');
@@ -2422,6 +2785,7 @@ function posOperationDeterministic(error){
 function posCloseOpsModal(force){
   if((posOpsModal.submitting||posOpsModal.uncertain)&&!force)return false;
   if(posOpsModal.type==='salesHistory'){posHistoryGeneration++;posSalesHistory=freshPosSalesHistory();}
+  if(posOpsModal.type==='manageDrinks')posMediaGeneration++;
   posOpsModal=freshPosOpsModal();
   var modal=document.getElementById('posOpsModal');if(modal)modal.hidden=true;
   refreshModalBodyClass();
@@ -2884,11 +3248,36 @@ function renderPosOpsModal(){
   if(!modal||!content)return;
   modal.hidden=!posOpsModal.open;if(!posOpsModal.open)return;
   var panel=modal.querySelector('.modal'),cartConfirm=posOpsModal.type==='cartConfirm';
-  if(panel){panel.classList.toggle('small',posOpsModal.type==='openShift'||posOpsModal.type==='voidSale'||cartConfirm);if(cartConfirm)panel.setAttribute('aria-describedby','posCartConfirmDescription');else panel.removeAttribute('aria-describedby');}
+  if(panel){panel.classList.toggle('small',posOpsModal.type==='openShift'||posOpsModal.type==='voidSale'||posOpsModal.type==='productOptions'||cartConfirm);if(cartConfirm)panel.setAttribute('aria-describedby','posCartConfirmDescription');else panel.removeAttribute('aria-describedby');}
   var verificationBlocked=posOpsActionBlocked();
   var disabled=posOpsModal.submitting||verificationBlocked?' disabled':'',frozen=posOpsModal.submitting||posOpsModal.uncertain?' disabled':'';
   var close='<button class="modal-close" data-act="closePosOpsModal" aria-label="Close dialog"'+(posOpsModal.submitting||posOpsModal.uncertain?' disabled':'')+'>x</button>';
-  if(cartConfirm){
+  if(posOpsModal.type==='productOptions'){
+    var optionProduct=posLatestCatalogProduct(posOpsModal.productId),matchaOptions=posCatalogMatchaOptions(optionProduct);
+    if(!optionProduct){content.innerHTML='<div class="modal-head"><h2 id="posOpsModalTitle">Drink unavailable</h2>'+close+'</div><div class="note">Refresh the menu and try again.</div>';return;}
+    var selectedId=String(posOpsModal.selectedMatchaOptionId||''),selectedOption=selectedId?posLatestMatchaOption(optionProduct,selectedId):null;
+    if(selectedId&&!selectedOption){selectedId='';posOpsModal.selectedMatchaOptionId='';}
+    var optionRows='<label class="pos-upgrade-option"><input id="posMatchaOptionStandard" type="radio" name="posMatchaOption" value=""'+(!selectedId?' checked':'')+'><span><strong>Regular matcha</strong><small>Included</small></span><b>+\u20B10</b></label>';
+    matchaOptions.forEach(function(option){var id=String(option.id||''),surcharge=Number(option.surcharge_centavos)||0;
+      optionRows+='<label class="pos-upgrade-option"><input type="radio" name="posMatchaOption" value="'+escapeHtml(id)+'"'+(selectedId===id?' checked':'')+'><span><strong>'+escapeHtml(option.display_name||option.code||'Matcha upgrade')+'</strong><small>Premium powder upgrade</small></span><b>+'+peso(surcharge/100)+'</b></label>';});
+    var optionTotal=Number(optionProduct.selling_price_centavos||0)+Number(selectedOption&&selectedOption.surcharge_centavos||0);
+    content.innerHTML='<div class="modal-head"><div><h2 id="posOpsModalTitle">Customize '+escapeHtml(optionProduct.product_name||'drink')+'</h2><p class="hint">Choose the matcha powder for this cup.</p></div>'+close+'</div>'+posDrinkImageHtml(optionProduct,'large')+
+      '<fieldset class="pos-upgrade-list"><legend>Matcha powder</legend>'+optionRows+'</fieldset>'+(!matchaOptions.length?'<div class="note">No premium matcha upgrades are configured for this drink.</div>':'')+
+      '<div class="pos-upgrade-total"><span>Drink total</span><strong>'+peso(optionTotal/100)+'</strong></div><p class="hint">Upgrade revenue is recorded on the receipt. Estimated profit still uses the base recipe cost until an exact premium-powder cost is configured.</p>'+
+      '<div class="pos-error" aria-live="assertive">'+escapeHtml(posOpsModal.error)+'</div><div class="modal-actions"><button class="btn secondary" data-act="closePosOpsModal">Cancel</button><button class="btn" data-act="confirmPosProductOption">Add to order \u00B7 '+peso(optionTotal/100)+'</button></div>';
+  }else if(posOpsModal.type==='manageDrinks'){
+    var removeMedia=posOpsModal.mediaRemoveProductId?posMediaRow(posOpsModal.mediaRemoveProductId):null;
+    if(removeMedia){
+      content.innerHTML='<div class="modal-head"><div><h2 id="posOpsModalTitle">Remove drink photo?</h2><p class="hint">'+escapeHtml(removeMedia.product_name||'Drink')+'</p></div>'+close+'</div><div class="pos-media-remove-confirm">'+posDrinkImageHtml(removeMedia,'large')+'<p>The drink stays published. Only its menu photo will be removed.</p></div>'+
+        '<div class="pos-error">'+escapeHtml(posOpsModal.error)+'</div><div class="modal-actions"><button id="posCancelRemoveImage" class="btn secondary" data-act="cancelRemovePosDrinkImage"'+frozen+'>Keep photo</button><button class="btn danger" data-act="confirmRemovePosDrinkImage"'+frozen+'>'+(posOpsModal.submitting?'Removing\u2026':'Remove photo')+'</button></div>';
+    }else{
+      var mediaRows=(posOpsModal.mediaRows||[]).map(function(row){var productId=String(row.product_id||''),busy=posOpsModal.submitting&&String(posOpsModal.mediaProductId||'')===productId,hasImage=!!row.image_object_path;
+        return '<div class="pos-media-row">'+posDrinkImageHtml(row,'thumb')+'<div class="pos-media-copy"><strong>'+escapeHtml(row.product_name||'Drink')+'</strong><small>'+escapeHtml(row.size_snapshot||'')+(row.available===false?' \u00B7 Hidden from POS':'')+'</small></div><div class="pos-media-actions"><label class="btn small secondary'+(posOpsModal.submitting?' disabled':'')+'">'+(busy?'Saving\u2026':(hasImage?'Replace':'Upload'))+'<input type="file" accept="image/jpeg,image/png,image/webp" data-pos-image-product="'+escapeHtml(productId)+'"'+(posOpsModal.submitting?' disabled':'')+'></label>'+(hasImage?'<button class="btn small danger" data-act="requestRemovePosDrinkImage" data-id="'+escapeHtml(productId)+'"'+(posOpsModal.submitting?' disabled':'')+'>Remove</button>':'')+'</div></div>';}).join('');
+      content.innerHTML='<div class="modal-head"><div><h2 id="posOpsModalTitle">Drink photos</h2><p class="hint">Upload a clear JPG, PNG, or WebP. Photos are optimized and shared on every POS device.</p></div>'+close+'</div>'+
+        '<div id="posManageDrinksList" class="pos-media-list" tabindex="-1">'+(posOpsModal.mediaLoading?'<div class="pos-loading">Loading drinks\u2026</div>':(mediaRows||'<p class="empty">No published drinks yet.</p>'))+'</div>'+
+        (posOpsModal.notice?'<div class="publish-note">'+escapeHtml(posOpsModal.notice)+'</div>':'')+'<div class="pos-error" aria-live="assertive">'+escapeHtml(posOpsModal.error)+'</div><div class="modal-actions"><button class="btn secondary" data-act="managePosMenu"'+frozen+'>Edit pricing &amp; publication</button><button class="btn" data-act="closePosOpsModal"'+frozen+'>Done</button></div>';
+    }
+  }else if(cartConfirm){
     var clearing=posOpsModal.cartAction==='clear',cartQty=Math.max(1,Number(posOpsModal.cartQuantity)||1);
     var cartTitle=clearing?'Clear current order?':'Remove this drink?';
     var cartSubject=clearing?'all '+cartQty+' drink'+(cartQty===1?'':'s'):cartQty+' &times; '+escapeHtml(posOpsModal.cartProductName||'this drink');
@@ -3953,16 +4342,16 @@ function posReceiptHtml(){
     '<button class="btn" data-act="posNewSale">Next order</button></div>';
 }
 function posProductCardHtml(item,locked){
-  var id=String(item.product_id||''),line=posCheckout.cart[id];
-  var current=!!(line&&!line.stale&&String(line.productVersionId||'')===String(item.active_version_id||''));
-  var needsReview=!!(line&&!current),count=current?Number(line.quantity||0):0;
+  var id=String(item.product_id||''),lines=posProductCartLines(id);
+  var current=lines.length>0&&lines.every(function(line){return !line.stale&&String(line.productVersionId||'')===String(item.active_version_id||'');});
+  var needsReview=lines.some(function(line){return line.stale||String(line.productVersionId||'')!==String(item.active_version_id||'');}),count=current?posProductCartQuantity(id):0;
   var name=String(item.product_name||'Product'),size=String(item.size_snapshot||'');
   var badge=current?'<span class="pos-product-count" aria-hidden="true">&times;'+count+'</span>':(needsReview?'<span class="pos-product-count warn" aria-hidden="true">Review</span>':'');
   var classes='pos-product'+(current?' selected':'')+(needsReview?' needs-review':'');
   var disabled=locked||needsReview;
   var label=needsReview?'Review '+name+' in the current order before adding more':('Add '+name+(size?' '+size:'')+(count?'; '+count+' in current order':''));
   return '<button class="'+classes+'" data-act="addPosProduct" data-id="'+escapeHtml(id)+'" aria-label="'+escapeHtml(label)+'"'+(disabled?' disabled':'')+'>'+badge+
-    '<span><span class="pos-product-name">'+escapeHtml(name)+'</span>'+
+    posDrinkImageHtml(item,'card')+'<span class="pos-product-copy"><span class="pos-product-name">'+escapeHtml(name)+'</span>'+
     (size?'<span class="pos-product-size">'+escapeHtml(size)+'</span>':'')+'</span>'+
     '<span class="pos-product-price">'+peso(Number(item.selling_price_centavos||0)/100)+'</span></button>';
 }
@@ -4005,8 +4394,11 @@ function posCartHtml(){
   var rows=lines.map(function(line){
     var stale='';
     if(line.stale)stale='<div class="pos-state warn" style="margin-top:6px">'+(line.latest?'Updated menu price '+peso(Number(line.latest.selling_price_centavos||0)/100):'No longer available')+'</div>';
-    return '<div class="pos-cart-line"><div class="pos-cart-line-top"><div class="pos-cart-name">'+escapeHtml(line.name)+(line.size?'<div class="pos-recent-meta">'+escapeHtml(line.size)+'</div>':'')+stale+'</div><div class="pos-cart-price">'+peso((Number(line.priceCentavos)||0)*(Number(line.quantity)||0)/100)+'</div></div>'+
-      '<div class="pos-qty"><button data-act="posQtyDown" data-id="'+escapeHtml(line.productId)+'" aria-label="Remove one '+escapeHtml(line.name)+'"'+(locked?' disabled':'')+'>−</button><span class="pos-qty-value">'+Number(line.quantity)+'</span><button data-act="posQtyUp" data-id="'+escapeHtml(line.productId)+'" aria-label="Add one '+escapeHtml(line.name)+'"'+(locked?' disabled':'')+'>+</button><button class="pos-remove" data-act="removePosLine" data-id="'+escapeHtml(line.productId)+'" aria-label="Remove '+escapeHtml(line.name)+' from order" title="Remove '+escapeHtml(line.name)+'"'+(locked?' disabled':'')+'><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13M10 11v5M14 11v5"></path></svg></button></div></div>';
+    var sizeDetail=line.size?'<div class="pos-recent-meta">'+escapeHtml(line.size)+'</div>':'';
+    var modifier=line.matchaOptionName?'<span class="pos-cart-modifier">'+escapeHtml(line.matchaOptionName)+' &middot; +'+peso(Number(line.matchaSurchargeCentavos||0)/100)+' each</span>':'';
+    var key=String(line.key||posVariantKey(line.productId,line.productVersionId,line.matchaOptionId,line.matchaOptionRevision));
+    return '<div class="pos-cart-line"><div class="pos-cart-line-top"><div class="pos-cart-name">'+escapeHtml(line.name)+sizeDetail+modifier+stale+'</div><div class="pos-cart-price">'+peso((Number(line.priceCentavos)||0)*(Number(line.quantity)||0)/100)+'</div></div>'+
+      '<div class="pos-qty"><button data-act="posQtyDown" data-id="'+escapeHtml(key)+'" aria-label="Remove one '+escapeHtml(line.name)+'"'+(locked?' disabled':'')+'>−</button><span class="pos-qty-value">'+Number(line.quantity)+'</span><button data-act="posQtyUp" data-id="'+escapeHtml(key)+'" aria-label="Add one '+escapeHtml(line.name)+'"'+(locked?' disabled':'')+'>+</button><button class="pos-remove" data-act="removePosLine" data-id="'+escapeHtml(key)+'" aria-label="Remove '+escapeHtml(line.name)+' from order" title="Remove '+escapeHtml(line.name)+'"'+(locked?' disabled':'')+'><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13M10 11v5M14 11v5"></path></svg></button></div></div>';
   }).join('');
   if(!rows)rows='<div class="empty">Tap a drink card to start the order.</div>';
   var changed=posCheckout.catalogChanged?'<div class="note"><strong>Menu changed.</strong> Review the new prices and unavailable items before checkout.'+(locked?'':'<div style="margin-top:8px"><button class="btn small secondary" data-act="acceptPosCatalogChanges">Apply updates &amp; remove unavailable</button></div>')+'</div>':'';
@@ -4079,11 +4471,12 @@ function posNoShiftGateHtml(){
 }
 function managePosMenu(){
   if(!posCanManageOperations())return false;
+  if(posOpsModal.open)posCloseOpsModal(true);
   if(!activateAppTab('products',false))return false;
   focusSoon('#products [data-act="openPublishModal"]');return true;
 }
 function posWorkspaceHtml(){
-  var manage=posCanManageOperations()?'<button class="btn small secondary" data-act="managePosMenu">Manage drinks</button>':'';
+  var manage=posCanManageMedia()?'<button class="btn small secondary" data-act="openManageDrinks">Manage drinks</button>':'';
   return '<div class="pos-workspace"><div class="card pos-catalog-card"><div class="pos-catalog-head"><h2>Drinks</h2><span class="spacer"></span>'+manage+'</div><div id="posCatalogBody">'+posCatalogHtml()+'</div></div>'+
     '<aside id="posCartPanel" class="card pos-cart-card" tabindex="-1">'+posCartHtml()+'</aside></div>';
 }
@@ -4388,6 +4781,11 @@ document.querySelector('nav').addEventListener('click', function(e){
   activateAppTab(b.dataset.tab,true);
 });
 
+document.body.addEventListener('error',function(e){
+  var image=e.target;if(!image||!image.classList||!image.classList.contains('pos-drink-image'))return;
+  image.hidden=true;var fallback=image.parentElement&&image.parentElement.querySelector('.pos-drink-image-fallback');if(fallback)fallback.hidden=false;
+},true);
+
 document.body.addEventListener('input', function(e){
   if(costingSourceCommitInFlight)return;
   var el=e.target;
@@ -4423,6 +4821,10 @@ document.body.addEventListener('input', function(e){
 document.body.addEventListener('change', function(e){
   if(costingSourceCommitInFlight)return;
   var el=e.target;
+  if(el.dataset.posImageProduct){var selectedFile=el.files&&el.files[0];if(selectedFile)uploadPosDrinkImage(el.dataset.posImageProduct,selectedFile).catch(function(){});el.value='';return;}
+  if(posOpsModal.open&&posOpsModal.type==='productOptions'&&el.name==='posMatchaOption'){
+    posOpsModal.selectedMatchaOptionId=el.value||'';posOpsModal.error='';renderPosOpsModal();focusSoon('#posOpsModal input[name="posMatchaOption"]:checked');return;
+  }
   if(el.id==='stockKindFilter'){stockState.kind=el.value||'all';renderStockResults();return;}
   if(stockModal.open&&el.dataset.stockField){
     if(el.dataset.stockField==='action'){setStockModalAction(el.value);return;}
@@ -4527,10 +4929,15 @@ document.body.addEventListener('click', function(e){
     case 'downloadPosReport': downloadPosReport();return;
     case 'printPosReport': printPosReport();return;
     case 'closePosOpsModal': posCloseOpsModal(false);return;
+    case 'openManageDrinks': openManageDrinksModal().catch(function(){});return;
+    case 'requestRemovePosDrinkImage': requestRemovePosDrinkImage(id);return;
+    case 'cancelRemovePosDrinkImage': cancelRemovePosDrinkImage();return;
+    case 'confirmRemovePosDrinkImage': confirmRemovePosDrinkImage().catch(function(){});return;
     case 'setPosCategory': posCheckout.category=id||'all';renderPos();return;
     case 'managePosMenu': managePosMenu();return;
     case 'focusPosCart': focusPosCart();return;
     case 'addPosProduct': addPosProduct(id);return;
+    case 'confirmPosProductOption': confirmPosProductOption();return;
     case 'posQtyDown': changePosQuantity(id,-1);return;
     case 'posQtyUp': changePosQuantity(id,1);return;
     case 'removePosLine': removePosLine(id);return;

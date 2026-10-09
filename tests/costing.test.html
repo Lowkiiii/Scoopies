@@ -153,8 +153,28 @@ document.getElementById('app').addEventListener('load', async () => {
       active_version_id: '33333333-3333-4333-8333-333333333333',
       category_id: '44444444-4444-4444-8444-444444444444',
       category_name: 'Matcha', product_name: 'Matcha Latte', size_snapshot: '12 oz',
-      selling_price_centavos: 17000, product_sort_order: 0, category_sort_order: 0
+      selling_price_centavos: 17000, product_sort_order: 0, category_sort_order: 0,
+      image_object_path: null, image_updated_at: null, matcha_upgrades: []
     }, overrides);
+  }
+  function matchaUpgradeFixture(overrides = {}) {
+    return Object.assign({
+      id: '99999999-9999-4999-8999-999999999999', revision: 1,
+      code: 'wakatake', display_name: 'Marukyu Koyamaen - Wakatake',
+      surcharge_centavos: 7000, sort_order: 10
+    }, overrides);
+  }
+  function upgradedMatchaCatalogFixture(overrides = {}) {
+    return checkoutCatalogFixture(Object.assign({
+      matcha_upgrades: [
+        matchaUpgradeFixture(),
+        matchaUpgradeFixture({
+          id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', revision: 3,
+          code: 'aya-no-mori', display_name: 'Kanbayashi Shunsho - Aya no Mori',
+          surcharge_centavos: 8000, sort_order: 20
+        })
+      ]
+    }, overrides));
   }
   function shiftStatusFixture(overrides = {}) {
     return Object.assign({
@@ -1683,7 +1703,7 @@ document.getElementById('app').addEventListener('load', async () => {
         calls.push({ name, args });
         if (name === 'pos_publish_costing_product') return rpcResult([publication]);
         if (name === 'pos_get_publication_status') return rpcResult([publication]);
-        if (name === 'pos_get_catalog') return rpcResult([catalog]);
+        if (name === 'pos_get_catalog_v2') return rpcResult([catalog]);
         if (name === 'pos_get_my_businesses') return rpcResult([{
           business_id: app.posContext.businessId, business_name: 'Scoopies', member_role: 'owner'
         }]);
@@ -1705,7 +1725,7 @@ document.getElementById('app').addEventListener('load', async () => {
     assert(!app.publishModalOpen, 'successful publish did not close the modal');
     assert(app.posContext.publications[product.id], 'successful publish did not update local publication status');
     assert(app.posCheckout.catalog.length === 1 && app.posCheckout.catalog[0].product_id === catalog.product_id, 'successful publish did not refresh the drink cards');
-    assert(calls.filter(call => call.name === 'pos_get_catalog').length === 1, 'successful publish did not use exactly one catalog-only refresh');
+    assert(calls.filter(call => call.name === 'pos_get_catalog_v2').length === 1, 'successful publish did not use exactly one catalog-only refresh');
     assert(!calls.some(call => ['pos_get_shift_status','pos_get_end_of_day_summary','pos_get_recent_sales_v2'].includes(call.name)), 'publishing reloaded shifts or reports instead of only the catalog');
     assert(app.stableSerialize(app.state) === before, 'publishing polluted the costing document with POS state');
     const cardText = app.document.querySelector('[data-entity=product][data-id=matcha-product]').textContent;
@@ -1719,7 +1739,7 @@ document.getElementById('app').addEventListener('load', async () => {
     app.cloud.client = { rpc(name) {
       if (name === 'pos_publish_costing_product') { publishCalls++; return rpcResult([publication]); }
       if (name === 'pos_get_publication_status') return rpcResult([publication]);
-      if (name === 'pos_get_catalog') { catalogCalls++; return rpcResult(null, { message: 'catalog offline' }); }
+      if (name === 'pos_get_catalog_v2') { catalogCalls++; return rpcResult(null, { message: 'catalog offline' }); }
       throw new Error('unexpected RPC ' + name);
     }};
     app.openPublishProductModal(product.id);
@@ -1738,7 +1758,7 @@ document.getElementById('app').addEventListener('load', async () => {
     app.cloud.client = { rpc(name) {
       if (name === 'pos_publish_costing_product') return rpcResult([publication]);
       if (name === 'pos_get_publication_status') return rpcResult([publication]);
-      if (name === 'pos_get_catalog') {
+      if (name === 'pos_get_catalog_v2') {
         signalCatalogStarted();
         return new Promise(resolve => { resolveCatalog = resolve; });
       }
@@ -1880,14 +1900,14 @@ document.getElementById('app').addEventListener('load', async () => {
     const calls = [];
     app.cloud.client = { rpc(name, args) {
       calls.push({ name, args });
-      if (name === 'pos_get_catalog') return rpcResult([catalog]);
+      if (name === 'pos_get_catalog_v2') return rpcResult([catalog]);
       if (name === 'pos_get_shift_status') return rpcResult([shiftStatusFixture({ can_view_costs: false, can_void_sales: false })]);
       if (name === 'pos_get_end_of_day_summary') return rpcResult([dayReportFixture({ can_view_costs: false, estimated_cost_centavos: null, estimated_gross_profit_centavos: null })]);
       if (name === 'pos_get_recent_sales_v2') return rpcResult([recentSaleFixture({ cashier_display_name: 'Cashier', item_summary: '<img id="unsafe-summary"> Matcha', can_view_costs: false, estimated_cost_centavos: null, estimated_gross_profit_centavos: null, can_void: false })]);
       throw new Error('unexpected RPC ' + name);
     }};
     assert(await app.loadPosCheckoutData(), 'cashier-safe POS data did not load');
-    assert(calls.map(call => call.name).sort().join('|') === ['pos_get_catalog', 'pos_get_shift_status', 'pos_get_recent_sales_v2', 'pos_get_end_of_day_summary'].sort().join('|'), 'POS loader called an unexpected RPC');
+    assert(calls.map(call => call.name).sort().join('|') === ['pos_get_catalog_v2', 'pos_get_shift_status', 'pos_get_recent_sales_v2', 'pos_get_end_of_day_summary'].sort().join('|'), 'POS loader called an unexpected RPC');
     assert(app.posCheckout.catalog[0].active_version_id === catalog.active_version_id, 'catalog version identity was not retained');
     assert(!app.document.getElementById('unsafe-summary'), 'recent item summary was rendered as HTML');
     assert(/<img id="unsafe-summary"> Matcha/.test(app.document.getElementById('posRoot').textContent), 'escaped item summary was not readable');
@@ -2262,7 +2282,7 @@ document.getElementById('app').addEventListener('load', async () => {
     app.posCheckout.reportLoadedMode = 'training';
     app.renderPos();
     assert(app.posContext.role === 'owner', 'downgrade fixture did not start with a stale owner role');
-    assert(app.document.querySelector('[data-act=managePosMenu]') && app.document.querySelector('[data-act=openPosVoid]'), 'owner controls were not visible before the authoritative downgrade');
+    assert(app.document.querySelector('[data-act=openManageDrinks]') && app.document.querySelector('[data-act=openPosVoid]'), 'owner controls were not visible before the authoritative downgrade');
 
     app.addPosProduct(catalog[0].product_id);
     app.posCheckout.cashReceived = '200';
@@ -2272,7 +2292,7 @@ document.getElementById('app').addEventListener('load', async () => {
       can_open_training: false, can_close_shift: false, can_void_sales: false
     });
     app.cloud.client = { rpc(name) {
-      if (name === 'pos_get_catalog') return rpcResult(catalog);
+      if (name === 'pos_get_catalog_v2') return rpcResult(catalog);
       if (name === 'pos_get_shift_status') return rpcResult([cashierStatus]);
       if (name === 'pos_get_end_of_day_summary') return rpcResult([dayReportFixture({
         is_training: false, can_view_costs: false,
@@ -2294,7 +2314,7 @@ document.getElementById('app').addEventListener('load', async () => {
     const review = root.querySelector('[data-act=reviewPosSale]');
     assert(role && role.textContent.trim().toLowerCase() === 'cashier', 'role pill trusted stale owner context instead of authoritative permissions');
     assert(!app.posCanManageOperations(), 'authoritative cashier permissions still allowed manager operations');
-    assert(!root.querySelector('[data-act=managePosMenu]'), 'Manage drinks remained visible after cashier downgrade');
+    assert(!root.querySelector('[data-act=openManageDrinks]'), 'Manage drinks remained visible after cashier downgrade');
     assert(!root.querySelector('[data-act=openPosVoid]'), 'Void remained visible after cashier downgrade despite an over-permissive sale row');
     assert(closeShift && closeShift.disabled, 'cashier could still close the owner-managed shift');
     assert(!root.querySelector('[data-mode=training]') && app.posCheckout.reportMode === 'live', 'cashier retained Training controls or a stale Training report mode');
@@ -2315,11 +2335,11 @@ document.getElementById('app').addEventListener('load', async () => {
     const catalogResponse = new Promise(resolve => { resolveCatalog = resolve; });
     const shiftResponse = new Promise(resolve => { resolveShift = resolve; });
     app.cloud.client = { rpc(name) {
-      if (name === 'pos_get_catalog') return catalogResponse;
+      if (name === 'pos_get_catalog_v2') return catalogResponse;
       if (name === 'pos_get_shift_status') return shiftResponse;
       if (name === 'pos_get_end_of_day_summary') return rpcResult([dayReportFixture()]);
       if (name === 'pos_get_recent_sales_v2') return rpcResult([recentSaleFixture()]);
-      if (name === 'pos_complete_shift_sale') { checkoutCalls++;return rpcResult([receiptFixture()]); }
+      if (name === 'pos_complete_shift_sale_v3') { checkoutCalls++;return rpcResult([receiptFixture()]); }
       throw new Error('unexpected RPC ' + name);
     }};
 
@@ -2354,9 +2374,9 @@ document.getElementById('app').addEventListener('load', async () => {
     const originalRecent = app.snapshot(app.posCheckout.recent);
     let saleCalls = 0;
     app.cloud.client = { rpc(name) {
-      if (name === 'pos_get_catalog') return rpcResult(catalog);
+      if (name === 'pos_get_catalog_v2') return rpcResult(catalog);
       if (name === 'pos_get_shift_status') return rpcResult(null, { message: 'offline' });
-      if (name === 'pos_complete_shift_sale') { saleCalls++;return rpcResult([receiptFixture()]); }
+      if (name === 'pos_complete_shift_sale_v3') { saleCalls++;return rpcResult([receiptFixture()]); }
       throw new Error('unexpected RPC ' + name);
     }};
 
@@ -2369,11 +2389,11 @@ document.getElementById('app').addEventListener('load', async () => {
     assert(!(await app.submitPosSale()) && saleCalls === 0, 'a sale reached the server while an authoritative refresh was required');
 
     app.cloud.client = { rpc(name) {
-      if (name === 'pos_get_catalog') return rpcResult(catalog);
+      if (name === 'pos_get_catalog_v2') return rpcResult(catalog);
       if (name === 'pos_get_shift_status') return rpcResult([shiftStatusFixture()]);
       if (name === 'pos_get_end_of_day_summary') return rpcResult([dayReportFixture()]);
       if (name === 'pos_get_recent_sales_v2') return rpcResult([recentSaleFixture()]);
-      if (name === 'pos_complete_shift_sale') { saleCalls++;return rpcResult([receiptFixture()]); }
+      if (name === 'pos_complete_shift_sale_v3') { saleCalls++;return rpcResult([receiptFixture()]); }
       throw new Error('unexpected RPC ' + name);
     }};
     assert(await app.refreshPosSilently(true), 'manual retry did not recover the register');
@@ -2389,9 +2409,9 @@ document.getElementById('app').addEventListener('load', async () => {
     const calls = {};
     app.cloud.client = { rpc(name) {
       calls[name] = (calls[name] || 0) + 1;
-      if (name === 'pos_get_catalog' && calls[name] === 1) return catalogResponse;
+      if (name === 'pos_get_catalog_v2' && calls[name] === 1) return catalogResponse;
       if (name === 'pos_get_shift_status' && calls[name] === 1) return shiftResponse;
-      if (name === 'pos_get_catalog') return rpcResult(catalog);
+      if (name === 'pos_get_catalog_v2') return rpcResult(catalog);
       if (name === 'pos_get_shift_status') return rpcResult([shiftStatusFixture()]);
       if (name === 'pos_get_end_of_day_summary') return rpcResult([dayReportFixture()]);
       if (name === 'pos_get_recent_sales_v2') return rpcResult([]);
@@ -2400,7 +2420,7 @@ document.getElementById('app').addEventListener('load', async () => {
 
     const first = app.refreshPosSilently(true);
     const overlapping = app.refreshPosSilently(true);
-    assert(calls.pos_get_catalog === 1 && calls.pos_get_shift_status === 1, 'overlapping silent refresh started duplicate requests');
+    assert(calls.pos_get_catalog_v2 === 1 && calls.pos_get_shift_status === 1, 'overlapping silent refresh started duplicate requests');
     resolveCatalog({ data: catalog, error: null });
     resolveShift({ data: [shiftStatusFixture()], error: null });
     assert((await first) && (await overlapping), 'deduplicated silent refresh did not complete for both callers');
@@ -2408,7 +2428,7 @@ document.getElementById('app').addEventListener('load', async () => {
     assert(await app.refreshPosSilently(false), 'throttled refresh did not return the retained verified state');
     assert(app.stableSerialize(calls) === app.stableSerialize(afterFirst), 'a focus-style refresh ignored the 30-second throttle');
     assert(await app.refreshPosSilently(true), 'forced refresh failed');
-    assert(calls.pos_get_catalog === 2 && calls.pos_get_shift_status === 2, 'forced refresh was incorrectly throttled');
+    assert(calls.pos_get_catalog_v2 === 2 && calls.pos_get_shift_status === 2, 'forced refresh was incorrectly throttled');
   });
   test('POS catalog cache is scoped, catalog-only, and ignores expired or incompatible records', () => {
     const catalog = installCheckout('owner');
@@ -2459,11 +2479,11 @@ document.getElementById('app').addEventListener('load', async () => {
     let resolveCatalog, saleCalls = 0;
     const catalogResponse = new Promise(resolve => { resolveCatalog = resolve; });
     app.cloud.client = { rpc(name) {
-      if (name === 'pos_get_catalog') return catalogResponse;
+      if (name === 'pos_get_catalog_v2') return catalogResponse;
       if (name === 'pos_get_shift_status') return rpcResult([shiftStatusFixture()]);
       if (name === 'pos_get_end_of_day_summary') return rpcResult([dayReportFixture()]);
       if (name === 'pos_get_recent_sales_v2') return rpcResult([]);
-      if (name === 'pos_complete_shift_sale') { saleCalls++;return rpcResult([receiptFixture()]); }
+      if (name === 'pos_complete_shift_sale_v3') { saleCalls++;return rpcResult([receiptFixture()]); }
       throw new Error('unexpected RPC ' + name);
     }};
 
@@ -2504,7 +2524,7 @@ document.getElementById('app').addEventListener('load', async () => {
     const catalogResponse = new Promise(resolve => { resolveCatalog = resolve; });
     const shiftResponse = new Promise(resolve => { resolveShift = resolve; });
     app.cloud.client = { rpc(name) {
-      if (name === 'pos_get_catalog') return catalogResponse;
+      if (name === 'pos_get_catalog_v2') return catalogResponse;
       if (name === 'pos_get_shift_status') return shiftResponse;
       if (name === 'pos_get_end_of_day_summary') return rpcResult([dayReportFixture()]);
       if (name === 'pos_get_recent_sales_v2') return rpcResult([]);
@@ -2536,7 +2556,7 @@ document.getElementById('app').addEventListener('load', async () => {
     app.posCheckout.cashReceived = '200';
     app.renderPos();
     app.cloud.client = { rpc(name) {
-      if (name === 'pos_get_catalog') return rpcResult(catalog);
+      if (name === 'pos_get_catalog_v2') return rpcResult(catalog);
       if (name === 'pos_get_shift_status') return rpcResult(null, { message: 'shift unavailable' });
       throw new Error('unexpected RPC ' + name);
     }};
@@ -2545,8 +2565,8 @@ document.getElementById('app').addEventListener('load', async () => {
 
     let saleCalls = 0;
     app.cloud.client = { rpc(name) {
-      if (name === 'pos_get_catalog') return rpcResult(catalog);
-      if (name === 'pos_complete_shift_sale') { saleCalls++;return rpcResult([receiptFixture()]); }
+      if (name === 'pos_get_catalog_v2') return rpcResult(catalog);
+      if (name === 'pos_complete_shift_sale_v3') { saleCalls++;return rpcResult([receiptFixture()]); }
       throw new Error('unexpected RPC ' + name);
     }};
     assert(await app.refreshPosCatalogOnly(), 'catalog-only recovery failed');
@@ -2564,7 +2584,7 @@ document.getElementById('app').addEventListener('load', async () => {
     const catalogResolvers = [], shiftResolvers = [];
     let catalogCalls = 0, shiftCalls = 0, saleCalls = 0;
     app.cloud.client = { rpc(name) {
-      if (name === 'pos_get_catalog') {
+      if (name === 'pos_get_catalog_v2') {
         catalogCalls++;
         return new Promise(resolve => { catalogResolvers.push(resolve); });
       }
@@ -2574,7 +2594,7 @@ document.getElementById('app').addEventListener('load', async () => {
       }
       if (name === 'pos_get_end_of_day_summary') return rpcResult([dayReportFixture()]);
       if (name === 'pos_get_recent_sales_v2') return rpcResult([recentSaleFixture()]);
-      if (name === 'pos_complete_shift_sale') { saleCalls++;return rpcResult([receiptFixture({ is_retry: true })]); }
+      if (name === 'pos_complete_shift_sale_v3') { saleCalls++;return rpcResult([receiptFixture({ is_retry: true })]); }
       throw new Error('unexpected RPC ' + name);
     }};
 
@@ -2613,7 +2633,7 @@ document.getElementById('app').addEventListener('load', async () => {
       const catalogResponse = new Promise(resolve => { resolveCatalog = resolve; });
       const shiftResponse = new Promise(resolve => { resolveShift = resolve; });
       app.cloud.client = { rpc(name) {
-        if (name === 'pos_get_catalog') return catalogResponse;
+        if (name === 'pos_get_catalog_v2') return catalogResponse;
         if (name === 'pos_get_shift_status') return shiftResponse;
         if (name === 'pos_get_end_of_day_summary') return rpcResult([dayReportFixture()]);
         if (name === 'pos_get_recent_sales_v2') return rpcResult([]);
@@ -2655,7 +2675,7 @@ document.getElementById('app').addEventListener('load', async () => {
     assert(status.getAttribute('role') === 'status' && status.getAttribute('aria-live') === 'polite', 'failed status lost its live-region semantics');
   });
   test('explicit POS access denial clears warm cache and operational checkout for either initial RPC', async () => {
-    for (const deniedRpc of ['pos_get_catalog', 'pos_get_shift_status']) {
+    for (const deniedRpc of ['pos_get_catalog_v2', 'pos_get_shift_status']) {
       const catalog = installCheckout('owner');
       markCheckoutVerified();
       app.addPosProduct(catalog[0].product_id);
@@ -2666,9 +2686,9 @@ document.getElementById('app').addEventListener('load', async () => {
       let saleCalls = 0;
       app.cloud.client = { rpc(name) {
         if (name === deniedRpc) return rpcResult(null, { code: '42501', message: 'access revoked' });
-        if (name === 'pos_get_catalog') return rpcResult(catalog);
+        if (name === 'pos_get_catalog_v2') return rpcResult(catalog);
         if (name === 'pos_get_shift_status') return rpcResult([shiftStatusFixture()]);
-        if (name === 'pos_complete_shift_sale') { saleCalls++;return rpcResult([receiptFixture()]); }
+        if (name === 'pos_complete_shift_sale_v3') { saleCalls++;return rpcResult([receiptFixture()]); }
         throw new Error('unexpected RPC ' + name);
       }};
 
@@ -2722,7 +2742,7 @@ document.getElementById('app').addEventListener('load', async () => {
     const catalog = installCheckout('owner');app.addPosProduct(catalog[0].product_id);app.posCheckout.cashReceived = '200';app.renderPos();
     let checkoutCalls = 0;
     app.cloud.client = { rpc(name) {
-      if (name === 'pos_complete_shift_sale') { checkoutCalls++;return rpcResult([receiptFixture()]); }
+      if (name === 'pos_complete_shift_sale_v3') { checkoutCalls++;return rpcResult([receiptFixture()]); }
       return rpcResult([]);
     }};
     click(app.document.querySelector('[data-act=reviewPosSale]'));
@@ -2735,27 +2755,35 @@ document.getElementById('app').addEventListener('load', async () => {
     await new Promise(resolve => app.setTimeout(resolve, 0));
     assert(checkoutCalls === 1 && app.posCheckout.lastReceipt, 'confirmed payment did not produce exactly one receipt');
   });
-  test('checkout sends product version and quantity only, then trusts the server receipt', async () => {
+  test('v3 checkout sends only the five server-priced product and modifier keys, then trusts the receipt', async () => {
     const catalog = installCheckout('owner');
     app.addPosProduct(catalog[0].product_id);
     app.posCheckout.cashReceived = '200.00';
     const calls = [];
     app.cloud.client = { rpc(name, args) {
       calls.push({ name, args });
-      if (name === 'pos_complete_shift_sale') return rpcResult([receiptFixture({ total_centavos: 16900, change_given_centavos: 3100 })]);
-      if (name === 'pos_get_catalog') return rpcResult(catalog);
+      if (name === 'pos_complete_shift_sale_v3') return rpcResult([receiptFixture({ total_centavos: 16900, change_given_centavos: 3100 })]);
+      if (name === 'pos_get_catalog_v2') return rpcResult(catalog);
       if (name === 'pos_get_shift_status') return rpcResult([shiftStatusFixture()]);
       if (name === 'pos_get_end_of_day_summary') return rpcResult([dayReportFixture()]);
       if (name === 'pos_get_recent_sales_v2') return rpcResult([]);
       throw new Error('unexpected RPC ' + name);
     }};
     assert(await app.submitPosSale(), 'valid sale was not completed');
-    const checkout = calls.find(call => call.name === 'pos_complete_shift_sale');
+    const checkout = calls.find(call => call.name === 'pos_complete_shift_sale_v3');
     assert(checkout, 'checkout did not use the atomic sale RPC');
     assert(checkout.args.p_items.length === 1, 'checkout sent the wrong number of lines');
     assert(checkout.args.p_shift_id === app.posCheckout.shift.shift_id && checkout.args.p_is_training === false, 'checkout was not bound to the exact Live shift');
-    assert(app.stableSerialize(checkout.args.p_items[0]) === app.stableSerialize({ product_id: catalog[0].product_id, product_version_id: catalog[0].active_version_id, quantity: 1 }), 'checkout item did not freeze only product, version, and quantity');
-    assert(!('price' in checkout.args.p_items[0]) && !('cost' in checkout.args.p_items[0]), 'browser sent a trusted price or cost');
+    const sentItem = checkout.args.p_items[0];
+    assert(app.stableSerialize(sentItem) === app.stableSerialize({
+      product_id: catalog[0].product_id,
+      product_version_id: catalog[0].active_version_id,
+      quantity: 1,
+      matcha_option_id: null,
+      matcha_option_revision: null
+    }), 'checkout item did not freeze the exact product/version/quantity/option contract');
+    assert(Object.keys(sentItem).sort().join('|') === 'matcha_option_id|matcha_option_revision|product_id|product_version_id|quantity', 'checkout item included a sixth client-controlled field');
+    assert(!('price' in sentItem) && !('cost' in sentItem) && !('surcharge_centavos' in sentItem), 'browser sent a trusted price, cost, or upgrade surcharge');
     assert(checkout.args.p_cash_tendered_centavos === 20000, 'cash tender was not sent as exact centavos');
     assert(app.posCheckout.lastReceipt.total_centavos === 16900 && app.posCheckout.lastReceipt.change_given_centavos === 3100, 'UI did not retain server-authoritative receipt totals');
     assert(app.posCartLines().length === 0, 'confirmed sale did not clear the cart');
@@ -2766,7 +2794,7 @@ document.getElementById('app').addEventListener('load', async () => {
       app.posCheckout.paymentMethod = method;app.posCheckout.cashReceived = '999.00';app.posCheckout.referenceNumber = `  ${method}-12345  `;
       let checkoutArgs;
       app.cloud.client = { rpc(name, args) {
-        if (name === 'pos_complete_shift_sale') { checkoutArgs = app.snapshot(args);return rpcResult([receiptFixture({ payment_method: method, cash_tendered_centavos: null, change_given_centavos: null })]); }
+        if (name === 'pos_complete_shift_sale_v3') { checkoutArgs = app.snapshot(args);return rpcResult([receiptFixture({ payment_method: method, cash_tendered_centavos: null, change_given_centavos: null })]); }
         return rpcResult([]);
       }};
       assert(await app.submitPosSale(), `valid ${method} sale did not complete`);
@@ -2780,7 +2808,7 @@ document.getElementById('app').addEventListener('load', async () => {
     app.addPosProduct(catalog[0].product_id);app.posCheckout.cashReceived = '200';
     const sent = [];
     app.cloud.client = { rpc(name, args) {
-      if (name === 'pos_complete_shift_sale') { sent.push(app.snapshot(args)); return Promise.reject(new Error('Failed to fetch')); }
+      if (name === 'pos_complete_shift_sale_v3') { sent.push(app.snapshot(args)); return Promise.reject(new Error('Failed to fetch')); }
       return rpcResult([]);
     }};
     assert(!(await app.submitPosSale()), 'network-ambiguous sale reported success');
@@ -2789,7 +2817,7 @@ document.getElementById('app').addEventListener('load', async () => {
     const records = app.posPendingRecords();
     assert(records[app.posPendingScope(app.session.user.id, app.posContext.businessId)], 'pending sale was not persisted under its account/workspace');
     app.cloud.client = { rpc(name, args) {
-      if (name === 'pos_complete_shift_sale') { sent.push(app.snapshot(args)); return rpcResult([receiptFixture({ is_retry: true })]); }
+      if (name === 'pos_complete_shift_sale_v3') { sent.push(app.snapshot(args)); return rpcResult([receiptFixture({ is_retry: true })]); }
       return rpcResult([]);
     }};
     assert(await app.submitPosSale(), 'exact retry did not recover a receipt');
@@ -2802,8 +2830,8 @@ document.getElementById('app').addEventListener('load', async () => {
     app.addPosProduct(oldCatalog[0].product_id);app.posCheckout.cashReceived = '200';
     const updated = checkoutCatalogFixture({ active_version_id: '66666666-6666-4666-8666-666666666666', selling_price_centavos: 18000 });
     app.cloud.client = { rpc(name) {
-      if (name === 'pos_complete_shift_sale') return rpcResult(null, { code: '40001', message: 'catalog changed' });
-      if (name === 'pos_get_catalog') return rpcResult([updated]);
+      if (name === 'pos_complete_shift_sale_v3') return rpcResult(null, { code: '40001', message: 'catalog changed' });
+      if (name === 'pos_get_catalog_v2') return rpcResult([updated]);
       if (name === 'pos_get_shift_status') return rpcResult([shiftStatusFixture()]);
       if (name === 'pos_get_end_of_day_summary') return rpcResult([dayReportFixture()]);
       if (name === 'pos_get_recent_sales_v2') return rpcResult([]);
@@ -2836,8 +2864,8 @@ document.getElementById('app').addEventListener('load', async () => {
     let resolveCheckout, catalogCalls = 0;
     const response = new Promise(resolve => { resolveCheckout = resolve; });
     app.cloud.client = { rpc(name) {
-      if (name === 'pos_complete_shift_sale') return response;
-      if (name === 'pos_get_catalog') catalogCalls++;
+      if (name === 'pos_complete_shift_sale_v3') return response;
+      if (name === 'pos_get_catalog_v2') catalogCalls++;
       return rpcResult([]);
     }};
     const submission = app.submitPosSale();
@@ -2873,7 +2901,7 @@ document.getElementById('app').addEventListener('load', async () => {
     let catalogCalls = 0, resolveFullCatalog;
     const firstCatalog = new Promise(resolve => { resolveFullCatalog = resolve; });
     app.cloud.client = { rpc(name) {
-      if (name === 'pos_get_catalog') {
+      if (name === 'pos_get_catalog_v2') {
         catalogCalls++;
         return catalogCalls === 1 ? firstCatalog : rpcResult(catalog);
       }
@@ -2906,7 +2934,7 @@ document.getElementById('app').addEventListener('load', async () => {
       removeChannel() {},
       rpc(name) {
         if (name === 'pos_get_my_businesses') return rpcResult([{ business_id: '11111111-1111-4111-8111-111111111111', business_name: 'Scoopies', member_role: 'owner' }]);
-        if (name === 'pos_get_publication_status' || name === 'pos_get_catalog') return rpcResult([]);
+        if (name === 'pos_get_publication_status' || name === 'pos_get_catalog_v2') return rpcResult([]);
         if (name === 'pos_get_shift_status') return rpcResult([shiftStatusFixture()]);
         if (name === 'pos_get_end_of_day_summary') return rpcResult([dayReportFixture()]);
         if (name === 'pos_get_recent_sales_v2') return rpcResult([]);
@@ -2927,7 +2955,7 @@ document.getElementById('app').addEventListener('load', async () => {
   test('authoritative no-shift loading leaves the drink cards visible instead of auto-opening a modal', async () => {
     const catalog = installCheckout('owner');
     app.cloud.client = { rpc(name) {
-      if (name === 'pos_get_catalog') return rpcResult(catalog);
+      if (name === 'pos_get_catalog_v2') return rpcResult(catalog);
       if (name === 'pos_get_shift_status') return rpcResult([shiftStatusFixture({
         has_open_shift: false, shift_id: null, opening_cash_centavos: null, opened_at: null,
         can_open_live: true, can_open_training: true, can_close_shift: false
@@ -3026,6 +3054,290 @@ document.getElementById('app').addEventListener('load', async () => {
     click(app.document.querySelector('[data-act=confirmPosCartAction]'));
     assert(!app.document.querySelector('.pos-mobile-order-bar'), 'mobile shortcut remained after the cart became empty');
   });
+  test('matcha customization is non-destructive and keeps standard, +70, and +80 as distinct variants', () => {
+    const product = upgradedMatchaCatalogFixture();
+    const options = product.matcha_upgrades;
+    installCheckout('owner', [product]);
+
+    click(app.document.querySelector('[data-act=addPosProduct]'));
+    assert(app.posOpsModal.open && app.posOpsModal.type === 'productOptions', 'tapping a configurable Matcha drink did not open its customization modal');
+    assert(app.posCartLines().length === 0, 'opening the customization modal changed the cart before confirmation');
+    assert(/170\.00/.test(app.document.querySelector('.pos-upgrade-total').textContent), 'standard Matcha did not preview the base total');
+    click(app.document.querySelector('#posOpsModal [data-act=closePosOpsModal]'));
+    assert(!app.posOpsModal.open && app.posCartLines().length === 0, 'canceling Matcha customization added a drink');
+
+    click(app.document.querySelector('[data-act=addPosProduct]'));
+    click(app.document.querySelector('[data-act=confirmPosProductOption]'));
+    assert(app.posCartLines().length === 1 && app.posCartTotalCentavos() === 17000, 'standard Matcha did not add at the base price');
+
+    click(app.document.querySelector('[data-act=addPosProduct]'));
+    let radio = app.document.querySelector(`#posOpsModal input[name="posMatchaOption"][value="${options[0].id}"]`);
+    radio.checked = true;
+    radio.dispatchEvent(new app.Event('change', { bubbles: true }));
+    assert(/240\.00/.test(app.document.querySelector('.pos-upgrade-total').textContent), '+70 Matcha did not preview base plus surcharge');
+    click(app.document.querySelector('[data-act=confirmPosProductOption]'));
+
+    click(app.document.querySelector('[data-act=addPosProduct]'));
+    radio = app.document.querySelector(`#posOpsModal input[name="posMatchaOption"][value="${options[1].id}"]`);
+    radio.checked = true;
+    radio.dispatchEvent(new app.Event('change', { bubbles: true }));
+    assert(/250\.00/.test(app.document.querySelector('.pos-upgrade-total').textContent), '+80 Matcha did not preview base plus surcharge');
+    click(app.document.querySelector('[data-act=confirmPosProductOption]'));
+
+    let lines = app.posCartLines();
+    assert(lines.length === 3 && app.posCartTotalCentavos() === 66000, 'standard, +70, and +80 were not retained as three correctly priced lines');
+    assert(lines.find(line => !line.matchaOptionId).quantity === 1, 'standard Matcha line was missing');
+    assert(lines.find(line => line.matchaOptionId === options[0].id).priceCentavos === 24000, '+70 Matcha line had the wrong price');
+    assert(lines.find(line => line.matchaOptionId === options[1].id).priceCentavos === 25000, '+80 Matcha line had the wrong price');
+
+    click(app.document.querySelector('[data-act=addPosProduct]'));
+    radio = app.document.querySelector(`#posOpsModal input[name="posMatchaOption"][value="${options[0].id}"]`);
+    radio.checked = true;
+    radio.dispatchEvent(new app.Event('change', { bubbles: true }));
+    click(app.document.querySelector('[data-act=confirmPosProductOption]'));
+    lines = app.posCartLines();
+    assert(lines.length === 3 && lines.find(line => line.matchaOptionId === options[0].id).quantity === 2, 'repeating +70 did not increment only its existing variant');
+    assert(lines.find(line => !line.matchaOptionId).quantity === 1 && lines.find(line => line.matchaOptionId === options[1].id).quantity === 1, 'repeating +70 changed another variant');
+    assert(app.posCartUnits() === 4 && app.posProductCartQuantity(product.product_id) === 4, 'product aggregate did not count every variant');
+    assert(app.document.querySelector('.pos-product-count').textContent.includes('4'), 'drink-card badge did not aggregate all Matcha variants');
+    const modifiers = Array.from(app.document.querySelectorAll('.pos-cart-modifier')).map(node => node.textContent);
+    assert(modifiers.some(text => /Wakatake/.test(text)) && modifiers.some(text => /Aya no Mori/.test(text)), 'cart lines did not label the selected Matcha powder');
+  });
+  test('Hojicha and products without upgrade choices add directly without a modal', () => {
+    const plainMatcha = checkoutCatalogFixture({ product_name: 'Plain Matcha', matcha_upgrades: [] });
+    const hojicha = checkoutCatalogFixture({
+      product_id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+      active_version_id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+      product_name: 'Sea Salt Hojicha Latte', category_name: 'Hojicha', matcha_upgrades: []
+    });
+    installCheckout('owner', [plainMatcha, hojicha]);
+    click(app.document.querySelector(`[data-act=addPosProduct][data-id="${plainMatcha.product_id}"]`));
+    assert(!app.posOpsModal.open && app.posCartLines().length === 1, 'a Matcha product without upgrade data opened the customization modal');
+    click(app.document.querySelector(`[data-act=addPosProduct][data-id="${hojicha.product_id}"]`));
+    assert(!app.posOpsModal.open, 'Hojicha opened the customization modal');
+    assert(app.posCartLines().length === 2 && app.posCartLines().every(line => line.quantity === 1), 'non-configurable drinks did not add directly to the order');
+  });
+  test('schema-3 pending sales restore modifier variants and preserve the exact v3 item contract', () => {
+    const product = upgradedMatchaCatalogFixture();
+    const upgrade = product.matcha_upgrades[0];
+    installCheckout('owner', [product]);
+    app.addPosProductVariant(product, null);
+    app.addPosProductVariant(product, upgrade);
+    app.posCheckout.paymentMethod = 'gcash';
+    app.posCheckout.referenceNumber = 'upgrade-recovery';
+    const record = app.buildPosPendingSale({ valid: true, error: '', cashCentavos: null });
+    assert(record.schemaVersion === 3 && record.rpcName === 'pos_complete_shift_sale_v3', 'new modifier sale did not use the schema-3 v3 recovery contract');
+    assert(record.rpcArgs.p_items.length === 2, 'variant checkout collapsed distinct Matcha selections');
+    record.rpcArgs.p_items.forEach(item => {
+      assert(Object.keys(item).sort().join('|') === 'matcha_option_id|matcha_option_revision|product_id|product_version_id|quantity', 'v3 item included a client price, cost, name, or surcharge');
+    });
+    const standardItem = record.rpcArgs.p_items.find(item => item.matcha_option_id === null);
+    const upgradedItem = record.rpcArgs.p_items.find(item => item.matcha_option_id === upgrade.id);
+    assert(standardItem && standardItem.matcha_option_revision === null, 'standard v3 item did not send null modifier identity');
+    assert(upgradedItem && upgradedItem.matcha_option_revision === upgrade.revision, 'upgraded v3 item did not freeze the option revision');
+    assert(!record.rpcArgs.p_items.some(item => 'price' in item || 'cost' in item || 'surcharge_centavos' in item), 'pending v3 payload trusted browser money');
+
+    app.posSavePending(record);
+    app.resetPosCheckout();
+    installPosContext('owner');
+    app.posCheckout.catalog = [product];
+    assert(app.posRestorePending(), 'schema-3 pending modifier sale did not restore');
+    const restored = app.posCartLines();
+    assert(restored.length === 2 && app.posCartTotalCentavos() === 41000, 'pending restore merged modifier variants or changed their frozen totals');
+    assert(restored.some(line => !line.matchaOptionId && line.priceCentavos === 17000), 'pending restore lost the standard variant');
+    assert(restored.some(line => line.matchaOptionId === upgrade.id && line.matchaOptionRevision === upgrade.revision && line.priceCentavos === 24000), 'pending restore lost the upgraded variant metadata');
+    assert(app.posCheckout.paymentMethod === 'gcash' && app.posCheckout.referenceNumber === 'upgrade-recovery', 'pending restore changed the frozen payment details');
+    app.posClearPending();
+    app.resetPosCheckout();
+  });
+  test('a stored schema-2 pending sale restores and retries through its original RPC unchanged', async () => {
+    const product = checkoutCatalogFixture();
+    installCheckout('owner', [product]);
+    const legacy = {
+      schemaVersion: 2,
+      rpcName: 'pos_complete_shift_sale',
+      userId: app.session.user.id,
+      businessId: app.posContext.businessId,
+      createdAt: '2026-10-01T00:00:00Z',
+      rpcArgs: {
+        p_business_id: app.posContext.businessId,
+        p_shift_id: app.posCheckout.shift.shift_id,
+        p_is_training: false,
+        p_client_sale_id: '11111111-2222-4333-8444-555555555555',
+        p_items: [{ product_id: product.product_id, product_version_id: product.active_version_id, quantity: 2 }],
+        p_payment_method: 'gcash',
+        p_cash_tendered_centavos: null,
+        p_reference_number: 'legacy-retry',
+        p_note: null
+      },
+      cartSnapshot: [{
+        productId: product.product_id,
+        productVersionId: product.active_version_id,
+        name: product.product_name,
+        size: product.size_snapshot,
+        priceCentavos: product.selling_price_centavos,
+        quantity: 2
+      }]
+    };
+    app.posSavePending(legacy);
+    app.resetPosCheckout();
+    installPosContext('owner');
+    app.posCheckout.catalog = [product];
+    assert(app.posRestorePending(), 'schema-2 pending sale did not restore');
+    assert(app.posCartLines().length === 1 && app.posCartTotalCentavos() === 34000, 'schema-2 pending sale changed its line or frozen total');
+    const saleCalls = [];
+    app.cloud.client = { rpc(name, args) {
+      if (name === 'pos_complete_shift_sale') {
+        saleCalls.push({ name, args: app.snapshot(args) });
+        return rpcResult([receiptFixture({ total_centavos: 34000, payment_method: 'gcash', is_retry: true })]);
+      }
+      if (name === 'pos_get_catalog_v2') return rpcResult([product]);
+      if (name === 'pos_get_shift_status') return rpcResult([shiftStatusFixture()]);
+      if (name === 'pos_get_end_of_day_summary') return rpcResult([dayReportFixture()]);
+      if (name === 'pos_get_recent_sales_v2') return rpcResult([]);
+      throw new Error('unexpected legacy recovery RPC ' + name);
+    }};
+    assert(await app.submitPosSale(), 'schema-2 pending sale did not recover its receipt');
+    assert(saleCalls.length === 1 && saleCalls[0].name === 'pos_complete_shift_sale', 'schema-2 retry was silently upgraded to a different RPC');
+    assert(app.stableSerialize(saleCalls[0].args) === app.stableSerialize(legacy.rpcArgs), 'schema-2 retry payload changed');
+    app.resetPosCheckout();
+  });
+  test('drink photos use public URLs, recover to a fallback, and management stays role-gated', async () => {
+    const product = checkoutCatalogFixture({ image_object_path: 'business/product/menu.webp' });
+    const mediaRow = Object.assign({}, product, { available: true });
+    const mediaCalls = [];
+    const mediaClient = {
+      storage: {
+        from(bucket) {
+          assert(bucket === 'pos-product-images', 'drink photo used the wrong storage bucket');
+          return { getPublicUrl(path) { return { data: { publicUrl: `https://cdn.example.test/${path}` } }; } };
+        }
+      },
+      rpc(name, args) {
+        mediaCalls.push({ name, args });
+        if (name === 'pos_get_product_media') return rpcResult([mediaRow]);
+        throw new Error('unexpected media RPC ' + name);
+      }
+    };
+
+    installCheckout('manager', [product]);
+    app.cloud.client = mediaClient;
+    app.renderPos();
+    const photo = app.document.querySelector('.pos-drink-photo.card');
+    const image = photo && photo.querySelector('.pos-drink-image');
+    const fallback = photo && photo.querySelector('.pos-drink-image-fallback');
+    assert(image && image.src === 'https://cdn.example.test/business/product/menu.webp', 'drink card did not resolve its stored image path');
+    assert(fallback && fallback.hidden, 'successful drink image displayed its fallback');
+    image.dispatchEvent(new app.Event('error'));
+    assert(image.hidden && !fallback.hidden, 'broken drink image did not reveal its safe fallback');
+    assert(app.document.querySelector('[data-act=openManageDrinks]'), 'manager did not receive the Manage drinks action');
+    assert(await app.openManageDrinksModal(), 'manager could not open drink photo management');
+    assert(mediaCalls.length === 1 && mediaCalls[0].name === 'pos_get_product_media', 'photo manager used the wrong read RPC');
+    assert(app.posOpsModal.type === 'manageDrinks' && app.document.getElementById('posManageDrinksList'), 'photo manager did not render its dedicated modal list');
+    assert(app.document.querySelector('.pos-drink-photo.thumb .pos-drink-image'), 'photo manager did not render the saved thumbnail');
+    assert(app.document.querySelector(`input[data-pos-image-product="${product.product_id}"]`), 'photo manager did not render a product-scoped upload input');
+    app.posCloseOpsModal(true);
+
+    installCheckout('cashier', [product]);
+    app.cloud.client = mediaClient;
+    app.renderPos();
+    assert(!app.document.querySelector('[data-act=openManageDrinks]'), 'cashier was shown drink photo management');
+    assert(!(await app.openManageDrinksModal()), 'cashier opened drink photo management through code');
+    assert(mediaCalls.length === 1, 'cashier authorization guard reached the media RPC');
+  });
+  test('manager image upload stores an immutable WebP path and binds it to the exact product', async () => {
+    const product = checkoutCatalogFixture({ image_object_path: null });
+    const mediaRow = Object.assign({}, product, { available: true });
+    let uploadedPath = '', setArgs = null;
+    installCheckout('manager', [product]);
+    app.cloud.client = {
+      storage: {
+        from() {
+          return {
+            getPublicUrl(path) { return { data: { publicUrl: 'https://cdn.example.test/' + path } }; },
+            upload(path, blob, options) {
+              uploadedPath = path;
+              assert(blob.type === 'image/webp' && options.contentType === 'image/webp' && options.upsert === false, 'upload did not use the optimized immutable WebP contract');
+              return Promise.resolve({ data: { path }, error: null });
+            },
+            remove() { throw new Error('a first upload must not delete another object'); }
+          };
+        }
+      },
+      rpc(name, args) {
+        if (name === 'pos_get_product_media') return rpcResult([mediaRow]);
+        if (name === 'pos_set_product_image') {
+          setArgs = app.snapshot(args);
+          return rpcResult([{ product_id: product.product_id, image_object_path: args.p_new_path, previous_image_object_path: null, updated_at: '2026-10-10T00:00:00Z', is_retry: false }]);
+        }
+        throw new Error('unexpected media RPC ' + name);
+      }
+    };
+    assert(await app.openManageDrinksModal(), 'photo manager did not open for upload test');
+    const originalPrepare = app.posPrepareDrinkImage;
+    app.posPrepareDrinkImage = async () => ({ size: 128, type: 'image/webp' });
+    try {
+      assert(await app.uploadPosDrinkImage(product.product_id, { size: 128, type: 'image/png' }), 'valid manager image upload failed');
+    } finally {
+      app.posPrepareDrinkImage = originalPrepare;
+    }
+    const prefix = app.posContext.businessId + '/' + product.product_id + '/';
+    assert(uploadedPath.startsWith(prefix) && /\/[0-9a-f-]+\.webp$/.test(uploadedPath), 'image did not use a product-scoped immutable WebP path');
+    assert(setArgs && setArgs.p_product_id === product.product_id && setArgs.p_new_path === uploadedPath && setArgs.p_expected_old_path === null, 'image binding was not product-scoped compare-and-swap');
+    assert(app.posCheckout.catalog[0].image_object_path === uploadedPath, 'successful upload did not patch the visible menu');
+    assert(/saved to the shared menu/i.test(app.posOpsModal.notice), 'successful upload did not confirm shared persistence');
+    app.posCloseOpsModal(true);
+  });
+  test('an ambiguous image attach never deletes the possibly authoritative uploaded object', async () => {
+    const product = checkoutCatalogFixture({ image_object_path: null });
+    const mediaRow = Object.assign({}, product, { available: true });
+    let mediaReads = 0, removeCalls = 0;
+    installCheckout('manager', [product]);
+    app.cloud.client = {
+      storage: {
+        from() {
+          return {
+            getPublicUrl() { return { data: { publicUrl: '' } }; },
+            upload() { return Promise.resolve({ data: { path: 'uploaded' }, error: null }); },
+            remove() { removeCalls += 1; return Promise.resolve({ data: [], error: null }); }
+          };
+        }
+      },
+      rpc(name) {
+        if (name === 'pos_get_product_media') {
+          mediaReads += 1;
+          return mediaReads === 1 ? rpcResult([mediaRow]) : Promise.reject(new Error('verification offline'));
+        }
+        if (name === 'pos_set_product_image') return Promise.reject(new Error('Failed to fetch'));
+        throw new Error('unexpected media RPC ' + name);
+      }
+    };
+    assert(await app.openManageDrinksModal(), 'photo manager did not open for ambiguity test');
+    const originalPrepare = app.posPrepareDrinkImage;
+    app.posPrepareDrinkImage = async () => ({ size: 128, type: 'image/webp' });
+    try {
+      assert(!(await app.uploadPosDrinkImage(product.product_id, { size: 128, type: 'image/png' })), 'ambiguous image attachment reported success');
+    } finally {
+      app.posPrepareDrinkImage = originalPrepare;
+    }
+    assert(mediaReads === 2, 'ambiguous image attach did not attempt authoritative verification');
+    assert(removeCalls === 0, 'ambiguous image attach tried to delete a possibly committed image');
+    assert(app.posOpsModal.open && !app.posOpsModal.submitting && app.posOpsModal.error, 'ambiguous image attach did not leave a safe retry state');
+    app.posCloseOpsModal(true);
+  });
+  test('whole-app Whisked theme exposes the forest, cream, and pink design tokens', () => {
+    const tokens = app.getComputedStyle(app.document.documentElement);
+    assert(tokens.getPropertyValue('--forest').trim() === '#173f2b', 'forest brand token changed');
+    assert(tokens.getPropertyValue('--cream').trim() === '#f9f3e8', 'cream brand token changed');
+    assert(tokens.getPropertyValue('--pink').trim() === '#d46287', 'pink accent token changed');
+    assert(tokens.getPropertyValue('--pink-dark').trim() === '#b73566', 'accessible dark-pink action token changed');
+    assert(tokens.getPropertyValue('--focus').trim() === '#d46287', 'keyboard focus token no longer follows the pink accent');
+    assert(tokens.getPropertyValue('--brown').trim() === '#173f2b', 'legacy components no longer inherit the whole-app forest theme');
+    const headerStyle = app.getComputedStyle(app.document.querySelector('header'));
+    const bodyStyle = app.getComputedStyle(app.document.body);
+    assert(headerStyle.backgroundColor === 'rgb(23, 63, 43)', 'app header did not use forest green');
+    assert(bodyStyle.backgroundColor === 'rgb(249, 243, 232)', 'app canvas did not use the cream background');
+  });
   test('all drinks display as cards and Matcha or Hojicha filters group the menu', () => {
     assert(app.posDrinkGroupKey({ product_name: 'SEA SALT HOJICHA LATTE' }) === 'hojicha', 'Hojicha grouping was case-sensitive');
     assert(app.posDrinkGroupKey({ product_name: 'Roasted Latte', category_name: 'HOJICHA' }) === 'hojicha', 'category-only Hojicha grouping was ignored');
@@ -3100,7 +3412,7 @@ document.getElementById('app').addEventListener('load', async () => {
         register_name: 'Main register', is_training: false, opening_cash_centavos: 12345,
         opened_at: '2026-09-28T01:00:00Z', opened_by_display_name: 'Cashier', is_retry: false
       }]);
-      if (name === 'pos_get_catalog') return rpcResult(catalog);
+      if (name === 'pos_get_catalog_v2') return rpcResult(catalog);
       if (name === 'pos_get_shift_status') return rpcResult([shiftStatusFixture({ opening_cash_centavos: 12345, opened_by_display_name: 'Cashier', can_view_costs: false, can_void_sales: false })]);
       if (name === 'pos_get_end_of_day_summary') return rpcResult([dayReportFixture({ can_view_costs: false, estimated_cost_centavos: null, estimated_gross_profit_centavos: null })]);
       if (name === 'pos_get_recent_sales_v2') return rpcResult([]);
@@ -3128,7 +3440,7 @@ document.getElementById('app').addEventListener('load', async () => {
     assert(/excluded from Live/.test(app.document.getElementById('posRoot').textContent), 'Training isolation was not explained');
     app.addPosProduct(catalog[0].product_id);app.posCheckout.cashReceived = '200';
     const record = app.buildPosPendingSale(app.posCheckoutValidation());
-    assert(record.rpcName === 'pos_complete_shift_sale', 'new checkout used the legacy auto-shift RPC');
+    assert(record.rpcName === 'pos_complete_shift_sale_v3', 'new checkout did not use the modifier-aware shift sale RPC');
     assert(record.rpcArgs.p_shift_id === app.posCheckout.shift.shift_id, 'checkout did not freeze the shift ID');
     assert(record.rpcArgs.p_is_training === true, 'checkout did not freeze Training mode');
   });
@@ -3153,7 +3465,7 @@ document.getElementById('app').addEventListener('load', async () => {
     let closeArgs;
     app.cloud.client = { rpc(name, args) {
       if (name === 'pos_close_shift') { closeArgs = app.snapshot(args);return rpcResult([closeResultFixture()]); }
-      if (name === 'pos_get_catalog') return rpcResult([]);
+      if (name === 'pos_get_catalog_v2') return rpcResult([]);
       if (name === 'pos_get_shift_status') return rpcResult([shiftStatusFixture({ has_open_shift: false, shift_id: null, can_open_live: true, can_open_training: true, can_close_shift: false })]);
       if (name === 'pos_get_end_of_day_summary') return rpcResult([dayReportFixture()]);
       if (name === 'pos_get_recent_sales_v2') return rpcResult([]);
@@ -3177,7 +3489,7 @@ document.getElementById('app').addEventListener('load', async () => {
         cash_variance_centavos: 0, expected_gcash_centavos: 0, verified_gcash_centavos: 0,
         gcash_variance_centavos: 0, expected_gotyme_centavos: 0, verified_gotyme_centavos: 0, gotyme_variance_centavos: 0
       })]); }
-      if (name === 'pos_get_catalog') return rpcResult([]);
+      if (name === 'pos_get_catalog_v2') return rpcResult([]);
       if (name === 'pos_get_shift_status') return rpcResult([shiftStatusFixture({ has_open_shift: false, shift_id: null, last_closed_is_training: true, can_open_live: true, can_open_training: true, can_close_shift: false })]);
       if (name === 'pos_get_end_of_day_summary') return rpcResult([dayReportFixture({ is_training: true })]);
       if (name === 'pos_get_recent_sales_v2') return rpcResult([]);
@@ -3227,7 +3539,7 @@ document.getElementById('app').addEventListener('load', async () => {
     });
     app.cloud.client = { rpc(name) {
       if (name === 'pos_void_sale') { voidCalls++;return response; }
-      if (name === 'pos_get_catalog') return rpcResult([]);
+      if (name === 'pos_get_catalog_v2') return rpcResult([]);
       if (name === 'pos_get_shift_status') return rpcResult([shiftStatusFixture()]);
       if (name === 'pos_get_end_of_day_summary') return rpcResult([dayReportFixture({
         voided_sale_count: 1, net_sale_count: 0, voided_items_sold: 1, net_items_sold: 0,
@@ -3277,7 +3589,7 @@ document.getElementById('app').addEventListener('load', async () => {
     app.posCheckout.shift = null;
     const reportCalls = [];
     app.cloud.client = { rpc(name, args) {
-      if (name === 'pos_get_catalog') return rpcResult(catalog);
+      if (name === 'pos_get_catalog_v2') return rpcResult(catalog);
       if (name === 'pos_get_shift_status') return rpcResult([shiftStatusFixture({ has_open_shift: false, shift_id: null, can_open_live: true, can_open_training: true, can_close_shift: false })]);
       if (name === 'pos_get_end_of_day_summary') { reportCalls.push(app.snapshot(args));return rpcResult([dayReportFixture({ is_training: true })]); }
       if (name === 'pos_get_recent_sales_v2') { reportCalls.push(app.snapshot(args));return rpcResult([]); }
@@ -3295,7 +3607,7 @@ document.getElementById('app').addEventListener('load', async () => {
     app.openPosReportModal();
     const oldReport = app.posCheckout.dailyReport;
     app.cloud.client = { rpc(name) {
-      if (name === 'pos_get_catalog') return rpcResult([]);
+      if (name === 'pos_get_catalog_v2') return rpcResult([]);
       if (name === 'pos_get_shift_status') return rpcResult([shiftStatusFixture({ has_open_shift: false, shift_id: null, can_open_live: true, can_open_training: true, can_close_shift: false })]);
       if (name === 'pos_get_end_of_day_summary' || name === 'pos_get_recent_sales_v2') return Promise.reject(new Error('offline'));
       throw new Error('unexpected RPC ' + name);
@@ -3307,7 +3619,7 @@ document.getElementById('app').addEventListener('load', async () => {
     installNoShift('owner');
     app.posCheckout.reportDate = '2026-09-29';
     app.cloud.client = { rpc(name) {
-      if (name === 'pos_get_catalog') return rpcResult([]);
+      if (name === 'pos_get_catalog_v2') return rpcResult([]);
       if (name === 'pos_get_shift_status') return rpcResult([shiftStatusFixture({ has_open_shift: false, shift_id: null, can_open_live: true, can_open_training: true, can_close_shift: false })]);
       return Promise.reject(new Error('offline'));
     }};
@@ -3319,7 +3631,7 @@ document.getElementById('app').addEventListener('load', async () => {
     app.openPosReportModal();
     assert(app.posCheckout.dailyReport, 'same-mode fixture did not start with a report');
     app.cloud.client = { rpc(name) {
-      if (name === 'pos_get_catalog') return rpcResult([]);
+      if (name === 'pos_get_catalog_v2') return rpcResult([]);
       if (name === 'pos_get_shift_status') return Promise.reject(new Error('offline'));
       throw new Error('reports must not load without authoritative shift status');
     }};
@@ -3344,7 +3656,7 @@ document.getElementById('app').addEventListener('load', async () => {
       estimated_cost_centavos: 12484, estimated_gross_profit_centavos: 21516
     });
     app.cloud.client = { rpc(name) {
-      if (name === 'pos_get_catalog') return rpcResult([]);
+      if (name === 'pos_get_catalog_v2') return rpcResult([]);
       if (name === 'pos_get_shift_status') return rpcResult([shiftStatusFixture({ has_open_shift: false, shift_id: null, can_open_live: true, can_open_training: true, can_close_shift: false })]);
       if (name === 'pos_get_end_of_day_summary') return rpcResult([updated]);
       if (name === 'pos_get_recent_sales_v2') return rpcResult([]);
@@ -3369,7 +3681,7 @@ document.getElementById('app').addEventListener('load', async () => {
     const original = installCheckout('owner');
     let resolveCatalog;
     app.cloud.client = { rpc(name) {
-      if (name !== 'pos_get_catalog') throw new Error('unexpected RPC ' + name);
+      if (name !== 'pos_get_catalog_v2') throw new Error('unexpected RPC ' + name);
       return new Promise(resolve => { resolveCatalog = resolve; });
     }};
     const refreshing = app.refreshPosCatalogOnly();
