@@ -3313,20 +3313,21 @@ document.getElementById('app').addEventListener('load', async () => {
     const context = source.getContext('2d');
     context.fillStyle = '#173f2b'; context.fillRect(0, 0, source.width, source.height);
     context.fillStyle = '#d46287'; context.fillRect(0, 0, source.width, source.height / 2);
-    const blob = await app.posExportDrinkImage({
-      source, sourceWidth: source.width, sourceHeight: source.height,
-      zoom: 1.5, panX: 0, panY: 200, loading: false
-    });
+    let encodedWidth = 0, encodedHeight = 0, blob;
+    const originalEncode = app.posEncodeDrinkImageCanvas;
+    app.posEncodeDrinkImageCanvas = canvas => {
+      encodedWidth = canvas.width; encodedHeight = canvas.height;
+      return originalEncode(canvas);
+    };
+    try {
+      blob = await app.posExportDrinkImage({
+        source, sourceWidth: source.width, sourceHeight: source.height,
+        zoom: 1.5, panX: 0, panY: 200, loading: false
+      });
+    } finally { app.posEncodeDrinkImageCanvas = originalEncode; }
+    assert(encodedWidth === 1200 && encodedHeight === 900, 'photo editor did not send an exact 1200 by 900 canvas to the encoder');
     assert(blob && blob.type === 'image/webp', 'photo editor did not export WebP');
     assert(blob.size > 0 && blob.size <= 2 * 1024 * 1024, 'photo editor export violated the storage size contract');
-    if (typeof app.createImageBitmap === 'function') {
-      const decoded = await app.createImageBitmap(blob);
-      try {
-        assert(decoded.width === 1200 && decoded.height === 900, 'photo editor export was not exactly 1200 by 900');
-      } finally {
-        if (decoded && typeof decoded.close === 'function') decoded.close();
-      }
-    }
   });
   test('saving the photo editor invokes one immutable upload and one product CAS bind', async () => {
     const product = checkoutCatalogFixture({ image_object_path: null });
