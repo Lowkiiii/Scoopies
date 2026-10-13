@@ -492,8 +492,11 @@
     .pos-drink-photo.thumb{width:72px}
     .pos-media-actions{grid-column:1 / -1;justify-content:stretch}
     .pos-media-actions .btn{flex:1 1 110px}
-    .pos-recent-row{grid-template-columns:minmax(0,1fr) auto}
-    .pos-recent-row .pos-recent-method{display:none}
+    .pos-recent-row{grid-template-columns:minmax(0,1fr);gap:8px;align-items:start;padding:12px 0}
+    .pos-recent-actions{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;justify-content:stretch;width:100%;gap:8px}
+    .pos-recent-method,.pos-recent-actions>strong{white-space:nowrap}
+    .pos-recent-actions>strong{text-align:right;font-size:18px}
+    .pos-recent-actions .btn{min-height:44px}
     .pos-operation-summary{grid-template-columns:1fr}
     .pos-history-view-tabs{gap:3px;padding:3px}
     .pos-history-view-tabs button{font-size:12px;padding-left:5px;padding-right:5px}

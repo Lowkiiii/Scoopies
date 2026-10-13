@@ -3054,6 +3054,45 @@ document.getElementById('app').addEventListener('load', async () => {
     click(app.document.querySelector('[data-act=confirmPosCartAction]'));
     assert(!app.document.querySelector('.pos-mobile-order-bar'), 'mobile shortcut remained after the cart became empty');
   });
+  test('mobile recent sales keep Cash, GCash, and GoTyme visible without clipping', () => {
+    const frame = document.getElementById('app'), originalWidth = frame.style.width;
+    try {
+      frame.style.width = '430px';
+      app.dispatchEvent(new app.Event('resize'));
+      installCheckout('owner');
+      app.activateAppTab('pos', false);
+      app.posCheckout.recent = [
+        recentSaleFixture({ sale_id: '55555555-5555-4555-8555-555555555551', receipt_number: 'SCP-MOBILE-CASH', payment_method: 'cash', net_total_centavos: 123456, can_void: true, item_summary: '2 x Extra Long Sea Salt Cream Matcha Name (12oz)' }),
+        recentSaleFixture({ sale_id: '55555555-5555-4555-8555-555555555552', receipt_number: 'SCP-MOBILE-GCASH', payment_method: 'gcash', net_total_centavos: 37000, can_void: false }),
+        recentSaleFixture({ sale_id: '55555555-5555-4555-8555-555555555553', receipt_number: 'SCP-MOBILE-GOTYME', payment_method: 'gotyme', net_total_centavos: 18000, can_void: false })
+      ];
+      app.renderPos();
+
+      [320, 375, 430].forEach(width => {
+        frame.style.width = `${width}px`;
+        app.dispatchEvent(new app.Event('resize'));
+        void app.document.documentElement.offsetWidth;
+        const rows = Array.from(app.document.querySelectorAll('.pos-recent-row'));
+        const methods = rows.map(row => row.querySelector('.pos-recent-method'));
+        assert(rows.length === 3 && methods.map(method => method.textContent.trim()).join('|') === 'Cash|GCash|GoTyme', `mobile receipt methods were missing at ${width}px`);
+        rows.forEach((row, index) => {
+          const actions = row.querySelector('.pos-recent-actions');
+          assert(app.getComputedStyle(methods[index]).display !== 'none', `payment method was hidden at ${width}px`);
+          assert(row.scrollWidth <= row.clientWidth + 1 && actions.scrollWidth <= actions.clientWidth + 1, `mobile receipt actions overflowed at ${width}px`);
+          const rowRect = row.getBoundingClientRect(), actionsRect = actions.getBoundingClientRect();
+          assert(actionsRect.left >= rowRect.left - 1 && actionsRect.right <= rowRect.right + 1, `mobile payment row was clipped at ${width}px`);
+        });
+        const voidButton = rows[0].querySelector('[data-act=openPosVoid]');
+        assert(voidButton && parseFloat(app.getComputedStyle(voidButton).minHeight) >= 44, `mobile Void target was too small at ${width}px`);
+      });
+    } finally {
+      frame.style.width = originalWidth;
+      app.dispatchEvent(new app.Event('resize'));
+      app.renderPos();
+    }
+    const desktopMethod = app.document.querySelector('.pos-recent-method');
+    assert(desktopMethod && app.getComputedStyle(desktopMethod).display !== 'none', 'desktop payment method regressed after the mobile layout fix');
+  });
   test('matcha customization is non-destructive and keeps standard, +70, and +80 as distinct variants', () => {
     const product = upgradedMatchaCatalogFixture();
     const options = product.matcha_upgrades;
