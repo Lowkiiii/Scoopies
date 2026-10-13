@@ -187,7 +187,7 @@
   .pos-product:has(.pos-drink-photo.card){min-height:190px}
   .pos-product-media,.pos-product-image-wrap{position:relative;display:grid;place-items:center;aspect-ratio:4/3;
     width:100%;overflow:hidden;border-radius:9px;background:linear-gradient(145deg,var(--pink-soft),var(--cream));margin:0 0 10px}
-  .pos-product-image{display:block;width:100%;height:100%;object-fit:contain;padding:5px}
+  .pos-product-image{display:block;width:100%;height:100%;object-fit:cover;padding:0}
   .pos-product-image[hidden],.pos-product-image.is-broken{display:none}
   .pos-product-image-fallback{display:grid;place-items:center;width:100%;height:100%;min-height:82px;color:var(--forest2);
     font-size:30px;font-weight:800;background:linear-gradient(145deg,var(--pink-soft),var(--cream))}
@@ -200,7 +200,7 @@
   .pos-drink-photo.card{width:100%;aspect-ratio:4/3;margin-bottom:10px;border-radius:9px}
   .pos-drink-photo.large{width:min(100%,300px);aspect-ratio:4/3;margin:0 auto 13px;border-radius:12px}
   .pos-drink-photo.thumb{width:82px;aspect-ratio:4/3;border-radius:9px}
-  .pos-drink-photo .pos-drink-image{display:block;width:100%;height:100%;object-fit:contain;padding:5px}
+  .pos-drink-photo .pos-drink-image{display:block;width:100%;height:100%;object-fit:cover;padding:0}
   .pos-drink-photo .pos-drink-image[hidden],.pos-drink-photo .pos-drink-image.is-broken{display:none}
   .pos-drink-image-fallback{display:grid;place-items:center;width:100%;height:100%;min-height:54px;color:var(--forest2);
     font-size:28px;font-weight:850;text-transform:uppercase}
@@ -230,7 +230,7 @@
     border:1px solid var(--line);border-radius:12px;background:var(--cream)}
   .pos-customize-media{display:grid;place-items:center;width:112px;aspect-ratio:4/3;overflow:hidden;border-radius:10px;
     background:linear-gradient(145deg,var(--pink-soft),var(--card))}
-  .pos-customize-image{display:block;width:100%;height:100%;object-fit:contain;padding:5px}
+  .pos-customize-image{display:block;width:100%;height:100%;object-fit:cover;padding:0}
   .pos-customize-image[hidden],.pos-customize-image.is-broken{display:none}
   .pos-customize-image-fallback{display:grid;place-items:center;width:100%;height:100%;color:var(--forest2);font-size:30px;font-weight:800}
   .pos-customize-image:not([hidden]):not(.is-broken)+.pos-customize-image-fallback{display:none}
@@ -274,7 +274,7 @@
   .pos-photo-thumb,.pos-photo-preview{position:relative;display:grid;place-items:center;width:82px;aspect-ratio:4/3;overflow:hidden;
     border:1px solid var(--line);border-radius:9px;background:linear-gradient(145deg,var(--pink-soft),var(--cream));color:var(--forest2);
     font-size:24px;font-weight:800}
-  .pos-photo-thumb img,.pos-photo-preview img{display:block;width:100%;height:100%;object-fit:contain;padding:4px}
+  .pos-photo-thumb img,.pos-photo-preview img{display:block;width:100%;height:100%;object-fit:cover;padding:0}
   .pos-photo-info{min-width:0}
   .pos-photo-name{color:var(--forest);font-weight:800;overflow-wrap:anywhere}
   .pos-photo-status{margin-top:3px;color:var(--muted);font-size:12px;overflow-wrap:anywhere}
@@ -301,6 +301,24 @@
   .pos-media-actions label:focus-within{outline:3px solid var(--pink);outline-offset:2px}
   .pos-media-remove-confirm{text-align:center;color:var(--ink)}
   .pos-media-remove-confirm>p{margin:12px auto 0;max-width:330px;color:var(--ink-soft)}
+  .pos-photo-editor{display:grid;gap:12px}
+  .pos-photo-editor-frame{position:relative;width:min(100%,620px);aspect-ratio:4/3;margin:0 auto;overflow:hidden;
+    border:2px solid var(--forest);border-radius:13px;background:var(--cream);box-shadow:0 8px 24px rgba(23,63,43,.18);
+    touch-action:none;overscroll-behavior:contain;user-select:none;cursor:grab}
+  .pos-photo-editor-frame.is-dragging{cursor:grabbing}
+  .pos-photo-editor-frame:focus-within{outline:3px solid var(--pink);outline-offset:3px}
+  .pos-photo-editor-canvas{display:block;width:100%;height:100%}
+  .pos-photo-editor-grid{position:absolute;inset:0;pointer-events:none;opacity:.38;
+    background:linear-gradient(to right,transparent 33.1%,rgba(255,255,255,.9) 33.2%,rgba(255,255,255,.9) 33.7%,transparent 33.8%,transparent 66.2%,rgba(255,255,255,.9) 66.3%,rgba(255,255,255,.9) 66.8%,transparent 66.9%),
+      linear-gradient(to bottom,transparent 33.1%,rgba(255,255,255,.9) 33.2%,rgba(255,255,255,.9) 33.7%,transparent 33.8%,transparent 66.2%,rgba(255,255,255,.9) 66.3%,rgba(255,255,255,.9) 66.8%,transparent 66.9%)}
+  .pos-photo-editor-help{margin:0;text-align:center;color:var(--ink-soft);font-size:13px}
+  .pos-photo-zoom{display:grid;grid-template-columns:44px minmax(0,1fr) 44px;gap:8px;align-items:center}
+  .pos-photo-zoom button{width:44px;height:44px;padding:0;border:1px solid var(--control-line);border-radius:9px;
+    background:var(--card);color:var(--forest);font-size:22px;font-weight:800;cursor:pointer}
+  .pos-photo-zoom-control{min-width:0}
+  .pos-photo-zoom-label{display:flex;justify-content:space-between;gap:12px;color:var(--ink-soft);font-size:12px;margin-bottom:4px}
+  .pos-photo-zoom input{width:100%;min-height:44px;margin:0;accent-color:var(--pink-dark)}
+  .pos-photo-editor-tools{display:flex;justify-content:center;gap:8px;flex-wrap:wrap}
   .stock-head{display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap;margin-bottom:12px}
   .stock-head h2{margin:0}
   .stock-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:12px 0}
@@ -839,7 +857,7 @@ var POS_CATALOG_CACHE_MAX_AGE_MS = 30*60*1000, POS_SILENT_REFRESH_MIN_AGE_MS = 3
 var POS_HISTORY_PAGE_SIZE = 20, POS_SHIFT_HISTORY_PAGE_SIZE = 20;
 var posCheckoutLoadGeneration = 0, posCheckoutSubmitGeneration = 0, posCatalogGeneration = 0;
 var posSilentRefreshPromise = null, posLastSilentRefreshAttemptAt = 0;
-var posOpsGeneration = 0, posHistoryGeneration = 0, posMediaGeneration = 0, posOpsModalReturnFocus = null;
+var posOpsGeneration = 0, posHistoryGeneration = 0, posMediaGeneration = 0, posMediaSelectionGeneration = 0, posOpsModalReturnFocus = null;
 var posOpsModal = freshPosOpsModal();
 var posSalesHistory = freshPosSalesHistory();
 var posCheckout = {
@@ -1559,7 +1577,7 @@ function freshPosOpsModal(){
   return {open:false,type:'',submitting:false,error:'',notice:'',step:'edit',mode:'live',openingCash:'0.00',
     countedCash:'',verifiedGcash:'',verifiedGotyme:'',notes:'',sale:null,reason:'',result:null,uncertain:false,rpcArgs:null,
     cartAction:'',cartProductId:'',cartProductName:'',cartQuantity:0,
-    productId:'',selectedMatchaOptionId:'',mediaRows:[],mediaLoading:false,mediaLoaded:false,mediaProductId:'',mediaRemoveProductId:''};
+    productId:'',selectedMatchaOptionId:'',mediaRows:[],mediaLoading:false,mediaLoaded:false,mediaProductId:'',mediaRemoveProductId:'',mediaEditor:null};
 }
 function freshPosSalesHistory(){
   return {rows:[],summary:null,mode:'live',view:'receipts',loading:false,loaded:false,error:'',summaryError:'',hasMore:true,
@@ -1585,6 +1603,7 @@ function resetStocks(message){
 function resetPosCheckout(){
   posCheckoutLoadGeneration++;posCheckoutSubmitGeneration++;posCatalogGeneration++;posOpsGeneration++;posHistoryGeneration++;posMediaGeneration++;
   posSilentRefreshPromise=null;posLastSilentRefreshAttemptAt=0;
+  disposePosDrinkImageEditor();
   posCheckout=freshPosCheckout();
   posSalesHistory=freshPosSalesHistory();
   posOpsModal=freshPosOpsModal();
@@ -1920,29 +1939,159 @@ function posLoadImageElement(file){
     img.src=url;
   });
 }
-async function posPrepareDrinkImage(file){
+function posValidateDrinkImageFile(file){
   if(!file||['image/jpeg','image/png','image/webp'].indexOf(String(file.type||'').toLowerCase())<0)throw {posMessage:'Choose a JPG, PNG, or WebP image.'};
   if(!(Number(file.size)>0)||Number(file.size)>5*1024*1024)throw {posMessage:'Choose an image no larger than 5 MB.'};
+  return true;
+}
+function posCloseDrinkImageSource(source){if(source&&typeof source.close==='function')source.close();}
+async function posDecodeDrinkImageFile(file){
+  posValidateDrinkImageFile(file);
   var source=null,width=0,height=0;
   try{
     if(typeof createImageBitmap==='function'){
-      source=await createImageBitmap(file,{imageOrientation:'from-image'});width=source.width;height=source.height;
-    }else{source=await posLoadImageElement(file);width=source.naturalWidth;height=source.naturalHeight;}
+      try{source=await createImageBitmap(file,{imageOrientation:'from-image'});}catch(bitmapError){source=await posLoadImageElement(file);}
+    }else source=await posLoadImageElement(file);
+    width=source.naturalWidth||source.width;height=source.naturalHeight||source.height;
     if(!(width>0&&height>0))throw new Error('Invalid image dimensions');
-    var scale=Math.min(1,1200/Math.max(width,height)),canvas=document.createElement('canvas');
-    canvas.width=Math.max(1,Math.round(width*scale));canvas.height=Math.max(1,Math.round(height*scale));
-    var context=canvas.getContext('2d');if(!context)throw new Error('Image processing is unavailable');
-    context.drawImage(source,0,0,canvas.width,canvas.height);
-    var quality=.84,blob=null;
-    for(var attempt=0;attempt<4;attempt++){
-      blob=await new Promise(function(resolve){canvas.toBlob(resolve,'image/webp',quality);});
-      if(blob&&blob.size<=2*1024*1024)break;
-      quality-=.12;
+    var maxDimension=3600;
+    if(Math.max(width,height)>maxDimension){
+      var scale=maxDimension/Math.max(width,height),canvas=document.createElement('canvas');
+      canvas.width=Math.max(1,Math.round(width*scale));canvas.height=Math.max(1,Math.round(height*scale));
+      var context=canvas.getContext('2d');if(!context)throw new Error('Image processing is unavailable');
+      context.imageSmoothingEnabled=true;context.imageSmoothingQuality='high';context.drawImage(source,0,0,canvas.width,canvas.height);
+      posCloseDrinkImageSource(source);source=canvas;width=canvas.width;height=canvas.height;
     }
-    if(!blob)throw new Error('Image conversion failed');
-    if(blob.size>2*1024*1024)throw {posMessage:'The optimized image is still too large. Choose a smaller photo.'};
-    return blob;
-  }finally{if(source&&typeof source.close==='function')source.close();}
+    return {source:source,width:width,height:height};
+  }catch(error){posCloseDrinkImageSource(source);throw error;}
+}
+function posDrinkImageCropGeometry(sourceWidth,sourceHeight,zoom,panX,panY,targetWidth,targetHeight){
+  sourceWidth=Number(sourceWidth)||0;sourceHeight=Number(sourceHeight)||0;targetWidth=Number(targetWidth)||1200;targetHeight=Number(targetHeight)||900;
+  if(!(sourceWidth>0&&sourceHeight>0&&targetWidth>0&&targetHeight>0))return null;
+  zoom=Math.min(4,Math.max(1,Number(zoom)||1));
+  var scale=Math.max(targetWidth/sourceWidth,targetHeight/sourceHeight)*zoom;
+  var maxX=Math.max(0,(sourceWidth*scale-targetWidth)/2),maxY=Math.max(0,(sourceHeight*scale-targetHeight)/2);
+  panX=Math.min(maxX,Math.max(-maxX,Number(panX)||0));panY=Math.min(maxY,Math.max(-maxY,Number(panY)||0));
+  return {scale:scale,zoom:zoom,panX:panX,panY:panY,maxX:maxX,maxY:maxY,targetWidth:targetWidth,targetHeight:targetHeight};
+}
+function posDrawDrinkImageCrop(canvas,source,sourceWidth,sourceHeight,zoom,panX,panY){
+  if(!canvas||!source)return null;
+  var context=canvas.getContext('2d');if(!context)throw new Error('Image processing is unavailable');
+  var geometry=posDrinkImageCropGeometry(sourceWidth,sourceHeight,zoom,panX,panY,canvas.width,canvas.height);if(!geometry)return null;
+  context.setTransform(1,0,0,1,0,0);context.clearRect(0,0,canvas.width,canvas.height);context.fillStyle='#f9f3e8';context.fillRect(0,0,canvas.width,canvas.height);
+  context.save();context.translate(canvas.width/2+geometry.panX,canvas.height/2+geometry.panY);context.scale(geometry.scale,geometry.scale);
+  context.imageSmoothingEnabled=true;context.imageSmoothingQuality='high';context.drawImage(source,-sourceWidth/2,-sourceHeight/2,sourceWidth,sourceHeight);context.restore();
+  return geometry;
+}
+async function posEncodeDrinkImageCanvas(canvas){
+  var quality=.86,blob=null;
+  for(var attempt=0;attempt<5;attempt++){
+    blob=await new Promise(function(resolve){canvas.toBlob(resolve,'image/webp',quality);});
+    if(blob&&blob.size<=2*1024*1024)break;
+    quality-=.11;
+  }
+  if(!blob)throw new Error('Image conversion failed');
+  if(blob.size>2*1024*1024)throw {posMessage:'The optimized image is still too large. Choose a smaller photo.'};
+  return blob;
+}
+async function posPrepareDrinkImage(file,crop){
+  var decoded=await posDecodeDrinkImageFile(file),canvas=document.createElement('canvas');canvas.width=1200;canvas.height=900;
+  try{
+    crop=crop||{};posDrawDrinkImageCrop(canvas,decoded.source,decoded.width,decoded.height,crop.zoom,crop.panX,crop.panY);
+    return await posEncodeDrinkImageCanvas(canvas);
+  }finally{posCloseDrinkImageSource(decoded.source);}
+}
+function disposePosDrinkImageEditor(){
+  posMediaSelectionGeneration++;
+  var editor=posOpsModal&&posOpsModal.mediaEditor;if(editor)posCloseDrinkImageSource(editor.source);
+  if(posOpsModal)posOpsModal.mediaEditor=null;
+}
+async function openPosDrinkImageEditor(productId,file){
+  if(!posCanManageMedia()||!posOpsModal.open||posOpsModal.type!=='manageDrinks'||posOpsModal.submitting)return false;
+  var media=posMediaRow(productId);if(!media)return false;
+  try{posValidateDrinkImageFile(file);}catch(error){posOpsModal.error=error&&error.posMessage?error.posMessage:'Choose another photo.';renderPosOpsModal();return false;}
+  disposePosDrinkImageEditor();
+  var token=++posMediaSelectionGeneration,generation=posMediaGeneration,userId=String(session.user.id||''),businessId=String(posContext.businessId||'');
+  posOpsModal.mediaRemoveProductId='';posOpsModal.error='';posOpsModal.notice='';
+  posOpsModal.mediaEditor={token:token,productId:String(productId),productName:String(media.product_name||'Drink'),file:file,fileName:String(file.name||'Photo'),
+    source:null,sourceWidth:0,sourceHeight:0,zoom:1,panX:0,panY:0,drag:null,loading:true,dirty:false};
+  renderPosOpsModal();
+  try{
+    var decoded=await posDecodeDrinkImageFile(file);
+    if(token!==posMediaSelectionGeneration||!posMediaRequestCurrent(generation,userId,businessId)||!posOpsModal.mediaEditor||posOpsModal.mediaEditor.token!==token){posCloseDrinkImageSource(decoded.source);return false;}
+    var editor=posOpsModal.mediaEditor;editor.source=decoded.source;editor.sourceWidth=decoded.width;editor.sourceHeight=decoded.height;editor.loading=false;
+    renderPosOpsModal();focusSoon('#posPhotoCropCanvas');return true;
+  }catch(error){
+    if(token!==posMediaSelectionGeneration||!posMediaRequestCurrent(generation,userId,businessId))return false;
+    disposePosDrinkImageEditor();posOpsModal.error=error&&error.posMessage?error.posMessage:'That photo could not be read. Choose another image.';renderPosOpsModal();focusSoon('#posManageDrinksList');return false;
+  }
+}
+function posCurrentDrinkImageEditor(){
+  return posOpsModal.open&&posOpsModal.type==='manageDrinks'&&posOpsModal.mediaEditor?posOpsModal.mediaEditor:null;
+}
+function posClampDrinkImageEditor(editor){
+  if(!editor||!editor.source)return null;
+  var geometry=posDrinkImageCropGeometry(editor.sourceWidth,editor.sourceHeight,editor.zoom,editor.panX,editor.panY,1200,900);if(!geometry)return null;
+  editor.zoom=geometry.zoom;editor.panX=geometry.panX;editor.panY=geometry.panY;return geometry;
+}
+function drawPosDrinkImageEditor(){
+  var editor=posCurrentDrinkImageEditor(),canvas=document.getElementById('posPhotoCropCanvas');if(!editor||editor.loading||!editor.source||!canvas)return false;
+  var geometry=posClampDrinkImageEditor(editor);if(!geometry)return false;
+  posDrawDrinkImageCrop(canvas,editor.source,editor.sourceWidth,editor.sourceHeight,editor.zoom,editor.panX,editor.panY);
+  var slider=document.getElementById('posPhotoZoom'),output=document.getElementById('posPhotoZoomValue'),percentage=Math.round(editor.zoom*100);
+  if(slider){slider.value=String(editor.zoom);slider.setAttribute('aria-valuetext',percentage+' percent');}if(output)output.textContent=percentage+'%';
+  var frame=document.getElementById('posPhotoEditorFrame');if(frame)frame.classList.toggle('is-dragging',!!editor.drag);return true;
+}
+function setPosDrinkImageZoom(value){
+  var editor=posCurrentDrinkImageEditor();if(!editor||editor.loading||posOpsModal.submitting)return false;
+  editor.zoom=Math.min(4,Math.max(1,Number(value)||1));editor.dirty=true;posClampDrinkImageEditor(editor);return drawPosDrinkImageEditor();
+}
+function adjustPosDrinkImageZoom(delta){var editor=posCurrentDrinkImageEditor();return editor?setPosDrinkImageZoom(editor.zoom+(Number(delta)||0)):false;}
+function nudgePosDrinkImageEditor(dx,dy){
+  var editor=posCurrentDrinkImageEditor();if(!editor||editor.loading||posOpsModal.submitting)return false;
+  editor.panX+=(Number(dx)||0);editor.panY+=(Number(dy)||0);editor.dirty=true;posClampDrinkImageEditor(editor);return drawPosDrinkImageEditor();
+}
+function resetPosDrinkImageEditor(){
+  var editor=posCurrentDrinkImageEditor();if(!editor||editor.loading||posOpsModal.submitting)return false;
+  editor.zoom=1;editor.panX=0;editor.panY=0;editor.dirty=false;return drawPosDrinkImageEditor();
+}
+function cancelPosDrinkImageEditor(){
+  var editor=posCurrentDrinkImageEditor();if(!editor||posOpsModal.submitting)return false;
+  var productId=editor.productId;disposePosDrinkImageEditor();posOpsModal.error='';posOpsModal.notice='';renderPosOpsModal();focusSoon('input[data-pos-image-product="'+productId+'"]');return true;
+}
+async function posExportDrinkImage(editor){
+  editor=editor||posCurrentDrinkImageEditor();if(!editor||editor.loading||!editor.source)throw {posMessage:'Wait for the photo preview to finish loading.'};
+  var canvas=document.createElement('canvas');canvas.width=1200;canvas.height=900;
+  posDrawDrinkImageCrop(canvas,editor.source,editor.sourceWidth,editor.sourceHeight,editor.zoom,editor.panX,editor.panY);
+  return posEncodeDrinkImageCanvas(canvas);
+}
+async function savePosDrinkImageEditor(){
+  var editor=posCurrentDrinkImageEditor();if(!editor||editor.loading||!editor.source||posOpsModal.submitting)return false;
+  var token=editor.token,productId=editor.productId,saved=await uploadPosDrinkImage(productId,editor);
+  if(saved&&posOpsModal.open&&posOpsModal.type==='manageDrinks'&&posOpsModal.mediaEditor&&posOpsModal.mediaEditor.token===token){
+    disposePosDrinkImageEditor();renderPosOpsModal();renderPos();focusSoon('input[data-pos-image-product="'+productId+'"]');
+  }
+  return saved;
+}
+function beginPosDrinkImageDrag(event){
+  var editor=posCurrentDrinkImageEditor(),canvas=event.target&&event.target.closest?event.target.closest('#posPhotoCropCanvas'):null;
+  if(!editor||editor.loading||posOpsModal.submitting||!canvas||editor.drag||event.isPrimary===false||event.button!==0)return false;
+  editor.drag={pointerId:event.pointerId,lastX:event.clientX,lastY:event.clientY};
+  if(typeof canvas.setPointerCapture==='function')try{canvas.setPointerCapture(event.pointerId);}catch(error){}
+  event.preventDefault();drawPosDrinkImageEditor();canvas.focus();return true;
+}
+function movePosDrinkImageDrag(event){
+  var editor=posCurrentDrinkImageEditor();if(!editor||!editor.drag||editor.drag.pointerId!==event.pointerId)return false;
+  var canvas=document.getElementById('posPhotoCropCanvas'),rect=canvas&&canvas.getBoundingClientRect?canvas.getBoundingClientRect():null;
+  if(!canvas||!rect||!(rect.width>0&&rect.height>0))return false;
+  var dx=(event.clientX-editor.drag.lastX)*canvas.width/rect.width,dy=(event.clientY-editor.drag.lastY)*canvas.height/rect.height;
+  editor.drag.lastX=event.clientX;editor.drag.lastY=event.clientY;event.preventDefault();return nudgePosDrinkImageEditor(dx,dy);
+}
+function endPosDrinkImageDrag(event){
+  var editor=posCurrentDrinkImageEditor();if(!editor||!editor.drag||editor.drag.pointerId!==event.pointerId)return false;
+  var canvas=document.getElementById('posPhotoCropCanvas');editor.drag=null;
+  if(canvas&&typeof canvas.releasePointerCapture==='function')try{canvas.releasePointerCapture(event.pointerId);}catch(error){}
+  drawPosDrinkImageEditor();return true;
 }
 async function posReloadMediaRows(generation,userId,businessId){
   if(!posCanManageMedia()||!posOpsModal.open||posOpsModal.type!=='manageDrinks')return [];
@@ -1954,10 +2103,10 @@ async function uploadPosDrinkImage(productId,file){
   if(!posCanManageMedia()||!posOpsModal.open||posOpsModal.type!=='manageDrinks'||posOpsModal.submitting)return false;
   var media=posMediaRow(productId);if(!media)return false;
   var generation=posMediaGeneration,userId=String(session.user.id||''),businessId=String(posContext.businessId||''),oldPath=media.image_object_path||null;
-  posOpsModal.submitting=true;posOpsModal.mediaProductId=String(productId);posOpsModal.error='';posOpsModal.notice='Optimizing photo\u2026';renderPosOpsModal();
+  posOpsModal.submitting=true;posOpsModal.mediaProductId=String(productId);posOpsModal.error='';posOpsModal.notice='Preparing photo\u2026';renderPosOpsModal();
   var newPath='';
   try{
-    var blob=await posPrepareDrinkImage(file);
+    var blob=file&&file.source?await posExportDrinkImage(file):await posPrepareDrinkImage(file);
     if(!posMediaRequestCurrent(generation,userId,businessId))return false;
     newPath=businessId+'/'+String(productId)+'/'+posUuid()+'.webp';posOpsModal.notice='Uploading photo\u2026';renderPosOpsModal();
     var upload=await cloud.client.storage.from(POS_IMAGE_BUCKET).upload(newPath,blob,{contentType:'image/webp',cacheControl:'31536000',upsert:false});
@@ -2788,7 +2937,7 @@ function posOperationDeterministic(error){
 function posCloseOpsModal(force){
   if((posOpsModal.submitting||posOpsModal.uncertain)&&!force)return false;
   if(posOpsModal.type==='salesHistory'){posHistoryGeneration++;posSalesHistory=freshPosSalesHistory();}
-  if(posOpsModal.type==='manageDrinks')posMediaGeneration++;
+  if(posOpsModal.type==='manageDrinks'){posMediaGeneration++;disposePosDrinkImageEditor();}
   posOpsModal=freshPosOpsModal();
   var modal=document.getElementById('posOpsModal');if(modal)modal.hidden=true;
   refreshModalBodyClass();
@@ -2796,6 +2945,7 @@ function posCloseOpsModal(force){
   posOpsModalReturnFocus=null;return true;
 }
 function posOpenOpsModal(type,details){
+  if(posOpsModal&&posOpsModal.mediaEditor)disposePosDrinkImageEditor();
   posOpsModalReturnFocus=document.activeElement;
   posOpsModal=freshPosOpsModal();posOpsModal.open=true;posOpsModal.type=type;
   if(details&&typeof details==='object')Object.assign(posOpsModal,details);
@@ -3269,14 +3419,24 @@ function renderPosOpsModal(){
       '<div class="pos-upgrade-total"><span>Drink total</span><strong>'+peso(optionTotal/100)+'</strong></div><p class="hint">Upgrade revenue is recorded on the receipt. Estimated profit still uses the base recipe cost until an exact premium-powder cost is configured.</p>'+
       '<div class="pos-error" aria-live="assertive">'+escapeHtml(posOpsModal.error)+'</div><div class="modal-actions"><button class="btn secondary" data-act="closePosOpsModal">Cancel</button><button class="btn" data-act="confirmPosProductOption">Add to order \u00B7 '+peso(optionTotal/100)+'</button></div>';
   }else if(posOpsModal.type==='manageDrinks'){
-    var removeMedia=posOpsModal.mediaRemoveProductId?posMediaRow(posOpsModal.mediaRemoveProductId):null;
-    if(removeMedia){
+    var photoEditor=posCurrentDrinkImageEditor(),removeMedia=posOpsModal.mediaRemoveProductId?posMediaRow(posOpsModal.mediaRemoveProductId):null;
+    if(photoEditor){
+      var editorDisabled=photoEditor.loading||posOpsModal.submitting?' disabled':'',editorClose='<button class="modal-close" data-act="cancelPosDrinkImageEditor" aria-label="Cancel photo adjustment"'+(posOpsModal.submitting?' disabled':'')+'>x</button>';
+      content.innerHTML='<div class="modal-head"><div><h2 id="posOpsModalTitle">Adjust '+escapeHtml(photoEditor.productName)+' photo</h2><p class="hint">Frame the drink exactly as it will appear on the POS card. Nothing is uploaded until you press Save photo.</p></div>'+editorClose+'</div>'+(
+        photoEditor.loading?'<div class="pos-loading" role="status">Preparing photo preview\u2026</div>':
+        '<div class="pos-photo-editor"><div id="posPhotoEditorFrame" class="pos-photo-editor-frame"><canvas id="posPhotoCropCanvas" class="pos-photo-editor-canvas" width="1200" height="900" tabindex="0" role="group" aria-roledescription="photo crop" aria-label="Four by three crop preview. Drag or use arrow keys to reposition the photo." aria-describedby="posPhotoEditorHelp"></canvas><span class="pos-photo-editor-grid" aria-hidden="true"></span></div>'+
+        '<p id="posPhotoEditorHelp" class="pos-photo-editor-help">Drag to reposition. Use the slider or + and \u2212 to zoom. Arrow keys move the photo; 0 resets the crop.</p>'+
+        '<div class="pos-photo-zoom"><button type="button" data-act="adjustPosDrinkImageZoom" data-delta="-0.1" aria-label="Zoom out"'+editorDisabled+'>\u2212</button><div class="pos-photo-zoom-control"><div class="pos-photo-zoom-label"><span id="posPhotoZoomLabel">Zoom</span><output id="posPhotoZoomValue">'+Math.round(photoEditor.zoom*100)+'%</output></div><input id="posPhotoZoom" type="range" min="1" max="4" step="0.01" value="'+photoEditor.zoom+'" aria-labelledby="posPhotoZoomLabel" aria-valuetext="'+Math.round(photoEditor.zoom*100)+' percent"'+editorDisabled+'></div><button type="button" data-act="adjustPosDrinkImageZoom" data-delta="0.1" aria-label="Zoom in"'+editorDisabled+'>+</button></div>'+
+        '<div class="pos-photo-editor-tools"><button type="button" class="btn small secondary" data-act="resetPosDrinkImageEditor"'+editorDisabled+'>Reset crop</button></div></div>')+
+        (posOpsModal.notice?'<div class="publish-note" role="status">'+escapeHtml(posOpsModal.notice)+'</div>':'')+'<div class="pos-error" aria-live="assertive">'+escapeHtml(posOpsModal.error)+'</div><div class="modal-actions"><button class="btn secondary" data-act="cancelPosDrinkImageEditor"'+(posOpsModal.submitting?' disabled':'')+'>Cancel</button><button class="btn" data-act="savePosDrinkImageEditor"'+editorDisabled+'>'+(posOpsModal.submitting?'Saving\u2026':'Save photo')+'</button></div>';
+      if(!photoEditor.loading)drawPosDrinkImageEditor();
+    }else if(removeMedia){
       content.innerHTML='<div class="modal-head"><div><h2 id="posOpsModalTitle">Remove drink photo?</h2><p class="hint">'+escapeHtml(removeMedia.product_name||'Drink')+'</p></div>'+close+'</div><div class="pos-media-remove-confirm">'+posDrinkImageHtml(removeMedia,'large')+'<p>The drink stays published. Only its menu photo will be removed.</p></div>'+
         '<div class="pos-error">'+escapeHtml(posOpsModal.error)+'</div><div class="modal-actions"><button id="posCancelRemoveImage" class="btn secondary" data-act="cancelRemovePosDrinkImage"'+frozen+'>Keep photo</button><button class="btn danger" data-act="confirmRemovePosDrinkImage"'+frozen+'>'+(posOpsModal.submitting?'Removing\u2026':'Remove photo')+'</button></div>';
     }else{
       var mediaRows=(posOpsModal.mediaRows||[]).map(function(row){var productId=String(row.product_id||''),busy=posOpsModal.submitting&&String(posOpsModal.mediaProductId||'')===productId,hasImage=!!row.image_object_path;
-        return '<div class="pos-media-row">'+posDrinkImageHtml(row,'thumb')+'<div class="pos-media-copy"><strong>'+escapeHtml(row.product_name||'Drink')+'</strong><small>'+escapeHtml(row.size_snapshot||'')+(row.available===false?' \u00B7 Hidden from POS':'')+'</small></div><div class="pos-media-actions"><label class="btn small secondary'+(posOpsModal.submitting?' disabled':'')+'">'+(busy?'Saving\u2026':(hasImage?'Replace photo':'Upload photo'))+'<input type="file" accept="image/jpeg,image/png,image/webp" data-pos-image-product="'+escapeHtml(productId)+'"'+(posOpsModal.submitting?' disabled':'')+'></label>'+(hasImage?'<button class="btn small danger" data-act="requestRemovePosDrinkImage" data-id="'+escapeHtml(productId)+'"'+(posOpsModal.submitting?' disabled':'')+'>Remove photo</button>':'')+'</div></div>';}).join('');
-      content.innerHTML='<div class="modal-head"><div><h2 id="posOpsModalTitle">Drink photos</h2><p class="hint">Choose a drink below, then upload a clear JPG, PNG, or WebP (max 5 MB). Photos are optimized and shared on every POS device.</p></div>'+close+'</div>'+
+        return '<div class="pos-media-row">'+posDrinkImageHtml(row,'thumb')+'<div class="pos-media-copy"><strong>'+escapeHtml(row.product_name||'Drink')+'</strong><small>'+escapeHtml(row.size_snapshot||'')+(row.available===false?' \u00B7 Hidden from POS':'')+'</small></div><div class="pos-media-actions"><label class="btn small secondary'+(posOpsModal.submitting?' disabled':'')+'">'+(busy?'Saving\u2026':(hasImage?'Change photo':'Choose photo'))+'<input type="file" accept="image/jpeg,image/png,image/webp" data-pos-image-product="'+escapeHtml(productId)+'"'+(posOpsModal.submitting?' disabled':'')+'></label>'+(hasImage?'<button class="btn small danger" data-act="requestRemovePosDrinkImage" data-id="'+escapeHtml(productId)+'"'+(posOpsModal.submitting?' disabled':'')+'>Remove photo</button>':'')+'</div></div>';}).join('');
+      content.innerHTML='<div class="modal-head"><div><h2 id="posOpsModalTitle">Drink photos</h2><p class="hint">Choose a JPG, PNG, or WebP (max 5 MB), adjust the crop, then press Save photo. It will be shared on every POS device.</p></div>'+close+'</div>'+
         '<div id="posManageDrinksList" class="pos-media-list" tabindex="-1">'+(posOpsModal.mediaLoading?'<div class="pos-loading">Loading drinks\u2026</div>':(mediaRows||'<p class="empty">No published drinks yet.</p>'))+'</div>'+
         (posOpsModal.notice?'<div class="publish-note">'+escapeHtml(posOpsModal.notice)+'</div>':'')+'<div class="pos-error" aria-live="assertive">'+escapeHtml(posOpsModal.error)+'</div><div class="modal-actions"><button class="btn secondary" data-act="managePosMenu"'+frozen+'>Edit pricing &amp; publication</button><button class="btn" data-act="closePosOpsModal"'+frozen+'>Done</button></div>';
     }
@@ -4798,6 +4958,7 @@ document.body.addEventListener('input', function(e){
     return;
   }
   if(posOpsModal.open){
+    if(el.id==='posPhotoZoom'){setPosDrinkImageZoom(el.value);return;}
     if(el.id==='posOpeningCash'){posOpsModal.openingCash=el.value||'';posOpsModal.error='';return;}
     if(el.id==='posCountedCash'){posOpsModal.countedCash=el.value||'';posOpsModal.error='';return;}
     if(el.id==='posVerifiedGcash'){posOpsModal.verifiedGcash=el.value||'';posOpsModal.error='';return;}
@@ -4824,7 +4985,7 @@ document.body.addEventListener('input', function(e){
 document.body.addEventListener('change', function(e){
   if(costingSourceCommitInFlight)return;
   var el=e.target;
-  if(el.dataset.posImageProduct){var selectedFile=el.files&&el.files[0];if(selectedFile)uploadPosDrinkImage(el.dataset.posImageProduct,selectedFile).catch(function(){});el.value='';return;}
+  if(el.dataset.posImageProduct){var selectedFile=el.files&&el.files[0];if(selectedFile)openPosDrinkImageEditor(el.dataset.posImageProduct,selectedFile).catch(function(){});el.value='';return;}
   if(posOpsModal.open&&posOpsModal.type==='productOptions'&&el.name==='posMatchaOption'){
     posOpsModal.selectedMatchaOptionId=el.value||'';posOpsModal.error='';renderPosOpsModal();focusSoon('#posOpsModal input[name="posMatchaOption"]:checked');return;
   }
@@ -4933,6 +5094,10 @@ document.body.addEventListener('click', function(e){
     case 'printPosReport': printPosReport();return;
     case 'closePosOpsModal': posCloseOpsModal(false);return;
     case 'openManageDrinks': openManageDrinksModal().catch(function(){});return;
+    case 'cancelPosDrinkImageEditor': cancelPosDrinkImageEditor();return;
+    case 'resetPosDrinkImageEditor': resetPosDrinkImageEditor();return;
+    case 'adjustPosDrinkImageZoom': adjustPosDrinkImageZoom(b.dataset.delta);return;
+    case 'savePosDrinkImageEditor': savePosDrinkImageEditor().catch(function(){});return;
     case 'requestRemovePosDrinkImage': requestRemovePosDrinkImage(id);return;
     case 'cancelRemovePosDrinkImage': cancelRemovePosDrinkImage();return;
     case 'confirmRemovePosDrinkImage': confirmRemovePosDrinkImage().catch(function(){});return;
@@ -5032,7 +5197,9 @@ document.body.addEventListener('click', function(e){
   if(e.target&&e.target.id==='mixtureModal') requestCloseMixtureModal();
   if(e.target&&e.target.id==='draftsModal') closeDraftsModal(false,false);
   if(e.target&&e.target.id==='publishModal') closePublishProductModal();
-  if(e.target&&e.target.id==='posOpsModal') posCloseOpsModal(false);
+  if(e.target&&e.target.id==='posOpsModal'){
+    if(posOpsModal.type==='manageDrinks'&&posOpsModal.mediaEditor)cancelPosDrinkImageEditor();else posCloseOpsModal(false);
+  }
   if(e.target&&e.target.id==='stockModal') closeStockModal(false);
 });
 
@@ -5065,8 +5232,23 @@ document.body.addEventListener('focusout', function(){
   if(!pendingRemote) return;
   setTimeout(function(){ if(!appIsEditing()) maybeApplyRemote(pendingRemote); }, 60);
 });
+document.body.addEventListener('pointerdown',function(e){beginPosDrinkImageDrag(e);});
+document.body.addEventListener('pointermove',function(e){movePosDrinkImageDrag(e);});
+document.body.addEventListener('pointerup',function(e){endPosDrinkImageDrag(e);});
+document.body.addEventListener('pointercancel',function(e){endPosDrinkImageDrag(e);});
+document.body.addEventListener('lostpointercapture',function(e){endPosDrinkImageDrag(e);});
 /* press Enter in the login form to submit it */
 document.body.addEventListener('keydown', function(e){
+  if(e.target&&e.target.id==='posPhotoCropCanvas'){
+    var photoKeyStep=e.shiftKey?50:10;
+    if(e.key==='ArrowLeft'){e.preventDefault();nudgePosDrinkImageEditor(-photoKeyStep,0);return;}
+    if(e.key==='ArrowRight'){e.preventDefault();nudgePosDrinkImageEditor(photoKeyStep,0);return;}
+    if(e.key==='ArrowUp'){e.preventDefault();nudgePosDrinkImageEditor(0,-photoKeyStep);return;}
+    if(e.key==='ArrowDown'){e.preventDefault();nudgePosDrinkImageEditor(0,photoKeyStep);return;}
+    if(e.key==='+'||e.key==='='){e.preventDefault();adjustPosDrinkImageZoom(.1);return;}
+    if(e.key==='-'||e.key==='_'){e.preventDefault();adjustPosDrinkImageZoom(-.1);return;}
+    if(e.key==='0'){e.preventDefault();resetPosDrinkImageEditor();return;}
+  }
   var historyViewTab=e.target&&e.target.matches&&e.target.matches('.pos-history-view-tabs [role="tab"]')?e.target:null;
   if(historyViewTab&&['ArrowLeft','ArrowRight','Home','End'].indexOf(e.key)>=0){
     e.preventDefault();
@@ -5083,7 +5265,7 @@ document.body.addEventListener('keydown', function(e){
   }
   if(e.key==='Escape'){
     if(stockModal.open){e.preventDefault();closeStockModal(false);return;}
-    if(posOpsModal.open){e.preventDefault();posCloseOpsModal(false);return;}
+    if(posOpsModal.open){e.preventDefault();if(posOpsModal.type==='manageDrinks'&&posOpsModal.mediaEditor)cancelPosDrinkImageEditor();else posCloseOpsModal(false);return;}
     if(publishModalOpen){e.preventDefault();closePublishProductModal();return;}
     if(draftsModalOpen){e.preventDefault();closeDraftsModal(false,false);return;}
     if(mixtureModalOpen){e.preventDefault();requestCloseMixtureModal();return;}
@@ -5093,7 +5275,7 @@ document.body.addEventListener('keydown', function(e){
   if(e.key==='Tab'&&(stockModal.open||posOpsModal.open||publishModalOpen||draftsModalOpen||mixtureModalOpen||purchasedIngredientModalOpen||categoryModalOpen)){
     var selector=stockModal.open?'#stockModal':(posOpsModal.open?'#posOpsModal':(publishModalOpen?'#publishModal':(draftsModalOpen?'#draftsModal':(mixtureModalOpen?'#mixtureModal':(purchasedIngredientModalOpen?'#purchasedIngredientModal':'#categoryModal')))));
     var modal=document.querySelector(selector+' .modal');
-    var focusable=modal?Array.from(modal.querySelectorAll('button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled])')):[];
+    var focusable=modal?Array.from(modal.querySelectorAll('button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])')):[];
     if(focusable.length){var first=focusable[0],last=focusable[focusable.length-1];if(!modal.contains(document.activeElement)){e.preventDefault();(e.shiftKey?last:first).focus();}else if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}}
   }
   if(e.key!=='Enter') return;

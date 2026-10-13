@@ -3237,7 +3237,7 @@ document.getElementById('app').addEventListener('load', async () => {
     assert(app.posOpsModal.type === 'manageDrinks' && app.document.getElementById('posManageDrinksList'), 'photo manager did not render its dedicated modal list');
     assert(app.document.querySelector('.pos-drink-photo.thumb .pos-drink-image'), 'photo manager did not render the saved thumbnail');
     const uploadInput = app.document.querySelector(`input[data-pos-image-product="${product.product_id}"]`);
-    assert(uploadInput && /Replace photo/.test(uploadInput.closest('label').textContent), 'photo manager did not render a clearly labelled product-scoped upload input');
+    assert(uploadInput && /Change photo/.test(uploadInput.closest('label').textContent), 'photo manager did not render a clearly labelled product-scoped upload input');
     app.posCloseOpsModal(true);
 
     installCheckout('cashier', [product]);
@@ -3246,6 +3246,139 @@ document.getElementById('app').addEventListener('load', async () => {
     assert(!app.document.querySelector('[data-act=openManageDrinks]'), 'cashier was shown drink photo management');
     assert(!(await app.openManageDrinksModal()), 'cashier opened drink photo management through code');
     assert(mediaCalls.length === 1, 'cashier authorization guard reached the media RPC');
+  });
+  test('drink photo crop geometry covers 4:3 and clamps zoom and pan without blank edges', () => {
+    const portrait = app.posDrinkImageCropGeometry(600, 1200, 1, 99999, -99999, 1200, 900);
+    assert(portrait && portrait.scale === 2, 'portrait crop did not use the minimum cover scale');
+    assert(portrait.zoom === 1 && portrait.maxX === 0 && portrait.maxY === 750, 'portrait cover bounds were calculated incorrectly');
+    assert(portrait.panX === 0 && portrait.panY === -750, 'portrait pan was not clamped to its drawable bounds');
+
+    const zoomed = app.posDrinkImageCropGeometry(600, 1200, 2, 99999, 99999, 1200, 900);
+    assert(zoomed.scale === 4 && zoomed.maxX === 600 && zoomed.maxY === 1950, 'zoomed crop bounds were calculated incorrectly');
+    assert(zoomed.panX === 600 && zoomed.panY === 1950, 'zoomed pan did not clamp at the positive bounds');
+
+    const landscape = app.posDrinkImageCropGeometry(1600, 900, 0.1, -99999, 99999, 1200, 900);
+    assert(landscape.zoom === 1 && landscape.scale === 1, 'crop geometry did not clamp zoom to its supported minimum');
+    assert(landscape.panX === -200 && landscape.panY === 0, 'landscape crop exposed a blank edge');
+    const maximum = app.posDrinkImageCropGeometry(1200, 900, 99, 0, 0, 1200, 900);
+    assert(maximum.zoom === 4, 'crop geometry did not clamp zoom to its supported maximum');
+    assert(app.posDrinkImageCropGeometry(0, 900, 1, 0, 0, 1200, 900) === null, 'invalid source dimensions produced crop geometry');
+  });
+  test('selecting a drink photo opens the 4:3 editor and cancel discards it without uploading', async () => {
+    const product = checkoutCatalogFixture({ image_object_path: 'business/product/existing.webp' });
+    const mediaRow = Object.assign({}, product, { available: true });
+    let uploadCalls = 0, imageWriteCalls = 0;
+    installCheckout('manager', [product]);
+    app.cloud.client = {
+      storage: {
+        from() {
+          return {
+            getPublicUrl(path) { return { data: { publicUrl: 'https://cdn.example.test/' + path } }; },
+            upload() { uploadCalls += 1; return Promise.resolve({ data: null, error: null }); },
+            remove() { throw new Error('cancel must not remove an existing image'); }
+          };
+        }
+      },
+      rpc(name) {
+        if (name === 'pos_get_product_media') return rpcResult([mediaRow]);
+        if (name === 'pos_set_product_image') { imageWriteCalls += 1; return rpcResult([]); }
+        throw new Error('unexpected media RPC ' + name);
+      }
+    };
+    assert(await app.openManageDrinksModal(), 'photo manager did not open for editor selection test');
+    const source = app.document.createElement('canvas');
+    source.width = 600; source.height = 1200;
+    const originalDecode = app.posDecodeDrinkImageFile;
+    app.posDecodeDrinkImageFile = async () => ({ source, width: 600, height: 1200 });
+    try {
+      const file = new app.File([new Uint8Array([1])], 'portrait.png', { type: 'image/png' });
+      assert(await app.openPosDrinkImageEditor(product.product_id, file), 'valid selection did not open the photo editor');
+      assert(app.posOpsModal.mediaEditor && app.posOpsModal.mediaEditor.productId === product.product_id, 'editor lost the selected product identity');
+      assert(app.document.getElementById('posPhotoCropCanvas'), 'photo editor did not render its crop canvas');
+      const preview = app.document.getElementById('posPhotoCropCanvas');
+      assert(preview.width === 1200 && preview.height === 900, 'photo editor preview did not use the required 4:3 output frame');
+      assert(uploadCalls === 0 && imageWriteCalls === 0, 'selecting a photo persisted it before Save photo');
+      assert(app.cancelPosDrinkImageEditor(), 'photo editor could not be cancelled');
+      assert(!app.posOpsModal.mediaEditor && app.document.getElementById('posManageDrinksList'), 'cancel did not return to the drink photo list');
+      assert(app.posCheckout.catalog[0].image_object_path === product.image_object_path, 'cancel changed the existing menu image');
+      assert(uploadCalls === 0 && imageWriteCalls === 0, 'cancel uploaded or bound a discarded photo');
+    } finally {
+      app.posDecodeDrinkImageFile = originalDecode;
+      app.posCloseOpsModal(true);
+    }
+  });
+  test('drink photo export produces an exact 1200 by 900 WebP image', async () => {
+    const source = app.document.createElement('canvas');
+    source.width = 600; source.height = 1200;
+    const context = source.getContext('2d');
+    context.fillStyle = '#173f2b'; context.fillRect(0, 0, source.width, source.height);
+    context.fillStyle = '#d46287'; context.fillRect(0, 0, source.width, source.height / 2);
+    const blob = await app.posExportDrinkImage({
+      source, sourceWidth: source.width, sourceHeight: source.height,
+      zoom: 1.5, panX: 0, panY: 200, loading: false
+    });
+    assert(blob && blob.type === 'image/webp', 'photo editor did not export WebP');
+    assert(blob.size > 0 && blob.size <= 2 * 1024 * 1024, 'photo editor export violated the storage size contract');
+    if (typeof app.createImageBitmap === 'function') {
+      const decoded = await app.createImageBitmap(blob);
+      try {
+        assert(decoded.width === 1200 && decoded.height === 900, 'photo editor export was not exactly 1200 by 900');
+      } finally {
+        if (decoded && typeof decoded.close === 'function') decoded.close();
+      }
+    }
+  });
+  test('saving the photo editor invokes one immutable upload and one product CAS bind', async () => {
+    const product = checkoutCatalogFixture({ image_object_path: null });
+    const mediaRow = Object.assign({}, product, { available: true });
+    let exportCalls = 0, uploadCalls = 0, setCalls = 0, uploadedPath = '', setArgs = null;
+    installCheckout('manager', [product]);
+    app.cloud.client = {
+      storage: {
+        from() {
+          return {
+            getPublicUrl(path) { return { data: { publicUrl: 'https://cdn.example.test/' + path } }; },
+            upload(path, blob, options) {
+              uploadCalls += 1; uploadedPath = path;
+              assert(blob.type === 'image/webp' && options.contentType === 'image/webp' && options.upsert === false, 'editor save broke the optimized immutable upload contract');
+              return Promise.resolve({ data: { path }, error: null });
+            },
+            remove() { throw new Error('a first editor save must not delete another object'); }
+          };
+        }
+      },
+      rpc(name, args) {
+        if (name === 'pos_get_product_media') return rpcResult([mediaRow]);
+        if (name === 'pos_set_product_image') {
+          setCalls += 1; setArgs = app.snapshot(args);
+          return rpcResult([{ product_id: product.product_id, image_object_path: args.p_new_path, previous_image_object_path: null, updated_at: '2026-10-13T00:00:00Z', is_retry: false }]);
+        }
+        throw new Error('unexpected media RPC ' + name);
+      }
+    };
+    assert(await app.openManageDrinksModal(), 'photo manager did not open for editor save test');
+    const source = app.document.createElement('canvas'); source.width = 600; source.height = 1200;
+    const originalDecode = app.posDecodeDrinkImageFile, originalExport = app.posExportDrinkImage;
+    app.posDecodeDrinkImageFile = async () => ({ source, width: source.width, height: source.height });
+    app.posExportDrinkImage = async editor => {
+      exportCalls += 1;
+      assert(editor === app.posOpsModal.mediaEditor, 'save did not export the active editor state');
+      return new app.Blob([new Uint8Array(128)], { type: 'image/webp' });
+    };
+    try {
+      const file = new app.File([new Uint8Array([1])], 'portrait.png', { type: 'image/png' });
+      assert(await app.openPosDrinkImageEditor(product.product_id, file), 'photo editor did not open before save');
+      assert(await app.savePosDrinkImageEditor(), 'photo editor save failed');
+    } finally {
+      app.posDecodeDrinkImageFile = originalDecode;
+      app.posExportDrinkImage = originalExport;
+    }
+    const prefix = app.posContext.businessId + '/' + product.product_id + '/';
+    assert(exportCalls === 1 && uploadCalls === 1 && setCalls === 1, 'photo editor save did not perform exactly one export, upload, and CAS bind');
+    assert(uploadedPath.startsWith(prefix) && /\/[0-9a-f-]+\.webp$/.test(uploadedPath), 'photo editor did not use a product-scoped immutable WebP path');
+    assert(setArgs && setArgs.p_product_id === product.product_id && setArgs.p_new_path === uploadedPath && setArgs.p_expected_old_path === null, 'photo editor save did not CAS-bind the exact product');
+    assert(!app.posOpsModal.mediaEditor && app.posCheckout.catalog[0].image_object_path === uploadedPath, 'successful editor save did not close the editor and patch the menu');
+    app.posCloseOpsModal(true);
   });
   test('manager image upload stores an immutable WebP path and binds it to the exact product', async () => {
     const product = checkoutCatalogFixture({ image_object_path: null });
