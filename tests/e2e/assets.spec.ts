@@ -1,5 +1,26 @@
 import { expect, test } from '@playwright/test';
 
+const expectedScripts = [
+  '/assets/js/core.js',
+  '/assets/js/runtime-factories.js',
+  '/assets/js/state.js',
+  '/assets/js/costing.js',
+  '/assets/js/pos-catalog.js',
+  '/assets/js/stocks.js',
+  '/assets/js/workspace-sync.js',
+  '/assets/js/pos-operations.js',
+  '/assets/js/publication.js',
+  '/assets/js/render-costing.js',
+  '/assets/js/render-modals.js',
+  '/assets/js/render-pos.js',
+  '/assets/js/render-stocks.js',
+  '/assets/js/support.js',
+  '/assets/js/events.js',
+  '/assets/js/boot.js',
+  '/assets/js/compatibility.js',
+  '/assets/js/start.js',
+];
+
 test('the extracted application assets load without changing the classic app contract', async ({ page }) => {
   const pageErrors: string[] = [];
   const consoleErrors: string[] = [];
@@ -11,7 +32,7 @@ test('the extracted application assets load without changing the classic app con
   });
   page.on('response', (response) => {
     const pathname = new URL(response.url()).pathname;
-    if (pathname.endsWith('/assets/styles.css') || pathname.endsWith('/assets/app.js')) {
+    if (pathname.endsWith('/assets/styles.css') || pathname.includes('/assets/js/')) {
       assetStatuses.set(pathname, response.status());
     }
   });
@@ -26,7 +47,10 @@ test('the extracted application assets load without changing the classic app con
   await expect(page.locator('#syncStatus')).toHaveText('Test mode');
 
   expect(assetStatuses.get('/assets/styles.css')).toBe(200);
-  expect(assetStatuses.get('/assets/app.js')).toBe(200);
+  expect(Array.from(assetStatuses.keys()).filter((path) => path.includes('/assets/js/')).sort()).toEqual(
+    expectedScripts.slice().sort(),
+  );
+  expectedScripts.forEach((path) => expect(assetStatuses.get(path), `${path} must load`).toBe(200));
   expect(pageErrors, 'The extracted app must not produce uncaught browser errors.').toEqual([]);
   expect(consoleErrors).toEqual([]);
 
@@ -38,6 +62,7 @@ test('the extracted application assets load without changing the classic app con
     renderAll: typeof (window as typeof window & { renderAll?: unknown }).renderAll,
     save: typeof (window as typeof window & { save?: unknown }).save,
     unitFactor: typeof (window as typeof window & { UNIT_FACTOR?: unknown }).UNIT_FACTOR,
+    facade: typeof (window as typeof window & { MatchaLunaApp?: unknown }).MatchaLunaApp,
   }));
 
   expect(contract).toEqual({
@@ -46,5 +71,6 @@ test('the extracted application assets load without changing the classic app con
     renderAll: 'function',
     save: 'function',
     unitFactor: 'object',
+    facade: 'object',
   });
 });
