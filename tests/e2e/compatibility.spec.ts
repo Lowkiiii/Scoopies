@@ -32,7 +32,7 @@ test('the compatibility facade exactly protects the legacy browser contract', as
       body: 'window.supabase={createClient:function(){throw new Error("Supabase is disabled in browser tests");}};',
     });
   });
-  await page.goto('/index.html?test=1', { waitUntil: 'load' });
+  await page.goto('index.html?test=1', { waitUntil: 'load' });
   await expect(page.locator('#syncStatus')).toHaveText('Test mode');
 
   const contract = await page.evaluate((nativeNames) => {

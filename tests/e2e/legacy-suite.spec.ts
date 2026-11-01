@@ -10,7 +10,7 @@ test('the existing browser regression suite remains green', async ({ page }, tes
       body: 'window.supabase={createClient:function(){throw new Error("Supabase is disabled in browser tests");}};',
     });
   });
-  await page.goto('/tests/costing.test.html', { waitUntil: 'domcontentloaded' });
+  await page.goto('tests/costing.test.html', { waitUntil: 'domcontentloaded' });
 
   const result = page.locator('#result');
   await expect(result).toHaveText(/^(?:PASS|FAIL)/, { timeout: 180_000 });

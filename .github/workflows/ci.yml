@@ -12,13 +12,15 @@ permissions:
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   browser-tests:
     name: Browser tests
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    permissions:
+      contents: read
 
     steps:
       - name: Check out repository
@@ -33,11 +35,17 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Install Chromium
-        run: npx playwright install --with-deps chromium
+      - name: Type-check build and test code
+        run: npm run typecheck
+
+      - name: Build production artifact
+        run: npm run build
+
+      - name: Install browser engines
+        run: npx playwright install --with-deps chromium webkit
 
       - name: Run browser tests
-        run: npm test
+        run: npm run test:e2e
 
       - name: Upload Playwright report
         if: ${{ !cancelled() }}
@@ -49,3 +57,57 @@ jobs:
             test-results/
           if-no-files-found: ignore
           retention-days: 14
+
+      - name: Upload verified site build
+        if: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: verified-pages-dist-${{ github.sha }}
+          path: dist
+          if-no-files-found: error
+          retention-days: 1
+
+  package-pages:
+    name: Package verified Pages artifact
+    if: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
+    needs: browser-tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pages: write
+    steps:
+      - name: Download verified site build
+        uses: actions/download-artifact@v8
+        with:
+          name: verified-pages-dist-${{ github.sha }}
+          path: dist
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v6
+
+      - name: Upload tested Pages artifact
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: dist
+
+  deploy:
+    name: Deploy GitHub Pages
+    if: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
+    needs: package-pages
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy tested artifact
+        id: deployment
+        uses: actions/deploy-pages@v5

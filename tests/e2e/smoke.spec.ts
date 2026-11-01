@@ -7,7 +7,7 @@ test.beforeEach(async ({ page }) => {
       body: 'window.supabase={createClient:function(){throw new Error("Supabase is disabled in browser tests");}};',
     });
   });
-  await page.goto('/index.html?test=1', { waitUntil: 'domcontentloaded' });
+  await page.goto('index.html?test=1', { waitUntil: 'domcontentloaded' });
   await expect(page.locator('#syncStatus')).toHaveText('Test mode');
 });
 
