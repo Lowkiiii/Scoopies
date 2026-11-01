@@ -20,6 +20,10 @@ responsibility without changing behavior:
   stocks, publication, rendering, events, support tools, and startup.
 - [`assets/js/compatibility.js`](assets/js/compatibility.js) defines the stable
   `window.MatchaLunaApp` contract used while internals are modernized.
+- [`vite.config.ts`](vite.config.ts) builds the GitHub Pages artifact under the
+  `/Scoopies/` base path while preserving the classic runtime.
+- [`docs/FRONTEND_PHASE_3A.md`](docs/FRONTEND_PHASE_3A.md) defines the current
+  build migration, invariants, release gates, and rollback.
 
 The JavaScript files intentionally remain ordered, synchronous classic scripts.
 Do not add `type="module"`, `async`, `defer`, an IIFE, or a strict-mode wrapper
@@ -32,28 +36,35 @@ database implementation phases documented below.
 
 ## Frontend verification
 
-Phases 1 and 2 provide an automated browser safety net for both the user-facing
-workflows and the compatibility boundary. Use the Node version recorded in
-[`.nvmrc`](.nvmrc), then run:
+Frontend Phases 1 through 3A provide an automated browser safety net for both
+the user-facing workflows and the compatibility boundary. Use the Node version
+recorded in [`.nvmrc`](.nvmrc), then run:
 
 ```text
 npm ci
-npx playwright install chromium
+npm run typecheck
+npx playwright install chromium webkit
 npm test
 ```
 
-`npm test` runs the protected 182-test legacy browser suite plus desktop and
-mobile smoke checks. Pull requests and pushes to `main` run the same checks in
-GitHub Actions through [`.github/workflows/ci.yml`](.github/workflows/ci.yml).
+`npm test` first creates a fresh `dist/`, then previews and exercises that
+artifact. It runs the
+protected 182-test legacy browser suite plus desktop and mobile smoke checks.
+Pull requests and pushes to `main` run the same type-check, build, and browser
+checks through [`.github/workflows/ci.yml`](.github/workflows/ci.yml). A passing
+`main` run deploys that exact tested artifact to GitHub Pages.
 
 Focused commands are also available:
 
 ```text
+npm run build
 npm run test:legacy
 npm run test:assets
 npm run test:compatibility
 npm run test:smoke
 ```
+
+Run `npm run build` before a focused test command so it uses the current source.
 
 ## POS implementation
 
