@@ -8,8 +8,9 @@ phases.
 ## Frozen scope
 
 - **3A — build and release foundation:** released at merge `c3f24d6`.
-- **3B0 — module bootstrap:** one Vite module entry installs the compatibility
-  facade and loads the remaining classic runtime in its protected order.
+- **3B0 — module bootstrap:** released at merge `be5f671`; one Vite module
+  entry installs the compatibility facade and loads the remaining classic
+  runtime in its protected order.
 - **3B1 — typed Core:** units, money, identity, and serialization helpers.
 - **3B2 — typed Costing:** ingredients, mixtures, recipes, packaging, product
   costing, publication snapshots, and validation.
@@ -75,12 +76,19 @@ a frontend migration rollback.
 
 ## Phase 3B0 release record
 
-- Pull request: pending
-- Merge commit: pending
-- CI and Pages run: pending
+- Pull request: [#5](https://github.com/Lowkiiii/Scoopies/pull/5)
+- Implementation commit: `284fa9003a1ff704ae140a1d8a8c5af4f3305512`
+- Merge commit: `be5f67168f0fd6473a97d519090c5ad76c3ddeb0`
+- PR CI: [41315470480](https://github.com/Lowkiiii/Scoopies/actions/runs/41315470480)
+- Main CI and Pages deployment:
+  [41315621393](https://github.com/Lowkiiii/Scoopies/actions/runs/41315621393)
 - Local verification: Node `24.22.2`; clean `npm ci`; zero audit
   vulnerabilities; type-check and production build passed; 10 Playwright tests
   passed, including the exact 182-test legacy and 175-name compatibility
   baselines, transition fallback, desktop Chromium, Pixel Chrome, and iPhone
   WebKit.
-- Production asset verification: pending
+- Production asset verification: Pages reported the merge SHA successfully
+  deployed; the entry, hashed module, hashed stylesheet, and transition asset
+  returned HTTP 200. Pixel Chrome and iPhone WebKit loaded the exact 17-script
+  runtime with shared version `def8134ddd221255`, the finalized 175-name
+  facade, zero page or console errors, and no horizontal overflow.
