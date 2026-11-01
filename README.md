@@ -8,6 +8,29 @@ The production costing app is a static GitHub Pages application in
 [`index.html`](index.html). Its browser regression suite is
 [`tests/costing.test.html`](tests/costing.test.html).
 
+## Frontend verification
+
+Phase 1 adds an automated browser safety net without changing the application
+or its deployment format. Use the Node version recorded in [`.nvmrc`](.nvmrc),
+then run:
+
+```text
+npm ci
+npx playwright install chromium
+npm test
+```
+
+`npm test` runs the protected 182-test legacy browser suite plus desktop and
+mobile smoke checks. Pull requests and pushes to `main` run the same checks in
+GitHub Actions through [`.github/workflows/ci.yml`](.github/workflows/ci.yml).
+
+Focused commands are also available:
+
+```text
+npm run test:legacy
+npm run test:smoke
+```
+
 ## POS implementation
 
 POS work is being delivered in verified phases. Phase 1 adds the additive
