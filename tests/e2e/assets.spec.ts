@@ -3,7 +3,6 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 const expectedRuntimeFiles = [
-  'core.js',
   'runtime-factories.js',
   'state.js',
   'costing.js',
@@ -24,9 +23,24 @@ const expectedRuntimeFiles = [
 
 const expectedRuntimePaths = expectedRuntimeFiles.map((fileName) => `/Scoopies/assets/js/${fileName}`);
 const transitionRuntimeFiles = [
-  ...expectedRuntimeFiles.slice(0, -1),
+  'core.js',
+  'runtime-factories.js',
+  'state.js',
+  'costing.js',
+  'pos-catalog.js',
+  'stocks.js',
+  'workspace-sync.js',
+  'pos-operations.js',
+  'publication.js',
+  'render-costing.js',
+  'render-modals.js',
+  'render-pos.js',
+  'render-stocks.js',
+  'support.js',
+  'events.js',
+  'boot.js',
   'compatibility.js',
-  expectedRuntimeFiles[expectedRuntimeFiles.length - 1],
+  'start.js',
 ];
 
 test('the module bootstrap loads the classic runtime without changing the app contract', async ({ page }) => {
@@ -91,6 +105,7 @@ test('the module bootstrap loads the classic runtime without changing the app co
   [...stylesheets, ...moduleEntries, ...expectedRuntimePaths].forEach((path) => {
     expect(assetResponses.get(path), `${path} must load exactly once with HTTP 200`).toEqual([200]);
   });
+  expect(assetResponses.has('/Scoopies/assets/js/core.js')).toBe(false);
   expect(assetResponses.has('/Scoopies/assets/js/compatibility.js')).toBe(false);
   expect(pageErrors, 'The app must not produce uncaught browser errors.').toEqual([]);
   expect(consoleErrors).toEqual([]);
@@ -131,7 +146,7 @@ test('the module bootstrap loads the classic runtime without changing the app co
 
 test('the transition asset keeps pre-module cached HTML usable', async ({ page }) => {
   const pageErrors: string[] = [];
-  let compatibilityStatus = 0;
+  const transitionAssetResponses = new Map<string, number[]>();
   const builtHtml = readFileSync(resolve(process.cwd(), 'dist/index.html'), 'utf8');
   const classicScripts = transitionRuntimeFiles
     .map((fileName) => `<script src="/Scoopies/assets/js/${fileName}"></script>`)
@@ -142,9 +157,11 @@ test('the transition asset keeps pre-module cached HTML usable', async ({ page }
 
   page.on('pageerror', (error) => pageErrors.push(error.message));
   page.on('response', (response) => {
-    if (new URL(response.url()).pathname === '/Scoopies/assets/js/compatibility.js') {
-      compatibilityStatus = response.status();
-    }
+    const pathname = new URL(response.url()).pathname;
+    if (!pathname.startsWith('/Scoopies/assets/js/')) return;
+    const statuses = transitionAssetResponses.get(pathname) || [];
+    statuses.push(response.status());
+    transitionAssetResponses.set(pathname, statuses);
   });
   await page.route('**/index.html?test=1&legacy-transition=1', async (route) => {
     await route.fulfill({ contentType: 'text/html', body: transitionHtml });
@@ -158,6 +175,12 @@ test('the transition asset keeps pre-module cached HTML usable', async ({ page }
 
   await page.goto('index.html?test=1&legacy-transition=1', { waitUntil: 'load' });
   await expect(page.locator('#syncStatus')).toHaveText('Test mode');
+  const loadedRuntimeFiles = await page.locator('script[src]').evaluateAll((scripts) =>
+    scripts
+      .map((script) => new URL((script as HTMLScriptElement).src).pathname)
+      .filter((pathname) => pathname.startsWith('/Scoopies/assets/js/'))
+      .map((pathname) => pathname.split('/').pop()),
+  );
   const facade = await page.evaluate(() => {
     const appWindow = window as typeof window & {
       MatchaLunaApp: { contractNames: string[]; finalized: boolean };
@@ -168,7 +191,11 @@ test('the transition asset keeps pre-module cached HTML usable', async ({ page }
     };
   });
 
-  expect(compatibilityStatus).toBe(200);
+  expect(loadedRuntimeFiles).toEqual(transitionRuntimeFiles);
+  transitionRuntimeFiles.forEach((fileName) => {
+    const path = `/Scoopies/assets/js/${fileName}`;
+    expect(transitionAssetResponses.get(path), `${path} must remain available for cached HTML`).toEqual([200]);
+  });
   expect(facade).toEqual({ contractCount: 175, finalized: true });
   expect(pageErrors).toEqual([]);
 });

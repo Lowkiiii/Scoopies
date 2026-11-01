@@ -11,7 +11,8 @@ phases.
 - **3B0 — module bootstrap:** released at merge `be5f671`; one Vite module
   entry installs the compatibility facade and loads the remaining classic
   runtime in its protected order.
-- **3B1 — typed Core:** units, money, identity, and serialization helpers.
+- **3B1 — typed Core (in progress):** units, money, identity, and
+  serialization helpers.
 - **3B2 — typed Costing:** ingredients, mixtures, recipes, packaging, product
   costing, publication snapshots, and validation.
 - **3C — typed Stocks island:** stock domain logic, gateway, pending recovery,
@@ -20,6 +21,68 @@ phases.
   smoke, release evidence, and the final Phase 3 baseline.
 
 Phase 4 does not begin until every slice above is complete.
+
+## Phase 3B1 contract (in progress)
+
+Phase 3B1 replaces only `assets/js/core.js` in the active runtime. Before any
+classic script starts, `src/main.ts` synchronously registers these 15 typed
+Core globals through the compatibility facade:
+
+`UNIT_FACTOR`, `UNIT_TYPE`, `TYPE_UNITS`, `TYPE_BASE`, `toBase`,
+`convertUnitQuantity`, `peso`, `pct`, `num`, `uid`, `getById`, `ceilTo`,
+`canonicalValue`, `stableSerialize`, and `sameDataValue`.
+
+The active runtime then loads these exact 16 classic scripts in order:
+
+1. `runtime-factories.js`
+2. `state.js`
+3. `costing.js`
+4. `pos-catalog.js`
+5. `stocks.js`
+6. `workspace-sync.js`
+7. `pos-operations.js`
+8. `publication.js`
+9. `render-costing.js`
+10. `render-modals.js`
+11. `render-pos.js`
+12. `render-stocks.js`
+13. `support.js`
+14. `events.js`
+15. `boot.js`
+16. `start.js`
+
+The production entry must not request `core.js` or `compatibility.js`.
+Nevertheless, both files remain unchanged in the built artifact during this
+transition. That lets a browser holding the Phase 3B0 module continue loading
+`core.js`, and lets pre-3B0 cached HTML continue loading the original complete
+18-script sequence safely.
+
+Core tables remain mutable, and typed helpers retain the classic runtime's
+coercion and live-binding behavior. Reassigning a Core table or helper through
+`window` or `window.MatchaLunaApp.domains.core` must be visible in both places
+and to helpers that dynamically depend on it.
+
+This slice changes no costing formula, POS or Stocks behavior, authentication,
+UI, Supabase schema, RLS policy, stored data, or cloud synchronization format.
+
+## Phase 3B1 exit gates (pending)
+
+- Clean dependency install, zero high-severity audit findings, type-check, and
+  production build.
+- Golden Core behavior tests, including coercion, conversions, formatting,
+  lookup, UID, canonical serialization, mutable tables, and live reassignment.
+- Exact 15-name Core domain, 175-name legacy contract, and 182-test legacy
+  baseline.
+- Active 16-script order with no request for either transition asset.
+- Cached transition path loads both `core.js` and `compatibility.js` with HTTP
+  200 and starts successfully in its original 18-script order.
+- Desktop Chromium, Pixel Chrome, and iPhone WebKit pass without page or
+  console errors or horizontal overflow.
+- Pull-request CI, post-merge CI, Pages deployment, and live production checks
+  pass before Phase 3B1 is marked released.
+
+No Phase 3B1 release or deployment is claimed in this document until all of
+these gates have recorded evidence.
 
 ## Phase 3B0 contract
 
