@@ -35,20 +35,23 @@ test('the compatibility facade exactly protects the legacy browser contract', as
   await page.goto('index.html?test=1', { waitUntil: 'load' });
   await expect(page.locator('#syncStatus')).toHaveText('Test mode');
 
-  const contract = await page.evaluate((nativeNames) => {
+  const contract = await page.evaluate(async (nativeNames) => {
     const appWindow = window as typeof window & {
       MatchaLunaApp: {
         contractVersion: number;
         contractNames: string[];
         domains: { legacy: Record<string, unknown> };
         finalized: boolean;
+        ready: Promise<void>;
       };
       state: unknown;
       renderAll: unknown;
     };
+    await appWindow.MatchaLunaApp.ready;
     return {
       version: appWindow.MatchaLunaApp.contractVersion,
       finalized: appWindow.MatchaLunaApp.finalized,
+      readyResolved: true,
       contractNames: appWindow.MatchaLunaApp.contractNames.slice().sort(),
       namespaceNames: Object.keys(appWindow.MatchaLunaApp.domains.legacy).sort(),
       missing: appWindow.MatchaLunaApp.contractNames.filter(
@@ -65,6 +68,7 @@ test('the compatibility facade exactly protects the legacy browser contract', as
 
   expect(contract.version).toBe(1);
   expect(contract.finalized).toBe(true);
+  expect(contract.readyResolved).toBe(true);
   expect(contract.contractNames).toEqual(legacyContractNames());
   expect(contract.namespaceNames).toEqual(contract.contractNames);
   expect(contract.missing).toEqual([]);
