@@ -54,11 +54,10 @@ database implementation phases documented below.
 
 ## Frontend verification
 
-Frontend Phases 1 through 3C1 provide an automated browser safety net for both
+Frontend Phases 1 through 3C2 provide an automated browser safety net for both
 the user-facing workflows and the compatibility boundary. Phase 3C2 extends
 that protection to the typed Stocks view/controller and its cached-client
-transition path while the release is being verified. Use the Node version
-recorded in
+transition path. Use the Node version recorded in
 [`.nvmrc`](.nvmrc), then run:
 
 ```text
