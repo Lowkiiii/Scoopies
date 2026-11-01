@@ -4,9 +4,27 @@ Matcha Luna's costing calculator and point-of-sale system.
 
 ## Current application
 
-The production costing app is a static GitHub Pages application in
-[`index.html`](index.html). Its browser regression suite is
+The production costing app is a static GitHub Pages application whose entry
+point is [`index.html`](index.html). Its browser regression suite is
 [`tests/costing.test.html`](tests/costing.test.html).
+
+## Frontend source layout
+
+Phase 2 of the frontend modernization separates the static application by
+responsibility without changing behavior:
+
+- [`index.html`](index.html) contains the document structure and UI markup.
+- [`assets/styles.css`](assets/styles.css) contains the application styles.
+- [`assets/app.js`](assets/app.js) contains the application behavior.
+
+For now, `assets/app.js` intentionally remains a classic script loaded at the
+end of the document. Do not add `type="module"`, `async`, `defer`, an IIFE, or a
+strict-mode wrapper: the protected legacy suite still accesses the established
+application functions through `window`. A compatibility facade will be added
+before the JavaScript is divided into modules.
+
+This frontend-modernization numbering is separate from the historical POS
+database implementation phases documented below.
 
 ## Frontend verification
 
@@ -28,6 +46,7 @@ Focused commands are also available:
 
 ```text
 npm run test:legacy
+npm run test:assets
 npm run test:smoke
 ```
 
