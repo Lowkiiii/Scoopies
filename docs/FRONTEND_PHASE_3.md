@@ -16,15 +16,16 @@ phases.
 - **3B2 — typed Costing:** released at merge `824a30a`; ingredients, mixtures,
   recipes, packaging, product costing, publication snapshots, and validation
   now run from typed modules.
-- **3C — typed Stocks island:** 3C1 migrates stock domain logic, persistence,
-  recovery, source lifecycle, and loading; later slices retain the view and
-  event boundaries until they have independent parity coverage.
+- **3C — typed Stocks island:** Phase 3C1 released at merge `af389a2`; stock
+  domain logic, persistence, recovery, source lifecycle, and loading now run
+  from typed modules. Later slices retain the view and event boundaries until
+  they have independent parity coverage.
 - **3D — closure:** clean Windows and CI test exits, signed-in production
   smoke, release evidence, and the final Phase 3 baseline.
 
 Phase 4 does not begin until every slice above is complete.
 
-## Phase 3C1 contract (in progress)
+## Phase 3C1 contract
 
 Phase 3C1 replaces only `assets/js/stocks.js` in the active runtime. Typed
 Stocks registers these 36 existing browser globals at the original Stocks
@@ -76,7 +77,7 @@ notice text remain unchanged.
 This slice changes no UI, inventory arithmetic, Costing or POS behavior,
 authentication, Supabase schema, RLS policy, stored data, or cloud format.
 
-## Phase 3C1 exit gates (pending)
+## Phase 3C1 exit gates (complete)
 
 - Clean dependency install, zero audit vulnerabilities, type-check, and
   production build.
@@ -95,8 +96,38 @@ authentication, Supabase schema, RLS policy, stored data, or cloud format.
 - Pull-request CI, post-merge CI, Pages deployment, and live production checks
   pass before Phase 3C1 is marked released.
 
-No Phase 3C1 release or deployment is claimed until every gate has recorded
-evidence.
+Every gate above passed before Phase 3C1 was marked released.
+
+## Phase 3C1 release record
+
+- Pull request: [#11](https://github.com/Lowkiiii/Scoopies/pull/11)
+- Implementation commit: `87ca99788083fe412aabc7f400d55802a6178051`
+- Merge commit: `af389a2e8538b14630e2ddedcc097313f66fc057`
+- PR CI:
+  [41333189293](https://github.com/Lowkiiii/Scoopies/actions/runs/41333189293)
+- Main CI and Pages deployment:
+  [41333335023](https://github.com/Lowkiiii/Scoopies/actions/runs/41333335023)
+- Local verification: Node `24.22.2`; clean `npm ci`; zero audit
+  vulnerabilities; type-check and production build passed; all 25 Playwright
+  tests passed, including the exact 182-test legacy and 175-name compatibility
+  baselines, exact 36-function Stocks domain, typed-versus-classic fingerprint,
+  live bindings, cloud-deletion recovery, populated 390-pixel Stocks layout,
+  desktop Chromium, Pixel Chrome, and iPhone WebKit.
+- Review evidence: independent architecture, semantic parity, and test audits
+  found no remaining release blocker. The one visible status-text encoding
+  mismatch they identified was fixed and covered by a real typed-versus-classic
+  remote-deletion scenario before the clean final suite.
+- Production asset verification: Pages deployed `index-ChGTPXmp.js` and
+  `index-B0B7i9SZ.css`; the HTML, active module, stylesheet, and all four
+  retained transition assets returned HTTP 200. The active browser loaded the
+  exact 14-script runtime without requesting `core.js`, `costing.js`,
+  `stocks.js`, or `compatibility.js`. The live Stocks fallback matched the
+  merge source exactly after line-ending normalization.
+- Production browser verification: a fresh 390-pixel Chromium session exposed
+  the exact ordered 36-name Stocks namespace, preserved the root compatibility
+  proxy, completed the real cloud bootstrap, displayed the Matcha Luna login
+  screen, and reported zero page errors, failed requests, or horizontal
+  overflow.
 
 ## Phase 3B2 contract
 
