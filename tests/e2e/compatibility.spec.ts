@@ -39,6 +39,49 @@ const expectedCoreNames = Object.freeze([
 
 const protectedCoreContractNames = Object.freeze(['getById', 'stableSerialize', 'sameDataValue']);
 
+const expectedCostingNames = Object.freeze([
+  'isMixture',
+  'ingredientBaseUnit',
+  'ingredientTotalBase',
+  'stateIngredientLookup',
+  'ingredientCostInfo',
+  'mixtureBatchCost',
+  'ingCostPerBase',
+  'pkgCostPerPiece',
+  'packagingLineCost',
+  'lineCost',
+  'recipeTotal',
+  'recipePerServing',
+  'productPackagingCost',
+  'productCost',
+  'suggestedPrice',
+  'ingredientUsage',
+  'packagingUsage',
+  'recipeUsage',
+  'moneyToCentavos',
+  'snapshotNumber',
+  'publicationIngredientRecord',
+  'collectPublicationIngredient',
+  'buildProductCostingSnapshot',
+  'validateProductForPublish',
+]);
+
+const protectedCostingContractNames = Object.freeze([
+  'isMixture',
+  'ingredientTotalBase',
+  'ingredientCostInfo',
+  'mixtureBatchCost',
+  'ingCostPerBase',
+  'pkgCostPerPiece',
+  'lineCost',
+  'recipeTotal',
+  'recipePerServing',
+  'productCost',
+  'ingredientUsage',
+  'buildProductCostingSnapshot',
+  'validateProductForPublish',
+]);
+
 function legacyContractNames() {
   const source = readFileSync(resolve(process.cwd(), 'tests/costing.test.html'), 'utf8');
   const names = Array.from(source.matchAll(/\bapp\.([A-Za-z_$][\w$]*)/g), (match) => match[1]);
@@ -55,12 +98,22 @@ test('the compatibility facade exactly protects the legacy browser contract', as
   await page.goto('index.html?test=1', { waitUntil: 'load' });
   await expect(page.locator('#syncStatus')).toHaveText('Test mode');
 
-  const contract = await page.evaluate(async ({ nativeNames, coreNames, protectedNames }) => {
+  const contract = await page.evaluate(async ({
+    nativeNames,
+    coreNames,
+    protectedCoreNames,
+    costingNames,
+    protectedCostingNames,
+  }) => {
     const appWindow = window as typeof window & {
       MatchaLunaApp: {
         contractVersion: number;
         contractNames: string[];
-        domains: { core: Record<string, unknown>; legacy: Record<string, unknown> };
+        domains: {
+          core: Record<string, unknown>;
+          costing: Record<string, unknown>;
+          legacy: Record<string, unknown>;
+        };
         finalized: boolean;
         ready: Promise<void>;
       };
@@ -110,10 +163,43 @@ test('the compatibility facade exactly protects the legacy browser contract', as
           typeof descriptor.set !== 'function'
         );
       }),
-      mismatchedProtectedCoreValues: protectedNames.filter(
+      mismatchedProtectedCoreValues: protectedCoreNames.filter(
         (name) =>
           appWindow.MatchaLunaApp.domains.legacy[name] !== root[name] ||
           appWindow.MatchaLunaApp.domains.core[name] !== root[name],
+      ),
+      costingNames: Object.keys(appWindow.MatchaLunaApp.domains.costing).sort(),
+      missingCostingRootProperties: costingNames.filter(
+        (name) => !Object.prototype.hasOwnProperty.call(root, name),
+      ),
+      mismatchedCostingRootValues: costingNames.filter(
+        (name) => root[name] !== appWindow.MatchaLunaApp.domains.costing[name],
+      ),
+      invalidCostingNamespaceDescriptors: costingNames.filter((name) => {
+        const descriptor = Object.getOwnPropertyDescriptor(appWindow.MatchaLunaApp.domains.costing, name);
+        return (
+          !descriptor ||
+          descriptor.configurable !== true ||
+          descriptor.enumerable !== true ||
+          descriptor.writable !== true ||
+          typeof descriptor.get === 'function' ||
+          typeof descriptor.set === 'function'
+        );
+      }),
+      invalidCostingRootDescriptors: costingNames.filter((name) => {
+        const descriptor = Object.getOwnPropertyDescriptor(root, name);
+        return (
+          !descriptor ||
+          descriptor.configurable !== true ||
+          descriptor.enumerable !== true ||
+          typeof descriptor.get !== 'function' ||
+          typeof descriptor.set !== 'function'
+        );
+      }),
+      mismatchedProtectedCostingValues: protectedCostingNames.filter(
+        (name) =>
+          appWindow.MatchaLunaApp.domains.legacy[name] !== root[name] ||
+          appWindow.MatchaLunaApp.domains.costing[name] !== root[name],
       ),
       missingBrowserNatives: nativeNames.filter((name) => !(name in appWindow)),
       facadeBrowserNatives: nativeNames.filter((name) => appWindow.MatchaLunaApp.contractNames.includes(name)),
@@ -121,7 +207,9 @@ test('the compatibility facade exactly protects the legacy browser contract', as
   }, {
     nativeNames: Array.from(browserNativeNames),
     coreNames: [...expectedCoreNames],
-    protectedNames: [...protectedCoreContractNames],
+    protectedCoreNames: [...protectedCoreContractNames],
+    costingNames: [...expectedCostingNames],
+    protectedCostingNames: [...protectedCostingContractNames],
   });
 
   expect(contract.version).toBe(1);
@@ -137,25 +225,40 @@ test('the compatibility facade exactly protects the legacy browser contract', as
   expect(contract.invalidCoreNamespaceDescriptors).toEqual([]);
   expect(contract.invalidCoreRootDescriptors).toEqual([]);
   expect(contract.mismatchedProtectedCoreValues).toEqual([]);
+  expect(contract.costingNames).toEqual([...expectedCostingNames].sort());
+  expect(contract.missingCostingRootProperties).toEqual([]);
+  expect(contract.mismatchedCostingRootValues).toEqual([]);
+  expect(contract.invalidCostingNamespaceDescriptors).toEqual([]);
+  expect(contract.invalidCostingRootDescriptors).toEqual([]);
+  expect(contract.mismatchedProtectedCostingValues).toEqual([]);
   expect(contract.missingBrowserNatives).toEqual([]);
   expect(contract.facadeBrowserNatives).toEqual([]);
 
   const proxyResult = await page.evaluate(() => {
     const appWindow = window as typeof window & {
-      MatchaLunaApp: { domains: { core: Record<string, unknown>; legacy: Record<string, unknown> } };
+      MatchaLunaApp: {
+        domains: {
+          core: Record<string, unknown>;
+          costing: Record<string, unknown>;
+          legacy: Record<string, unknown>;
+        };
+      };
       state: unknown;
       renderAll: unknown;
       categoryModalOpen: boolean;
       num: unknown;
       UNIT_FACTOR: unknown;
+      suggestedPrice: unknown;
     };
     const core = appWindow.MatchaLunaApp.domains.core;
+    const costing = appWindow.MatchaLunaApp.domains.costing;
     const legacy = appWindow.MatchaLunaApp.domains.legacy;
     const originalState = appWindow.state;
     const originalRenderAll = appWindow.renderAll;
     const originalCategoryModalOpen = appWindow.categoryModalOpen;
     const originalNum = appWindow.num;
     const originalUnitFactor = appWindow.UNIT_FACTOR;
+    const originalSuggestedPrice = appWindow.suggestedPrice;
     const stateFromNamespace = { source: 'namespace' };
     const stateFromGlobal = { source: 'global' };
     const renderFromNamespace = () => 'namespace';
@@ -164,6 +267,8 @@ test('the compatibility facade exactly protects the legacy browser contract', as
     const numFromGlobal = () => 2;
     const unitFactorFromNamespace = { g: 11 };
     const unitFactorFromGlobal = { g: 22 };
+    const suggestedPriceFromNamespace = () => 33;
+    const suggestedPriceFromGlobal = () => 44;
 
     try {
       legacy.state = stateFromNamespace;
@@ -191,6 +296,13 @@ test('the compatibility facade exactly protects the legacy browser contract', as
       appWindow.UNIT_FACTOR = unitFactorFromGlobal;
       const globalObjectReachedCore = core.UNIT_FACTOR === unitFactorFromGlobal;
 
+      costing.suggestedPrice = suggestedPriceFromNamespace;
+      const costingFunctionReachedGlobal =
+        appWindow.suggestedPrice === suggestedPriceFromNamespace;
+      appWindow.suggestedPrice = suggestedPriceFromGlobal;
+      const globalFunctionReachedCosting =
+        costing.suggestedPrice === suggestedPriceFromGlobal;
+
       return {
         namespaceStateReachedGlobal,
         globalStateReachedNamespace,
@@ -202,6 +314,8 @@ test('the compatibility facade exactly protects the legacy browser contract', as
         globalFunctionReachedCore,
         coreObjectReachedGlobal,
         globalObjectReachedCore,
+        costingFunctionReachedGlobal,
+        globalFunctionReachedCosting,
       };
     } finally {
       appWindow.state = originalState;
@@ -209,6 +323,7 @@ test('the compatibility facade exactly protects the legacy browser contract', as
       appWindow.categoryModalOpen = originalCategoryModalOpen;
       appWindow.num = originalNum;
       appWindow.UNIT_FACTOR = originalUnitFactor;
+      appWindow.suggestedPrice = originalSuggestedPrice;
     }
   });
 
@@ -223,6 +338,8 @@ test('the compatibility facade exactly protects the legacy browser contract', as
     globalFunctionReachedCore: true,
     coreObjectReachedGlobal: true,
     globalObjectReachedCore: true,
+    costingFunctionReachedGlobal: true,
+    globalFunctionReachedCosting: true,
   });
 
   const moduleBridgeResult = await page.evaluate(() => {
