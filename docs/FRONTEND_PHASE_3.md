@@ -13,8 +13,9 @@ phases.
   runtime in its protected order.
 - **3B1 — typed Core:** released at merge `82f6b0d`; units, money, identity,
   and serialization helpers now run from the typed module entry.
-- **3B2 — typed Costing (in progress):** ingredients, mixtures, recipes,
-  packaging, product costing, publication snapshots, and validation.
+- **3B2 — typed Costing:** released at merge `824a30a`; ingredients, mixtures,
+  recipes, packaging, product costing, publication snapshots, and validation
+  now run from typed modules.
 - **3C — typed Stocks island:** stock domain logic, gateway, pending recovery,
   controller, view, and events.
 - **3D — closure:** clean Windows and CI test exits, signed-in production
@@ -22,7 +23,7 @@ phases.
 
 Phase 4 does not begin until every slice above is complete.
 
-## Phase 3B2 contract (in progress)
+## Phase 3B2 contract
 
 Phase 3B2 replaces only `assets/js/costing.js` in the active runtime. Typed
 Costing registers these 24 existing browser globals at the original Costing
@@ -66,7 +67,7 @@ coercion, recursive mixture, publication snapshot, and validation behavior.
 This slice changes no calculation formula, UI, POS or Stocks behavior,
 authentication, Supabase schema, RLS policy, stored data, or cloud format.
 
-## Phase 3B2 exit gates (pending)
+## Phase 3B2 exit gates (complete)
 
 - Clean dependency install, zero audit vulnerabilities, type-check, and
   production build.
@@ -82,8 +83,36 @@ authentication, Supabase schema, RLS policy, stored data, or cloud format.
 - Pull-request CI, post-merge CI, Pages deployment, and live production checks
   pass before Phase 3B2 is marked released.
 
-No Phase 3B2 release or deployment is claimed until every gate has recorded
-evidence.
+Every gate above passed before Phase 3B2 was marked released.
+
+## Phase 3B2 release record
+
+- Pull request: [#9](https://github.com/Lowkiiii/Scoopies/pull/9)
+- Implementation commit: `c19a970c04b4fe3533b018e6348feed8e69dad90`
+- Merge commit: `824a30a89c6ba0f742061451c75c6d6c374719a1`
+- PR CI:
+  [41329414533](https://github.com/Lowkiiii/Scoopies/actions/runs/41329414533)
+- Main CI and Pages deployment:
+  [41329563439](https://github.com/Lowkiiii/Scoopies/actions/runs/41329563439)
+- Local verification: Node `24.22.2`; clean `npm ci`; zero audit
+  vulnerabilities; type-check and production build passed; all 20 Playwright
+  tests passed, including the exact 182-test legacy and 175-name compatibility
+  baselines, typed-versus-classic Costing parity, exact validation failures,
+  live bindings, semantic edge cases, desktop Chromium, Pixel Chrome, and
+  iPhone WebKit.
+- Review evidence: independent architecture, semantic parity, and test audits
+  found no release blockers. Five observable JavaScript parity edges involving
+  evaluation order, coercion, primitive boxing, `Boolean`, and `TextEncoder`
+  were fixed and covered before the clean final suite.
+- Production asset verification: Pages deployed `index-DydpMLAc.js`; the HTML,
+  active module, and retained `costing.js` fallback returned HTTP 200. The
+  active module contained the exact 15-script runtime and no exact request for
+  `core.js`, `costing.js`, or `compatibility.js`. The live Costing fallback
+  matched the merge source byte-for-byte after HTTP decoding.
+- Production browser verification: a fresh Chromium session loaded with zero
+  page errors or failed requests, exposed the exact 24-name Costing namespace
+  alongside the Core and legacy domains, preserved the root compatibility
+  proxy, and displayed the Matcha Luna login screen.
 
 ## Phase 3B1 contract
 
