@@ -46,10 +46,10 @@ database implementation phases documented below.
 
 ## Frontend verification
 
-Frontend Phases 1 through 3B0 provide an automated browser safety net for both
-the user-facing workflows and the compatibility boundary. Phase 3B1 extends
-that safety net while its typed Core release is being verified. Use the Node
-version recorded in [`.nvmrc`](.nvmrc), then run:
+Frontend Phases 1 through 3B1 provide an automated browser safety net for both
+the user-facing workflows and the compatibility boundary, including the typed
+Core helpers and the cached-client transition path. Use the Node version
+recorded in [`.nvmrc`](.nvmrc), then run:
 
 ```text
 npm ci
