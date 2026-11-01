@@ -1,4 +1,6 @@
 /* ---------- stable compatibility contract ---------- */
+/* Transition fallback only: the current module bootstrap does not load this file.
+   Keep it temporarily so pre-3B0 cached HTML can still start after deployment. */
 (function createMatchaLunaCompatibility(root){
   var classicContract = [
     'acceptPosCatalogChanges',

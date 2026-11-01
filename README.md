@@ -10,33 +10,40 @@ point is [`index.html`](index.html). Its browser regression suite is
 
 ## Frontend source layout
 
-Phase 2 of the frontend modernization separates the static application by
-responsibility without changing behavior:
+The frontend modernization separates the application by responsibility while
+preserving its established browser contract:
 
 - [`index.html`](index.html) contains the document structure and UI markup.
 - [`assets/styles.css`](assets/styles.css) contains the application styles.
 - [`assets/js`](assets/js) contains responsibility-focused application scripts:
   core helpers, state and persistence, costing, POS catalog and operations,
-  stocks, publication, rendering, events, support tools, and startup.
-- [`assets/js/compatibility.js`](assets/js/compatibility.js) defines the stable
+  stocks, publication, rendering, events, support tools, and startup. The old
+  compatibility file is retained temporarily as an unreferenced fallback for
+  browsers holding pre-3B0 HTML.
+- [`src/main.ts`](src/main.ts) is the Vite module entry. It installs the typed
+  compatibility facade and loads the remaining classic runtime in order.
+- [`src/compatibility`](src/compatibility) defines the stable
   `window.MatchaLunaApp` contract used while internals are modernized.
 - [`vite.config.ts`](vite.config.ts) builds the GitHub Pages artifact under the
   `/Scoopies/` base path while preserving the classic runtime.
 - [`docs/FRONTEND_PHASE_3A.md`](docs/FRONTEND_PHASE_3A.md) defines the current
   build migration, invariants, release gates, and rollback.
+- [`docs/FRONTEND_PHASE_3.md`](docs/FRONTEND_PHASE_3.md) freezes the remaining
+  typed-runtime migration and its Phase 4 entry gate.
 
-The JavaScript files intentionally remain ordered, synchronous classic scripts.
-Do not add `type="module"`, `async`, `defer`, an IIFE, or a strict-mode wrapper
-yet: the protected legacy suite still accesses established application
-functions through `window`. New internal modules can register descriptors with
-the compatibility facade while the direct browser contract remains intact.
+The remaining JavaScript runtime files are intentionally loaded as ordered
+classic scripts by the module bootstrap. Do not independently add `async`,
+`defer`, an IIFE, or a strict-mode wrapper to them: the protected legacy suite
+still accesses established application functions through `window`. Typed
+domains register descriptors with the compatibility facade while the direct
+browser contract remains intact.
 
 This frontend-modernization numbering is separate from the historical POS
 database implementation phases documented below.
 
 ## Frontend verification
 
-Frontend Phases 1 through 3A provide an automated browser safety net for both
+Frontend Phases 1 through 3B0 provide an automated browser safety net for both
 the user-facing workflows and the compatibility boundary. Use the Node version
 recorded in [`.nvmrc`](.nvmrc), then run:
 

@@ -18,6 +18,14 @@ function assert(condition, message) {
 }
 document.getElementById('app').addEventListener('load', async () => {
   const app = document.getElementById('app').contentWindow;
+  try {
+    const facade = app['MatchaLunaApp'];
+    if (!facade || !facade.ready) throw new Error('module bootstrap readiness is unavailable');
+    await facade.ready;
+  } catch (error) {
+    output.textContent = 'FAIL bootstrap: ' + (error && error.message ? error.message : String(error));
+    return;
+  }
   function normalizedState(overrides = {}) {
     const source = Object.assign({
       ingredientCategories: [], ingredients: [], packaging: [], recipes: [], products: []
