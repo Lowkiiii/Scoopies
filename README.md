@@ -1,6 +1,6 @@
-# Scoopies
+# Matcha Luna
 
-Scoopie's costing calculator and point-of-sale system.
+Matcha Luna's costing calculator and point-of-sale system.
 
 ## Current application
 

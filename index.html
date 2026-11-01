@@ -3,14 +3,15 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Scoopies — POS &amp; Costing</title>
+<title>Matcha Luna — POS &amp; Costing</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root{
-    --forest:#173f2b; --forest-2:#1b4d33; --forest2:var(--forest-2);
-    --cream:#f9f3e8; --surface:#fffdfc; --card:var(--surface);
-    --ink:#173126; --ink-soft:#405247; --muted:#6b5c52; --line:#ded2c5;
-    --control-line:#928477; --pink:#d46287; --pink-dark:#b73566; --pink-soft:#f6d7e2; --focus:var(--pink);
+    --navy:#00387f; --navy-2:#00285f; --blush:#ffd0db;
+    --forest:var(--navy); --forest-2:var(--navy-2); --forest2:var(--forest-2);
+    --cream:#fff4f7; --surface:#fffdfd; --card:var(--surface);
+    --ink:#10233d; --ink-soft:#3f5068; --muted:#637085; --line:#d7ddea;
+    --control-line:#738399; --pink:var(--blush); --pink-dark:var(--navy); --pink-soft:#fff0f4; --focus:var(--navy);
     --good:#2e7d32; --bad:#b3261e; --warn:#8a5a00;
     /* Compatibility aliases keep the established components on the new brand palette. */
     --brown:var(--forest); --brown2:var(--forest2); --accent:var(--pink-dark);
@@ -25,10 +26,10 @@
   header p{margin:4px 0 0;font-size:13px;opacity:.85}
   .wrap{width:100%;max-width:1000px;min-width:0;margin:0 auto;padding:0 14px 60px}
   nav{display:flex;flex-wrap:wrap;gap:6px;position:sticky;top:0;background:var(--forest);
-    padding:10px 0;z-index:5;border-bottom:1px solid rgba(249,243,232,.28)}
+    padding:10px 0;z-index:5;border-bottom:1px solid rgba(255,208,219,.45)}
   nav button{flex:1 1 auto;min-width:96px;padding:10px 8px;border:1px solid var(--control-line);
     background:var(--card);border-radius:10px;font-size:14px;cursor:pointer;color:var(--brown);font-weight:600}
-  nav button.active{background:var(--pink-dark);color:#fff;border-color:var(--pink-dark)}
+  nav button.active{background:var(--pink);color:var(--forest);border-color:var(--pink)}
   section{display:none;margin-top:16px}
   section.active{display:block}
   .card{background:var(--card);border:1px solid var(--line);border-radius:14px;max-width:100%;min-width:0;
@@ -44,7 +45,8 @@
   input::placeholder,textarea::placeholder{color:var(--muted);opacity:1}
   button,input,select,textarea{accent-color:var(--pink-dark)}
   button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible,a:focus-visible{
-    outline:3px solid var(--pink);outline-offset:2px}
+    outline:3px solid var(--focus);outline-offset:2px}
+  nav button:focus-visible{outline-color:var(--pink)}
   textarea{min-height:92px;resize:vertical}
   input[type=number]{width:100px}
   td .calc{font-weight:600}
@@ -68,7 +70,7 @@
   label.fld{font-size:12px;color:var(--muted);display:block;margin-bottom:3px}
   .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
   @media(max-width:560px){.grid2{grid-template-columns:1fr}}
-  code{background:#f1e7d8;padding:1px 5px;border-radius:5px;font-size:13px}
+  code{background:#eef3fa;padding:1px 5px;border-radius:5px;font-size:13px}
   .status{font-size:12px;padding:4px 11px;border-radius:999px;background:var(--card);color:var(--brown);
     border:1px solid var(--line);white-space:nowrap}
   .status.good{background:#e9f6ea;color:var(--good);border-color:#bfe3c1}
@@ -100,10 +102,10 @@
   .ingredient-name-text{font-weight:650;min-width:160px}
   .mixture-meta{font-size:12px;color:var(--muted);margin-top:3px}
   .search-status{font-size:12px;color:var(--muted);margin:2px 0 8px;min-height:18px}
-  .modal-backdrop{position:fixed;inset:0;z-index:100;background:rgba(8,27,17,.64);display:flex;
+  .modal-backdrop{position:fixed;inset:0;z-index:100;background:rgba(0,40,92,.64);display:flex;
     align-items:center;justify-content:center;padding:18px}
   .modal-backdrop[hidden]{display:none}
-  .modal{background:var(--card);border-radius:16px;border:1px solid var(--line);box-shadow:0 18px 55px rgba(8,27,17,.32);
+  .modal{background:var(--card);border-radius:16px;border:1px solid var(--line);box-shadow:0 18px 55px rgba(0,40,92,.32);
     width:min(760px,100%);max-height:calc(100vh - 36px);overflow:auto;padding:18px}
   .modal.small{width:min(430px,100%)}
   .modal-head{display:flex;gap:12px;align-items:flex-start;margin-bottom:12px}
@@ -132,12 +134,12 @@
   .draft-actions{display:flex;gap:7px;justify-content:flex-end;flex-wrap:wrap;margin-top:10px}
   .draft-saved-note{font-size:13px;color:var(--good);min-height:19px;margin-top:8px}
   .pos-publish-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:14px;padding:11px 12px;
-    border:1px solid var(--line);border-radius:10px;background:#fff8fa}
+    border:1px solid var(--line);border-radius:10px;background:var(--pink-soft)}
   .pos-publish-copy{flex:1 1 260px;min-width:0}
   .pos-publish-title{font-size:13px;font-weight:700;color:var(--brown)}
   .pos-publish-detail{font-size:12px;color:var(--muted);margin-top:2px}
   .pos-state{display:inline-block;font-size:11px;font-weight:700;border-radius:999px;padding:3px 8px;
-    margin-right:6px;background:#f3eee8;color:var(--brown2);border:1px solid var(--line)}
+    margin-right:6px;background:#eef3fa;color:var(--brown2);border:1px solid var(--line)}
   .pos-state.good{background:#e9f6ea;color:var(--good);border-color:#bfe3c1}
   .pos-state.warn{background:#fff4dd;color:#8a5a00;border-color:#efd49b}
   .pos-state.bad{background:#fdecea;color:var(--bad);border-color:#f0c8c2}
@@ -147,8 +149,8 @@
   .pos-topbar{display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:12px}
   .pos-topbar h2{margin:0}
   #posRoot>.pos-topbar h2,#stockRoot>.stock-head h2{color:var(--cream)}
-  #posRoot>.pos-topbar .hint,#stockRoot>.stock-head .hint,#stockRoot>.stock-head .stock-sync{color:#eadfd1}
-  .pos-role{display:inline-flex;align-items:center;min-height:28px;padding:4px 10px;border-radius:999px;background:#f3eee8;border:1px solid var(--line);color:var(--brown2);font-size:12px;font-weight:700;text-transform:capitalize}
+  #posRoot>.pos-topbar .hint,#stockRoot>.stock-head .hint,#stockRoot>.stock-head .stock-sync{color:#e1eaf6}
+  .pos-role{display:inline-flex;align-items:center;min-height:28px;padding:4px 10px;border-radius:999px;background:#eef3fa;border:1px solid var(--line);color:var(--brown2);font-size:12px;font-weight:700;text-transform:capitalize}
   .pos-sync{display:inline-flex;align-items:center;gap:6px;min-height:28px;padding:4px 9px;border-radius:999px;border:1px solid #bfe3c1;background:#e9f6ea;color:#285e2c;font-size:12px;font-weight:750;white-space:nowrap}
   .pos-sync::before{content:'';width:7px;height:7px;border-radius:50%;background:currentColor;flex:0 0 auto}
   .pos-sync.syncing,.pos-sync.warn{border-color:#efd49b;background:#fff4dd;color:#8a5a00}
@@ -173,8 +175,8 @@
   .pos-product-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin-top:5px}
   .pos-product{position:relative;min-height:112px;border:1px solid var(--control-line);border-radius:12px;background:var(--card);padding:12px;color:var(--ink);text-align:left;cursor:pointer;display:flex;flex-direction:column;justify-content:space-between;font:inherit;touch-action:manipulation;overflow:hidden}
   .pos-product:hover{border-color:var(--accent);box-shadow:0 0 0 2px var(--pink-soft)}
-  .pos-product:focus-visible{border-color:var(--accent);box-shadow:0 0 0 3px var(--pink-soft);outline:3px solid var(--pink);outline-offset:2px}
-  .pos-product.selected{border:2px solid var(--accent);background:#fff8fa;padding:11px;box-shadow:0 0 0 2px var(--pink-soft)}
+  .pos-product:focus-visible{border-color:var(--accent);box-shadow:0 0 0 3px var(--pink-soft);outline:3px solid var(--focus);outline-offset:2px}
+  .pos-product.selected{border:2px solid var(--accent);background:var(--pink-soft);padding:11px;box-shadow:0 0 0 2px var(--pink-soft)}
   .pos-product.needs-review{border-color:#d59a3a;background:#fff8e8}
   .pos-product-count{position:absolute;right:9px;top:9px;display:inline-flex;align-items:center;justify-content:center;min-width:30px;height:30px;padding:0 8px;border-radius:999px;background:var(--brown);color:#fff;font-size:13px;font-weight:850;line-height:1}
   .pos-product-count.warn{min-width:auto;background:#9a5a00}
@@ -193,8 +195,8 @@
     font-size:30px;font-weight:800;background:linear-gradient(145deg,var(--pink-soft),var(--cream))}
   .pos-product-image:not([hidden]):not(.is-broken)+.pos-product-image-fallback{display:none}
   .pos-product-copy,.pos-product-body{display:flex;flex:1;min-width:0;flex-direction:column;justify-content:space-between;width:100%}
-  .pos-product.has-image .pos-product-count{z-index:2;box-shadow:0 1px 4px rgba(8,27,17,.22)}
-  .pos-product:has(.pos-drink-photo.card) .pos-product-count{z-index:2;box-shadow:0 1px 4px rgba(8,27,17,.22)}
+  .pos-product.has-image .pos-product-count{z-index:2;box-shadow:0 1px 4px rgba(0,40,92,.22)}
+  .pos-product:has(.pos-drink-photo.card) .pos-product-count{z-index:2;box-shadow:0 1px 4px rgba(0,40,92,.22)}
   .pos-drink-photo{position:relative;display:grid;place-items:center;overflow:hidden;border:1px solid var(--line);
     background:linear-gradient(145deg,var(--pink-soft),var(--cream));color:var(--forest2)}
   .pos-drink-photo.card{width:100%;aspect-ratio:4/3;margin-bottom:10px;border-radius:9px}
@@ -210,8 +212,8 @@
   .pos-cart-line-top{display:flex;gap:8px;align-items:flex-start}
   .pos-cart-name{font-weight:700;line-height:1.25;flex:1;min-width:0}
   .pos-cart-price{font-weight:700;white-space:nowrap}
-  .pos-cart-modifier{display:inline-flex;align-items:center;max-width:100%;margin-top:5px;border:1px solid #e6a9bd;
-    border-radius:999px;background:var(--pink-soft);color:#7f2149;padding:3px 8px;font-size:11px;font-weight:750;line-height:1.25}
+  .pos-cart-modifier{display:inline-flex;align-items:center;max-width:100%;margin-top:5px;border:1px solid #e7a7b7;
+    border-radius:999px;background:var(--pink-soft);color:var(--forest);padding:3px 8px;font-size:11px;font-weight:750;line-height:1.25}
   .pos-cart-unit-price{margin-top:3px;color:var(--muted);font-size:11px}
   .pos-qty{display:flex;align-items:center;gap:7px;margin-top:8px}
   .pos-qty button{width:44px;height:44px;border:1px solid var(--control-line);background:var(--card);color:var(--brown);border-radius:9px;font-size:21px;font-weight:700;cursor:pointer;touch-action:manipulation}
@@ -244,8 +246,8 @@
   .pos-upgrade-list .pos-upgrade-option+.pos-upgrade-option{margin-top:8px}
   .pos-upgrade-option{display:grid;grid-template-columns:22px minmax(0,1fr) auto;gap:10px;align-items:center;min-height:58px;
     padding:10px 12px;border:1px solid var(--control-line);border-radius:11px;background:var(--card);color:var(--ink);cursor:pointer}
-  .pos-upgrade-option:hover{border-color:var(--pink-dark);background:#fff8fa}
-  .pos-upgrade-option:focus-within{outline:3px solid var(--pink);outline-offset:2px}
+  .pos-upgrade-option:hover{border-color:var(--pink-dark);background:var(--pink-soft)}
+  .pos-upgrade-option:focus-within{outline:3px solid var(--focus);outline-offset:2px}
   .pos-upgrade-option.selected,.pos-upgrade-option:has(input:checked){border:2px solid var(--pink-dark);padding:9px 11px;background:var(--pink-soft)}
   .pos-upgrade-option input{width:20px;height:20px;margin:0;cursor:pointer}
   .pos-upgrade-option-copy{min-width:0}
@@ -258,12 +260,12 @@
   .pos-upgrade-option>span>small{display:block;margin-top:2px;color:var(--muted);font-size:12px}
   .pos-upgrade-option>b{color:var(--forest);white-space:nowrap}
   .pos-customize-unavailable{border:1px solid var(--line);border-radius:10px;background:var(--cream);padding:10px 12px;color:var(--muted);font-size:13px}
-  .pos-customize-total{display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid #e6a9bd;
-    border-radius:11px;background:#fff8fa;padding:11px 13px}
+  .pos-customize-total{display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid #e7a7b7;
+    border-radius:11px;background:var(--pink-soft);padding:11px 13px}
   .pos-customize-total span{color:var(--muted);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
   .pos-customize-total strong{color:var(--forest);font-size:24px;white-space:nowrap}
-  .pos-upgrade-total{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px;border:1px solid #e6a9bd;
-    border-radius:11px;background:#fff8fa;padding:11px 13px}
+  .pos-upgrade-total{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px;border:1px solid #e7a7b7;
+    border-radius:11px;background:var(--pink-soft);padding:11px 13px}
   .pos-upgrade-total span{color:var(--muted);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
   .pos-upgrade-total strong{color:var(--forest);font-size:24px;white-space:nowrap}
   .pos-customize .modal-actions{margin-top:2px}
@@ -298,15 +300,15 @@
   .pos-media-actions label.disabled{cursor:not-allowed;opacity:.55}
   .pos-media-actions input[type=file]{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;
     overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
-  .pos-media-actions label:focus-within{outline:3px solid var(--pink);outline-offset:2px}
+  .pos-media-actions label:focus-within{outline:3px solid var(--focus);outline-offset:2px}
   .pos-media-remove-confirm{text-align:center;color:var(--ink)}
   .pos-media-remove-confirm>p{margin:12px auto 0;max-width:330px;color:var(--ink-soft)}
   .pos-photo-editor{display:grid;gap:12px}
   .pos-photo-editor-frame{position:relative;width:min(100%,620px);aspect-ratio:4/3;margin:0 auto;overflow:hidden;
-    border:2px solid var(--forest);border-radius:13px;background:var(--cream);box-shadow:0 8px 24px rgba(23,63,43,.18);
+    border:2px solid var(--forest);border-radius:13px;background:var(--cream);box-shadow:0 8px 24px rgba(0,56,127,.18);
     touch-action:none;overscroll-behavior:contain;user-select:none;cursor:grab}
   .pos-photo-editor-frame.is-dragging{cursor:grabbing}
-  .pos-photo-editor-frame:focus-within{outline:3px solid var(--pink);outline-offset:3px}
+  .pos-photo-editor-frame:focus-within{outline:3px solid var(--focus);outline-offset:3px}
   .pos-photo-editor-canvas{display:block;width:100%;height:100%}
   .pos-photo-editor-grid{position:absolute;inset:0;pointer-events:none;opacity:.38;
     background:linear-gradient(to right,transparent 33.1%,rgba(255,255,255,.9) 33.2%,rgba(255,255,255,.9) 33.7%,transparent 33.8%,transparent 66.2%,rgba(255,255,255,.9) 66.3%,rgba(255,255,255,.9) 66.8%,transparent 66.9%),
@@ -323,7 +325,7 @@
   .stock-head h2{margin:0}
   .stock-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:12px 0}
   .stock-summary button{font:inherit;text-align:left;cursor:pointer}
-  .stock-summary button.active{border-color:var(--brown);box-shadow:0 0 0 2px rgba(23,63,43,.14)}
+  .stock-summary button.active{border-color:var(--brown);box-shadow:0 0 0 2px rgba(0,56,127,.14)}
   .stock-toolbar{display:grid;grid-template-columns:minmax(220px,1fr) 180px;gap:8px;align-items:end;margin:12px 0 8px}
   .stock-filter-bar{display:flex;gap:7px;overflow-x:auto;padding:2px 1px 8px;scrollbar-width:thin}
   .stock-filter-bar .category-chip{white-space:nowrap;min-height:40px}
@@ -361,7 +363,7 @@
   .pos-quick-cash{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px}
   .pos-quick-cash button{min-height:42px;padding:7px;border:1px solid var(--control-line);border-radius:9px;background:var(--card);color:var(--brown);font-weight:700;cursor:pointer}
   #pos button,#posOpsModal button{transition:transform .08s ease,box-shadow .08s ease,filter .08s ease;-webkit-tap-highlight-color:transparent}
-  #pos button:active:not([disabled]),#posOpsModal button:active:not([disabled]){transform:translateY(2px) scale(.98);box-shadow:inset 0 2px 5px rgba(23,63,43,.24);filter:brightness(.96)}
+  #pos button:active:not([disabled]),#posOpsModal button:active:not([disabled]){transform:translateY(2px) scale(.98);box-shadow:inset 0 2px 5px rgba(0,56,127,.24);filter:brightness(.96)}
   .pos-change{border-radius:10px;background:#eef7ef;border:1px solid #c9e5cb;padding:10px 12px;margin-top:9px;color:#285e2c}
   .pos-checkout{width:100%;min-height:50px;font-size:16px;margin-top:12px}
   .pos-error{min-height:20px;color:var(--bad);font-size:13px;margin-top:8px}
@@ -413,8 +415,8 @@
   .pos-history-view-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin:10px 0 14px;padding:4px;border:1px solid var(--line);border-radius:12px;background:var(--cream)}
   .pos-history-view-tabs.two{grid-template-columns:repeat(2,minmax(0,1fr))}
   .pos-history-view-tabs button{min-height:42px;border:0;border-radius:8px;background:transparent;color:var(--brown);font:inherit;font-weight:750;cursor:pointer}
-  .pos-history-view-tabs button.active{background:var(--card);box-shadow:0 1px 4px rgba(23,63,43,.16)}
-  .pos-history-filter{display:grid;grid-template-columns:minmax(180px,1fr) auto;gap:8px;align-items:end;margin:0 0 14px;padding:11px;border:1px solid var(--line);border-radius:11px;background:#fff8fa}
+  .pos-history-view-tabs button.active{background:var(--card);box-shadow:0 1px 4px rgba(0,56,127,.16)}
+  .pos-history-filter{display:grid;grid-template-columns:minmax(180px,1fr) auto;gap:8px;align-items:end;margin:0 0 14px;padding:11px;border:1px solid var(--line);border-radius:11px;background:var(--pink-soft)}
   .pos-history-filter .fld{margin-top:0}
   .pos-history-filter-actions{display:flex;gap:7px;align-items:end}
   .pos-history-shift-filter{grid-column:1 / -1}
@@ -456,7 +458,7 @@
     .pos-cart-card{position:static;scroll-margin-top:160px}
     section#pos.active{padding-bottom:82px}
     .pos-mobile-order-bar{display:block;position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));z-index:80;max-width:680px;margin:0 auto}
-    .pos-mobile-order-bar .btn{width:100%;min-height:54px;display:flex;align-items:center;justify-content:space-between;gap:12px;box-shadow:0 8px 24px rgba(23,63,43,.28);font-size:15px}
+    .pos-mobile-order-bar .btn{width:100%;min-height:54px;display:flex;align-items:center;justify-content:space-between;gap:12px;box-shadow:0 8px 24px rgba(0,56,127,.28);font-size:15px}
     .pos-mobile-order-bar strong{font-size:17px}
     .pos-product-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
     .pos-product.has-image{min-height:178px}
@@ -540,8 +542,8 @@
 <body>
 <div id="authGate">
   <div class="gatecard">
-    <div class="gatelogo">🍪</div>
-    <h2 id="authTitle">Log in to Scoopies</h2>
+    <div class="gatelogo">🌙</div>
+    <h2 id="authTitle">Log in to Matcha Luna</h2>
     <p class="hint" id="authSub" style="text-align:center">Only you and your partner should have an account.</p>
     <label class="fld">Email</label>
     <input id="authEmail" type="email" autocomplete="username" placeholder="you@example.com">
@@ -555,7 +557,7 @@
 <header>
   <div class="hwrap">
     <div style="flex:1">
-      <h1>🍪 Scoopies — POS &amp; Costing</h1>
+      <h1>🌙 Matcha Luna — POS &amp; Costing</h1>
       <p>Sell quickly, track every payment, and keep costs accurate.</p>
     </div>
     <span id="syncStatus" class="status">Local only</span>
@@ -710,7 +712,7 @@ create policy "auth update" on scoopies_state for update to authenticated using 
         <button class="btn secondary" data-act="loadExample">Load example data (Chocolate Cookie)</button>
         <button class="btn danger" data-act="clearAll">Clear everything</button>
       </div>
-      <p class="hint" style="margin-top:12px">New here? Click <strong>Load example data</strong> to see a full worked Scoopie, then change the numbers to yours.</p>
+      <p class="hint" style="margin-top:12px">New here? Click <strong>Load example data</strong> to see a full worked example, then change the numbers to yours.</p>
     </div>
   </section>
 </div>
@@ -825,6 +827,12 @@ function stableSerialize(value){return JSON.stringify(canonicalValue(value));}
 function sameDataValue(a,b){return stableSerialize(a)===stableSerialize(b);}
 
 /* ---------- state + persistence ---------- */
+var APP_BRAND_NAME = 'Matcha Luna';
+var APP_BRAND_SLUG = 'matcha-luna';
+function brandDisplayName(value){
+  var name=String(value||'').trim();
+  return !name||/^scoopies$/i.test(name)?APP_BRAND_NAME:name;
+}
 var TEST_MODE = /(?:^|[?&])test=1(?:&|$)/.test(window.location.search);
 var KEY = TEST_MODE ? 'scoopies_costing_test' : 'scoopies_costing_v1';
 var DIRTY_KEY = TEST_MODE ? 'scoopies_costing_test_dirty' : 'scoopies_costing_v1_dirty';
@@ -1233,7 +1241,7 @@ function renderGate(){
     btn.textContent='Create account';
     if(tog) tog.textContent='Already have an account? Log in';
   } else {
-    if(t) t.textContent='Log in to Scoopies';
+    if(t) t.textContent='Log in to '+APP_BRAND_NAME;
     if(sub) sub.textContent='Only you and your partner should have an account.';
     btn.textContent='Log in';
     if(tog) tog.textContent='First time? Create an account';
@@ -1981,7 +1989,7 @@ function posDrawDrinkImageCrop(canvas,source,sourceWidth,sourceHeight,zoom,panX,
   if(!canvas||!source)return null;
   var context=canvas.getContext('2d');if(!context)throw new Error('Image processing is unavailable');
   var geometry=posDrinkImageCropGeometry(sourceWidth,sourceHeight,zoom,panX,panY,canvas.width,canvas.height);if(!geometry)return null;
-  context.setTransform(1,0,0,1,0,0);context.clearRect(0,0,canvas.width,canvas.height);context.fillStyle='#f9f3e8';context.fillRect(0,0,canvas.width,canvas.height);
+  context.setTransform(1,0,0,1,0,0);context.clearRect(0,0,canvas.width,canvas.height);context.fillStyle='#fff4f7';context.fillRect(0,0,canvas.width,canvas.height);
   context.save();context.translate(canvas.width/2+geometry.panX,canvas.height/2+geometry.panY);context.scale(geometry.scale,geometry.scale);
   context.imageSmoothingEnabled=true;context.imageSmoothingQuality='high';context.drawImage(source,-sourceWidth/2,-sourceHeight/2,sourceWidth,sourceHeight);context.restore();
   return geometry;
@@ -2630,7 +2638,7 @@ async function loadPosContext(){
     if(businesses.length!==1)throw {posMessage:'More than one POS workspace was found. Workspace selection is required.'};
     var business=businesses[0];
     posContext.businessId=String(business.business_id||'');
-    posContext.businessName=String(business.business_name||'Scoopies');
+    posContext.businessName=String(business.business_name||APP_BRAND_NAME);
     posContext.role=String(business.member_role||'');
     if(posContext.role==='owner'||posContext.role==='manager')await loadPosPublicationStatus(generation);
     else posContext.publications={};
@@ -3356,7 +3364,7 @@ function posBuildReportCsv(){
   var report=posCheckout.dailyReport;
   if(!report)return '';
   var canView=!!report.can_view_costs,rows=[
-    ['Scoopies end-of-day report'],
+    [APP_BRAND_NAME+' end-of-day report'],
     ['Business date',report.business_date||''],
     ['Business timezone',report.business_timezone||''],
     ['Mode',posModeName(!!report.is_training)],
@@ -3385,7 +3393,7 @@ function downloadPosReport(){
   var csv=posBuildReportCsv();if(!csv)return false;
   var report=posCheckout.dailyReport||{},blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
   var link=document.createElement('a'),url=URL.createObjectURL(blob);
-  link.href=url;link.download='scoopies-'+String(report.business_date||'report')+'-'+(report.is_training?'training':'live')+'.csv';
+  link.href=url;link.download=APP_BRAND_SLUG+'-'+String(report.business_date||'report')+'-'+(report.is_training?'training':'live')+'.csv';
   document.body.appendChild(link);link.click();link.remove();URL.revokeObjectURL(url);return true;
 }
 function printPosReport(){if(!posCheckout.dailyReport)return false;window.print();return true;}
@@ -4912,9 +4920,9 @@ async function submitStockModal(){
 function renderPos(){
   var root=document.getElementById('posRoot');if(!root)return;
   if(!session){root.innerHTML='<div class="card"><h2>Point of sale</h2><p class="hint">The register needs a cloud connection and a signed-in account. Your costing pages remain available above.</p></div>';return;}
-  if((!posContext.loaded||posContext.loading)&&!posContext.businessId){root.innerHTML='<div class="card"><div class="pos-loading">Opening the Scoopies register…</div></div>';return;}
+  if((!posContext.loaded||posContext.loading)&&!posContext.businessId){root.innerHTML='<div class="card"><div class="pos-loading">Opening the '+escapeHtml(APP_BRAND_NAME)+' register…</div></div>';return;}
   if(posContext.error||!posContext.businessId){root.innerHTML='<div class="card"><h2>Point of sale</h2><div class="note">'+escapeHtml(posContext.error||'The POS workspace is not ready.')+'</div><button class="btn secondary" data-act="retryPosContext" style="margin-top:10px">Retry POS</button></div>';return;}
-  var top='<div class="pos-topbar"><div style="flex:1"><h2>'+escapeHtml(posContext.businessName||'Scoopies')+' register</h2><p class="hint">Tap a drink · choose payment · confirm once</p></div>'+posSyncStatusHtml()+'<span class="pos-role">'+escapeHtml(posRoleLabel())+'</span><button class="btn small secondary" data-act="openPosReport">Daily report</button><button class="btn small secondary" data-act="refreshPos"'+(posCheckout.refreshing?' disabled':'')+'>Refresh</button></div>';
+  var top='<div class="pos-topbar"><div style="flex:1"><h2>'+escapeHtml(brandDisplayName(posContext.businessName))+' register</h2><p class="hint">Tap a drink · choose payment · confirm once</p></div>'+posSyncStatusHtml()+'<span class="pos-role">'+escapeHtml(posRoleLabel())+'</span><button class="btn small secondary" data-act="openPosReport">Daily report</button><button class="btn small secondary" data-act="refreshPos"'+(posCheckout.refreshing?' disabled':'')+'>Refresh</button></div>';
   if(posCheckout.shiftLoading&&!posCheckout.loaded&&!posCheckout.catalogFromCache){root.innerHTML=top+'<div class="card"><div class="pos-loading">Checking the active register shift…</div></div>';return;}
   if(posCheckout.shiftError){root.innerHTML=top+'<div class="card pos-gate"><h2>Shift status unavailable</h2><div class="note">'+escapeHtml(posCheckout.shiftError)+'</div><button class="btn secondary" data-act="refreshPos" style="margin-top:10px">Retry safely</button></div>';return;}
   var trainingView=posCheckout.reportMode==='training';
@@ -5291,14 +5299,14 @@ document.body.addEventListener('keydown', function(e){
 /* ---------- backup ---------- */
 function exportData(){
   var blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});
-  var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='scoopies-backup.json'; a.click(); URL.revokeObjectURL(a.href);
+  var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=APP_BRAND_SLUG+'-backup.json'; a.click(); URL.revokeObjectURL(a.href);
 }
 function handleFileImport(e){
   if(e.target.id!=='importFile') return;
   var f=e.target.files[0]; if(!f) return;
   var reader=new FileReader();
   reader.onload=function(){
-    try{ var data=JSON.parse(reader.result); if(!data||!Array.isArray(data.ingredients)) throw new Error('not a Scoopies backup');
+    try{ var data=JSON.parse(reader.result); if(!data||!Array.isArray(data.ingredients)) throw new Error('not a '+APP_BRAND_NAME+' backup');
       if(replaceCostingStateSafely(data,'Imported a backup file'))alert('Backup imported successfully.'); }
     catch(err){ alert('Could not read that file: '+err.message); }
     e.target.value='';
@@ -5319,7 +5327,7 @@ function exampleData(){
   var recipe={id:uid(),name:'Chocolate Cookie',yield:10,lines:[
     {id:uid(),ingredientId:flour.id,qty:300,unit:'g'},{id:uid(),ingredientId:butter.id,qty:100,unit:'g'},
     {id:uid(),ingredientId:sugar.id,qty:150,unit:'g'},{id:uid(),ingredientId:chips.id,qty:100,unit:'g'}]};
-  var product={id:uid(),name:'Choco Chip Scoopie',recipeId:recipe.id,targetMargin:60,price:'',packLines:[
+  var product={id:uid(),name:'Chocolate Cookie',recipeId:recipe.id,targetMargin:60,price:'',packLines:[
     {id:uid(),packagingId:cup.id,qty:1},{id:uid(),packagingId:sticker.id,qty:1},{id:uid(),packagingId:spoon.id,qty:1}]};
   var s={schemaVersion:3,ingredientCategories:[baking],ingredients:[flour,butter,sugar,chips],mixtureDrafts:[],packaging:[cup,sticker,spoon],recipes:[recipe],products:[product]};
   state=s; var c=productCost(product); var sg=suggestedPrice(c,60); product.price=isFinite(sg)?ceilTo(sg,5):'';

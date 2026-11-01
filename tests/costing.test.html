@@ -1,6 +1,6 @@
 <!doctype html>
 <meta charset="utf-8">
-<title>Scoopies costing tests</title>
+<title>Matcha Luna costing tests</title>
 <pre id="result">RUNNING</pre>
 <iframe id="app" src="../index.html?test=1" style="position:fixed;left:-10000px;top:0;width:1200px;height:900px;border:0"></iframe>
 <script>
@@ -3350,8 +3350,8 @@ document.getElementById('app').addEventListener('load', async () => {
     const source = app.document.createElement('canvas');
     source.width = 600; source.height = 1200;
     const context = source.getContext('2d');
-    context.fillStyle = '#173f2b'; context.fillRect(0, 0, source.width, source.height);
-    context.fillStyle = '#d46287'; context.fillRect(0, 0, source.width, source.height / 2);
+    context.fillStyle = '#00387f'; context.fillRect(0, 0, source.width, source.height);
+    context.fillStyle = '#ffd0db'; context.fillRect(0, 0, source.width, source.height / 2);
     let encodedWidth = 0, encodedHeight = 0, blob;
     const originalEncode = app.posEncodeDrinkImageCanvas;
     app.posEncodeDrinkImageCanvas = canvas => {
@@ -3500,22 +3500,34 @@ document.getElementById('app').addEventListener('load', async () => {
     assert(app.posOpsModal.open && !app.posOpsModal.submitting && app.posOpsModal.error, 'ambiguous image attach did not leave a safe retry state');
     app.posCloseOpsModal(true);
   });
-  test('whole-app Whisked theme exposes the forest, cream, and pink design tokens', () => {
+  test('whole-app Matcha Luna theme exposes the navy and blush design tokens', () => {
     const tokens = app.getComputedStyle(app.document.documentElement);
-    assert(tokens.getPropertyValue('--forest').trim() === '#173f2b', 'forest brand token changed');
-    assert(tokens.getPropertyValue('--cream').trim() === '#f9f3e8', 'cream brand token changed');
-    assert(tokens.getPropertyValue('--pink').trim() === '#d46287', 'pink accent token changed');
-    assert(tokens.getPropertyValue('--pink-dark').trim() === '#b73566', 'accessible dark-pink action token changed');
-    assert(tokens.getPropertyValue('--focus').trim() === '#d46287', 'keyboard focus token no longer follows the pink accent');
-    assert(tokens.getPropertyValue('--brown').trim() === '#173f2b', 'legacy components no longer inherit the whole-app forest theme');
+    assert(tokens.getPropertyValue('--navy').trim() === '#00387f', 'navy brand token changed');
+    assert(tokens.getPropertyValue('--blush').trim() === '#ffd0db', 'blush brand token changed');
+    assert(tokens.getPropertyValue('--cream').trim() === '#fff4f7', 'soft blush app canvas token changed');
     const headerStyle = app.getComputedStyle(app.document.querySelector('header'));
     const bodyStyle = app.getComputedStyle(app.document.body);
     const navStyle = app.getComputedStyle(app.document.querySelector('nav'));
     const activeTabStyle = app.getComputedStyle(app.document.querySelector('nav button.active'));
-    assert(headerStyle.backgroundColor === 'rgb(23, 63, 43)', 'app header did not use forest green');
-    assert(bodyStyle.backgroundColor === 'rgb(23, 63, 43)', 'app canvas did not use the forest background');
-    assert(navStyle.backgroundColor === 'rgb(23, 63, 43)', 'sticky navigation did not continue the forest canvas');
-    assert(activeTabStyle.backgroundColor === 'rgb(183, 53, 102)', 'active navigation did not use the pink brand accent');
+    assert(headerStyle.backgroundColor === 'rgb(0, 56, 127)', 'app header did not use Matcha Luna navy');
+    assert(bodyStyle.backgroundColor === 'rgb(0, 56, 127)', 'app canvas did not use Matcha Luna navy');
+    assert(navStyle.backgroundColor === 'rgb(0, 56, 127)', 'sticky navigation did not continue the navy canvas');
+    assert(activeTabStyle.backgroundColor === 'rgb(255, 208, 219)', 'active navigation did not use Matcha Luna blush');
+    assert(activeTabStyle.color === 'rgb(0, 56, 127)', 'active navigation did not keep accessible navy text on blush');
+  });
+  test('visible branding maps the legacy Scoopies workspace to Matcha Luna without renaming compatibility identifiers', () => {
+    installCheckout('owner');
+    app.authMode = 'login';
+    app.renderGate();
+    assert(app.document.title === 'Matcha Luna — POS & Costing', 'browser title did not use Matcha Luna');
+    assert(/Matcha Luna/.test(app.document.querySelector('header h1').textContent), 'app header did not use Matcha Luna');
+    assert(app.document.getElementById('authTitle').textContent === 'Log in to Matcha Luna', 'login gate did not use Matcha Luna');
+    const registerTitle = app.document.querySelector('#posRoot .pos-topbar h2');
+    assert(registerTitle && registerTitle.textContent.trim() === 'Matcha Luna register', 'legacy workspace name was not mapped to Matcha Luna in the POS');
+    assert(app.posBuildReportCsv().includes('Matcha Luna end-of-day report'), 'CSV export did not use Matcha Luna');
+    assert(app.KEY === 'scoopies_costing_test', 'rebrand renamed the established local storage key');
+    assert(app.POS_CATALOG_CACHE_KEY === 'scoopies_pos_catalog_cache_test', 'rebrand renamed the established POS cache key');
+    assert(/scoopies_state/.test(app.document.getElementById('sqlText').textContent), 'rebrand renamed the established database table');
   });
   test('all drinks display as cards and Matcha or Hojicha filters group the menu', () => {
     assert(app.posDrinkGroupKey({ product_name: 'SEA SALT HOJICHA LATTE' }) === 'hojicha', 'Hojicha grouping was case-sensitive');
