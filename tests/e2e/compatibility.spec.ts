@@ -82,7 +82,7 @@ const protectedCostingContractNames = Object.freeze([
   'validateProductForPublish',
 ]);
 
-const expectedStocksNames = Object.freeze([
+const expectedStocksDomainNames = Object.freeze([
   'stockRequestIsCurrent',
   'stockBaseUnitForIngredient',
   'stockSourcePayload',
@@ -121,6 +121,41 @@ const expectedStocksNames = Object.freeze([
   'openStocks',
 ]);
 
+const expectedStocksViewNames = Object.freeze([
+  'stockNumber',
+  'stockFormatNumber',
+  'stockFormatQuantity',
+  'stockSourceForItem',
+  'stockStatus',
+  'stockFilteredItems',
+  'stockSummaryHtml',
+  'stockFilterBarHtml',
+  'stockItemCardsHtml',
+  'stockTransactionLabel',
+  'stockHistoryHtml',
+  'renderStockResults',
+  'renderStocks',
+  'stockItemById',
+  'stockAllowedActions',
+  'stockUnitChoices',
+  'stockInputToBase',
+  'stockValidateModal',
+  'openStockModal',
+  'closeStockModal',
+  'setStockModalAction',
+  'stockPreviewHtml',
+  'renderStockModal',
+  'updateStockModalPreview',
+  'submitStockModal',
+  'renderPos',
+  'renderAll',
+]);
+
+const expectedStocksNames = Object.freeze([
+  ...expectedStocksDomainNames,
+  ...expectedStocksViewNames,
+]);
+
 const protectedStocksContractNames = Object.freeze([
   'stockSourcePayload',
   'costingBulkInventoryIssue',
@@ -140,6 +175,15 @@ const protectedStocksContractNames = Object.freeze([
   'deleteIngredientSafely',
   'changeIngredientUnitSafely',
   'loadStocks',
+  'stockTransactionLabel',
+  'renderStocks',
+  'stockValidateModal',
+  'openStockModal',
+  'closeStockModal',
+  'setStockModalAction',
+  'submitStockModal',
+  'renderPos',
+  'renderAll',
 ]);
 
 function legacyContractNames() {

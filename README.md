@@ -18,20 +18,21 @@ preserving its established browser contract:
 - [`assets/js`](assets/js) contains responsibility-focused application scripts:
   state and persistence, POS catalog and operations, stocks, publication,
   rendering, events, support tools, and startup. The former classic Core,
-  Costing, Stocks, and compatibility files are retained as unreferenced
-  transition assets for browsers holding an older module entry or pre-3B0
-  HTML.
+  Costing, Stocks domain, Stocks view, and compatibility files are retained as
+  unreferenced transition assets for browsers holding an older module entry or
+  pre-3B0 HTML.
 - [`src/main.ts`](src/main.ts) is the Vite module entry. It installs the typed
-  compatibility facade, registers typed Core, Costing, and Stocks at their
-  established runtime positions, and loads the remaining classic runtime in
-  order.
+  compatibility facade, registers typed Core, Costing, Stocks domain, and
+  Stocks view/controller modules at their established runtime positions, and
+  loads the remaining classic runtime in order.
 - [`src/core`](src/core) contains the typed unit, money, identity, and stable
   serialization helpers introduced by Phase 3B1.
 - [`src/costing`](src/costing) contains typed ingredient, mixture, recipe,
   packaging, product, publication snapshot, and validation logic introduced by
   Phase 3B2.
 - [`src/stocks`](src/stocks) contains typed inventory source lifecycle,
-  persistence, recovery, mutation, and loading logic introduced by Phase 3C1.
+  persistence, recovery, mutation, loading, rendering, and modal/controller
+  logic introduced by Phases 3C1 and 3C2.
 - [`src/compatibility`](src/compatibility) defines the stable
   `window.MatchaLunaApp` contract used while internals are modernized.
 - [`vite.config.ts`](vite.config.ts) builds the GitHub Pages artifact under the
@@ -54,9 +55,10 @@ database implementation phases documented below.
 ## Frontend verification
 
 Frontend Phases 1 through 3C1 provide an automated browser safety net for both
-the user-facing workflows and the compatibility boundary. Phase 3C1 extends
-that protection to typed Stocks and its cached-client transition path. Use the
-Node version recorded in
+the user-facing workflows and the compatibility boundary. Phase 3C2 extends
+that protection to the typed Stocks view/controller and its cached-client
+transition path while the release is being verified. Use the Node version
+recorded in
 [`.nvmrc`](.nvmrc), then run:
 
 ```text

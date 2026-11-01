@@ -18,12 +18,83 @@ phases.
   now run from typed modules.
 - **3C — typed Stocks island:** Phase 3C1 released at merge `af389a2`; stock
   domain logic, persistence, recovery, source lifecycle, and loading now run
-  from typed modules. Later slices retain the view and event boundaries until
-  they have independent parity coverage.
+  from typed modules. Phase 3C2 migrates the Stocks view/controller boundary;
+  `events.js` remains classic until it has independent parity coverage.
 - **3D — closure:** clean Windows and CI test exits, signed-in production
   smoke, release evidence, and the final Phase 3 baseline.
 
 Phase 4 does not begin until every slice above is complete.
+
+## Phase 3C2 contract (in progress)
+
+Phase 3C2 replaces only `assets/js/render-stocks.js` in the active runtime.
+The unchanged fallback defines 25 Stocks presentation/controller functions
+plus its required `renderPos` and `renderAll` integration tail, so all 27 move
+together at their original runtime position after `render-pos.js` and before
+`support.js`:
+
+`stockNumber`, `stockFormatNumber`, `stockFormatQuantity`,
+`stockSourceForItem`, `stockStatus`, `stockFilteredItems`,
+`stockSummaryHtml`, `stockFilterBarHtml`, `stockItemCardsHtml`,
+`stockTransactionLabel`, `stockHistoryHtml`, `renderStockResults`,
+`renderStocks`, `stockItemById`, `stockAllowedActions`, `stockUnitChoices`,
+`stockInputToBase`, `stockValidateModal`, `openStockModal`,
+`closeStockModal`, `setStockModalAction`, `stockPreviewHtml`,
+`renderStockModal`, `updateStockModalPreview`, `submitStockModal`,
+`renderPos`, and `renderAll`.
+
+These functions append to the existing typed Stocks namespace in source order,
+producing an exact ordered 63-function domain while retaining live sibling and
+browser-root bindings.
+
+The active runtime then loads these exact 13 classic scripts in order:
+
+1. `runtime-factories.js`
+2. `state.js`
+3. `pos-catalog.js`
+4. `workspace-sync.js`
+5. `pos-operations.js`
+6. `publication.js`
+7. `render-costing.js`
+8. `render-modals.js`
+9. `render-pos.js`
+10. `support.js`
+11. `events.js`
+12. `boot.js`
+13. `start.js`
+
+The production entry must not request `core.js`, `costing.js`, `stocks.js`,
+`render-stocks.js`, or `compatibility.js`. All five unchanged files remain in
+the artifact so cached Phase 3B0/3B1/3B2/3C1 modules and pre-module HTML keep
+their original runtime.
+
+This slice changes no UI, inventory or pricing arithmetic, POS behavior,
+authentication, Supabase schema, RLS policy, stored data, or cloud format.
+Classic `events.js` remains the integration consumer and later migration
+boundary.
+
+## Phase 3C2 exit gates (pending)
+
+- Clean dependency install, zero audit vulnerabilities, type-check, and
+  production build.
+- Exact ordered 27-function view/controller API, cumulative 63-function Stocks
+  namespace, 27 protected legacy overlaps, 175-name compatibility contract,
+  and 182-test legacy baseline.
+- Typed-versus-classic fingerprints for formatting, filters, cards, history,
+  modal lifecycle, POS/application rendering, and asynchronous stock updates.
+- Live sibling, root-state, later-defined renderer, stale-response, exact retry,
+  deterministic failure, and uncertain recovery checks.
+- Active 13-script order with no request for any transition asset.
+- Original 18-script cached transition starts with all five retained fallback
+  assets returning HTTP 200.
+- Event-driven populated Stocks interactions and modal usability pass on
+  desktop Chromium, Pixel Chrome, and iPhone WebKit without horizontal
+  overflow.
+- Pull-request CI, post-merge CI, Pages deployment, and live production checks
+  pass before Phase 3C2 is marked released.
+
+No Phase 3C2 release or deployment is claimed until every gate has recorded
+evidence.
 
 ## Phase 3C1 contract
 

@@ -42,6 +42,39 @@ export {
   stockStoredPendings,
 } from './storage';
 export type { LegacyFunction, LegacyValue } from './types';
+export { renderAll, renderPos } from './application-render';
+export {
+  stockFilteredItems,
+  stockFormatNumber,
+  stockFormatQuantity,
+  stockNumber,
+  stockSourceForItem,
+  stockStatus,
+  stockSummaryHtml,
+} from './formatting';
+export {
+  closeStockModal,
+  openStockModal,
+  renderStockModal,
+  setStockModalAction,
+  stockAllowedActions,
+  stockInputToBase,
+  stockItemById,
+  stockPreviewHtml,
+  stockUnitChoices,
+  stockValidateModal,
+  submitStockModal,
+  updateStockModalPreview,
+} from './modal';
+export {
+  renderStockResults,
+  renderStocks,
+  stockFilterBarHtml,
+  stockHistoryHtml,
+  stockItemCardsHtml,
+  stockTransactionLabel,
+} from './rendering';
+export { STOCKS_VIEW_API } from './view-api';
 
 import {
   costingBulkInventoryIssue,
