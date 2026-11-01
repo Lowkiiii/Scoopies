@@ -11,8 +11,8 @@ phases.
 - **3B0 — module bootstrap:** released at merge `be5f671`; one Vite module
   entry installs the compatibility facade and loads the remaining classic
   runtime in its protected order.
-- **3B1 — typed Core (in progress):** units, money, identity, and
-  serialization helpers.
+- **3B1 — typed Core:** released at merge `82f6b0d`; units, money, identity,
+  and serialization helpers now run from the typed module entry.
 - **3B2 — typed Costing:** ingredients, mixtures, recipes, packaging, product
   costing, publication snapshots, and validation.
 - **3C — typed Stocks island:** stock domain logic, gateway, pending recovery,
@@ -22,7 +22,7 @@ phases.
 
 Phase 4 does not begin until every slice above is complete.
 
-## Phase 3B1 contract (in progress)
+## Phase 3B1 contract
 
 Phase 3B1 replaces only `assets/js/core.js` in the active runtime. Before any
 classic script starts, `src/main.ts` synchronously registers these 15 typed
@@ -65,7 +65,7 @@ and to helpers that dynamically depend on it.
 This slice changes no costing formula, POS or Stocks behavior, authentication,
 UI, Supabase schema, RLS policy, stored data, or cloud synchronization format.
 
-## Phase 3B1 exit gates (pending)
+## Phase 3B1 exit gates (complete)
 
 - Clean dependency install, zero high-severity audit findings, type-check, and
   production build.
@@ -79,10 +79,35 @@ UI, Supabase schema, RLS policy, stored data, or cloud synchronization format.
 - Desktop Chromium, Pixel Chrome, and iPhone WebKit pass without page or
   console errors or horizontal overflow.
 - Pull-request CI, post-merge CI, Pages deployment, and live production checks
-  pass before Phase 3B1 is marked released.
+  passed before Phase 3B1 was marked released.
 
-No Phase 3B1 release or deployment is claimed in this document until all of
-these gates have recorded evidence.
+## Phase 3B1 release record
+
+- Pull request: [#7](https://github.com/Lowkiiii/Scoopies/pull/7)
+- Implementation commit: `6a0163a4c9d2ba2f618244a12343cc66eb1cc928`
+- Merge commit: `82f6b0d3c45f4fbe4d35cb7cf71f9673a509b6ad`
+- PR CI:
+  [41326666058](https://github.com/Lowkiiii/Scoopies/actions/runs/41326666058)
+- Main CI and Pages deployment:
+  [41326842709](https://github.com/Lowkiiii/Scoopies/actions/runs/41326842709)
+- Local verification: Node `24.22.2`; clean `npm ci`; zero audit
+  vulnerabilities; type-check and production build passed; all 15 Playwright
+  tests passed, including the exact 182-test legacy and 175-name compatibility
+  baselines, typed Core golden and live-binding cases, transition fallback,
+  desktop Chromium, Pixel Chrome, and iPhone WebKit.
+- Review evidence: independent architecture, semantic parity, code, test, and
+  release-readiness audits found no release blockers. The strict-mode UID edge
+  they identified was fixed and covered for primitive and read-only bindings
+  before the final test run.
+- Production asset verification: Pages deployed `index-CVjaEKRp.js`; the HTML,
+  module, stylesheet, `core.js` fallback, and `compatibility.js` fallback all
+  returned HTTP 200. The active module requested neither fallback and loaded
+  the exact 16-script runtime with shared version `def8134ddd221255`.
+- Production browser verification: Pixel Chrome and iPhone WebKit exposed the
+  exact 15-name Core namespace and finalized compatibility facade with zero
+  page or console errors and no horizontal overflow. A fresh normal session
+  also completed the real Supabase bootstrap and displayed the Matcha Luna
+  login screen without errors.
 
 ## Phase 3B0 contract
 
