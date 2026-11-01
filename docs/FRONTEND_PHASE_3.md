@@ -16,12 +16,87 @@ phases.
 - **3B2 — typed Costing:** released at merge `824a30a`; ingredients, mixtures,
   recipes, packaging, product costing, publication snapshots, and validation
   now run from typed modules.
-- **3C — typed Stocks island:** stock domain logic, gateway, pending recovery,
-  controller, view, and events.
+- **3C — typed Stocks island:** 3C1 migrates stock domain logic, persistence,
+  recovery, source lifecycle, and loading; later slices retain the view and
+  event boundaries until they have independent parity coverage.
 - **3D — closure:** clean Windows and CI test exits, signed-in production
   smoke, release evidence, and the final Phase 3 baseline.
 
 Phase 4 does not begin until every slice above is complete.
+
+## Phase 3C1 contract (in progress)
+
+Phase 3C1 replaces only `assets/js/stocks.js` in the active runtime. Typed
+Stocks registers these 36 existing browser globals at the original Stocks
+position, after `pos-catalog.js` and before `workspace-sync.js`:
+
+`stockRequestIsCurrent`, `stockBaseUnitForIngredient`, `stockSourcePayload`,
+`costingBulkInventoryIssue`, `reconcileCostingInventoryLifecycle`,
+`replaceCostingStateSafely`, `stockNormalizeItem`,
+`stockNormalizeTransaction`, `stockPendingScope`, `stockPendingStorageKey`,
+`stockPendingRecords`, `stockBuildPending`, `stockSavePending`,
+`stockClearPending`, `stockStoredPendings`, `stockStoredPending`,
+`stockPendingStillCurrent`, `stockSourceDeleteStorageKey`,
+`stockSourceDeleteRecords`, `stockSaveSourceDelete`,
+`stockClearSourceDelete`, `stockBuildSourceDelete`,
+`stockAdoptRemoteCosting`, `stockScopedSourceDeletes`,
+`stockRecoverSourceDeletes`, `stockApplyMutationRows`,
+`stockRestorePendingModal`, `stockRecoverStoredPending`, `stockErrorText`,
+`stockMutationDeterministic`, `stockSourceGuardMessage`,
+`stockEnsureSourceWorkspace`, `deleteIngredientSafely`,
+`changeIngredientUnitSafely`, `loadStocks`, and `openStocks`.
+
+The active runtime then loads these exact 14 classic scripts in order:
+
+1. `runtime-factories.js`
+2. `state.js`
+3. `pos-catalog.js`
+4. `workspace-sync.js`
+5. `pos-operations.js`
+6. `publication.js`
+7. `render-costing.js`
+8. `render-modals.js`
+9. `render-pos.js`
+10. `render-stocks.js`
+11. `support.js`
+12. `events.js`
+13. `boot.js`
+14. `start.js`
+
+The production entry must not request `core.js`, `costing.js`, `stocks.js`, or
+`compatibility.js`. All four unchanged files remain in the artifact so cached
+Phase 3B0/3B1/3B2 modules and pre-module HTML continue to start safely.
+
+Stocks must keep resolving current browser state, Core and Costing helpers,
+sibling Stocks functions, and later-defined view/controller functions at call
+time. Storage keys, frozen retry requests, source-deletion recovery, RPC order,
+authoritative balances, stale-workspace cancellation, error mapping, and exact
+notice text remain unchanged.
+
+This slice changes no UI, inventory arithmetic, Costing or POS behavior,
+authentication, Supabase schema, RLS policy, stored data, or cloud format.
+
+## Phase 3C1 exit gates (pending)
+
+- Clean dependency install, zero audit vulnerabilities, type-check, and
+  production build.
+- Exact 36-name Stocks domain, 18 protected legacy overlaps, 15-name Core
+  domain, 24-name Costing domain, 175-name legacy contract, and 182-test legacy
+  baseline.
+- Complete Stocks fingerprint against the retained classic implementation,
+  plus live sibling, root, state, and later-defined binding checks.
+- Active 14-script order with no request for any transition asset.
+- Original 18-script cached transition starts with all four retained fallback
+  assets returning HTTP 200.
+- Existing inventory recovery, retry, atomic deletion, unit-dimension, and
+  stale-workspace regression cases remain green.
+- Desktop Chromium, Pixel Chrome, and iPhone WebKit pass, including document
+  overflow checks after opening the Stocks tab.
+- Pull-request CI, post-merge CI, Pages deployment, and live production checks
+  pass before Phase 3C1 is marked released.
+
+No Phase 3C1 release or deployment is claimed until every gate has recorded
+evidence.
 
 ## Phase 3B2 contract
 

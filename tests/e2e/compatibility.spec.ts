@@ -82,6 +82,66 @@ const protectedCostingContractNames = Object.freeze([
   'validateProductForPublish',
 ]);
 
+const expectedStocksNames = Object.freeze([
+  'stockRequestIsCurrent',
+  'stockBaseUnitForIngredient',
+  'stockSourcePayload',
+  'costingBulkInventoryIssue',
+  'reconcileCostingInventoryLifecycle',
+  'replaceCostingStateSafely',
+  'stockNormalizeItem',
+  'stockNormalizeTransaction',
+  'stockPendingScope',
+  'stockPendingStorageKey',
+  'stockPendingRecords',
+  'stockBuildPending',
+  'stockSavePending',
+  'stockClearPending',
+  'stockStoredPendings',
+  'stockStoredPending',
+  'stockPendingStillCurrent',
+  'stockSourceDeleteStorageKey',
+  'stockSourceDeleteRecords',
+  'stockSaveSourceDelete',
+  'stockClearSourceDelete',
+  'stockBuildSourceDelete',
+  'stockAdoptRemoteCosting',
+  'stockScopedSourceDeletes',
+  'stockRecoverSourceDeletes',
+  'stockApplyMutationRows',
+  'stockRestorePendingModal',
+  'stockRecoverStoredPending',
+  'stockErrorText',
+  'stockMutationDeterministic',
+  'stockSourceGuardMessage',
+  'stockEnsureSourceWorkspace',
+  'deleteIngredientSafely',
+  'changeIngredientUnitSafely',
+  'loadStocks',
+  'openStocks',
+]);
+
+const protectedStocksContractNames = Object.freeze([
+  'stockSourcePayload',
+  'costingBulkInventoryIssue',
+  'reconcileCostingInventoryLifecycle',
+  'stockNormalizeItem',
+  'stockNormalizeTransaction',
+  'stockBuildPending',
+  'stockSavePending',
+  'stockClearPending',
+  'stockStoredPendings',
+  'stockStoredPending',
+  'stockSaveSourceDelete',
+  'stockClearSourceDelete',
+  'stockBuildSourceDelete',
+  'stockScopedSourceDeletes',
+  'stockRecoverSourceDeletes',
+  'deleteIngredientSafely',
+  'changeIngredientUnitSafely',
+  'loadStocks',
+]);
+
 function legacyContractNames() {
   const source = readFileSync(resolve(process.cwd(), 'tests/costing.test.html'), 'utf8');
   const names = Array.from(source.matchAll(/\bapp\.([A-Za-z_$][\w$]*)/g), (match) => match[1]);
@@ -104,6 +164,8 @@ test('the compatibility facade exactly protects the legacy browser contract', as
     protectedCoreNames,
     costingNames,
     protectedCostingNames,
+    stocksNames,
+    protectedStocksNames,
   }) => {
     const appWindow = window as typeof window & {
       MatchaLunaApp: {
@@ -112,6 +174,7 @@ test('the compatibility facade exactly protects the legacy browser contract', as
         domains: {
           core: Record<string, unknown>;
           costing: Record<string, unknown>;
+          stocks: Record<string, unknown>;
           legacy: Record<string, unknown>;
         };
         finalized: boolean;
@@ -201,6 +264,43 @@ test('the compatibility facade exactly protects the legacy browser contract', as
           appWindow.MatchaLunaApp.domains.legacy[name] !== root[name] ||
           appWindow.MatchaLunaApp.domains.costing[name] !== root[name],
       ),
+      stocksOrder: Object.keys(appWindow.MatchaLunaApp.domains.stocks),
+      stocksNames: Object.keys(appWindow.MatchaLunaApp.domains.stocks).sort(),
+      missingStocksRootProperties: stocksNames.filter(
+        (name) => !Object.prototype.hasOwnProperty.call(root, name),
+      ),
+      mismatchedStocksRootValues: stocksNames.filter(
+        (name) => root[name] !== appWindow.MatchaLunaApp.domains.stocks[name],
+      ),
+      invalidStocksNamespaceDescriptors: stocksNames.filter((name) => {
+        const descriptor = Object.getOwnPropertyDescriptor(
+          appWindow.MatchaLunaApp.domains.stocks,
+          name,
+        );
+        return (
+          !descriptor ||
+          descriptor.configurable !== true ||
+          descriptor.enumerable !== true ||
+          descriptor.writable !== true ||
+          typeof descriptor.get === 'function' ||
+          typeof descriptor.set === 'function'
+        );
+      }),
+      invalidStocksRootDescriptors: stocksNames.filter((name) => {
+        const descriptor = Object.getOwnPropertyDescriptor(root, name);
+        return (
+          !descriptor ||
+          descriptor.configurable !== true ||
+          descriptor.enumerable !== true ||
+          typeof descriptor.get !== 'function' ||
+          typeof descriptor.set !== 'function'
+        );
+      }),
+      mismatchedProtectedStocksValues: protectedStocksNames.filter(
+        (name) =>
+          appWindow.MatchaLunaApp.domains.legacy[name] !== root[name] ||
+          appWindow.MatchaLunaApp.domains.stocks[name] !== root[name],
+      ),
       missingBrowserNatives: nativeNames.filter((name) => !(name in appWindow)),
       facadeBrowserNatives: nativeNames.filter((name) => appWindow.MatchaLunaApp.contractNames.includes(name)),
     };
@@ -210,6 +310,8 @@ test('the compatibility facade exactly protects the legacy browser contract', as
     protectedCoreNames: [...protectedCoreContractNames],
     costingNames: [...expectedCostingNames],
     protectedCostingNames: [...protectedCostingContractNames],
+    stocksNames: [...expectedStocksNames],
+    protectedStocksNames: [...protectedStocksContractNames],
   });
 
   expect(contract.version).toBe(1);
@@ -231,6 +333,13 @@ test('the compatibility facade exactly protects the legacy browser contract', as
   expect(contract.invalidCostingNamespaceDescriptors).toEqual([]);
   expect(contract.invalidCostingRootDescriptors).toEqual([]);
   expect(contract.mismatchedProtectedCostingValues).toEqual([]);
+  expect(contract.stocksOrder).toEqual(expectedStocksNames);
+  expect(contract.stocksNames).toEqual([...expectedStocksNames].sort());
+  expect(contract.missingStocksRootProperties).toEqual([]);
+  expect(contract.mismatchedStocksRootValues).toEqual([]);
+  expect(contract.invalidStocksNamespaceDescriptors).toEqual([]);
+  expect(contract.invalidStocksRootDescriptors).toEqual([]);
+  expect(contract.mismatchedProtectedStocksValues).toEqual([]);
   expect(contract.missingBrowserNatives).toEqual([]);
   expect(contract.facadeBrowserNatives).toEqual([]);
 
@@ -240,6 +349,7 @@ test('the compatibility facade exactly protects the legacy browser contract', as
         domains: {
           core: Record<string, unknown>;
           costing: Record<string, unknown>;
+          stocks: Record<string, unknown>;
           legacy: Record<string, unknown>;
         };
       };
@@ -249,9 +359,11 @@ test('the compatibility facade exactly protects the legacy browser contract', as
       num: unknown;
       UNIT_FACTOR: unknown;
       suggestedPrice: unknown;
+      stockSourcePayload: unknown;
     };
     const core = appWindow.MatchaLunaApp.domains.core;
     const costing = appWindow.MatchaLunaApp.domains.costing;
+    const stocks = appWindow.MatchaLunaApp.domains.stocks;
     const legacy = appWindow.MatchaLunaApp.domains.legacy;
     const originalState = appWindow.state;
     const originalRenderAll = appWindow.renderAll;
@@ -259,6 +371,7 @@ test('the compatibility facade exactly protects the legacy browser contract', as
     const originalNum = appWindow.num;
     const originalUnitFactor = appWindow.UNIT_FACTOR;
     const originalSuggestedPrice = appWindow.suggestedPrice;
+    const originalStockSourcePayload = appWindow.stockSourcePayload;
     const stateFromNamespace = { source: 'namespace' };
     const stateFromGlobal = { source: 'global' };
     const renderFromNamespace = () => 'namespace';
@@ -269,6 +382,8 @@ test('the compatibility facade exactly protects the legacy browser contract', as
     const unitFactorFromGlobal = { g: 22 };
     const suggestedPriceFromNamespace = () => 33;
     const suggestedPriceFromGlobal = () => 44;
+    const stockSourcePayloadFromNamespace = () => 55;
+    const stockSourcePayloadFromGlobal = () => 66;
 
     try {
       legacy.state = stateFromNamespace;
@@ -303,6 +418,13 @@ test('the compatibility facade exactly protects the legacy browser contract', as
       const globalFunctionReachedCosting =
         costing.suggestedPrice === suggestedPriceFromGlobal;
 
+      stocks.stockSourcePayload = stockSourcePayloadFromNamespace;
+      const stocksFunctionReachedGlobal =
+        appWindow.stockSourcePayload === stockSourcePayloadFromNamespace;
+      appWindow.stockSourcePayload = stockSourcePayloadFromGlobal;
+      const globalFunctionReachedStocks =
+        stocks.stockSourcePayload === stockSourcePayloadFromGlobal;
+
       return {
         namespaceStateReachedGlobal,
         globalStateReachedNamespace,
@@ -316,6 +438,8 @@ test('the compatibility facade exactly protects the legacy browser contract', as
         globalObjectReachedCore,
         costingFunctionReachedGlobal,
         globalFunctionReachedCosting,
+        stocksFunctionReachedGlobal,
+        globalFunctionReachedStocks,
       };
     } finally {
       appWindow.state = originalState;
@@ -324,6 +448,7 @@ test('the compatibility facade exactly protects the legacy browser contract', as
       appWindow.num = originalNum;
       appWindow.UNIT_FACTOR = originalUnitFactor;
       appWindow.suggestedPrice = originalSuggestedPrice;
+      appWindow.stockSourcePayload = originalStockSourcePayload;
     }
   });
 
@@ -340,6 +465,8 @@ test('the compatibility facade exactly protects the legacy browser contract', as
     globalObjectReachedCore: true,
     costingFunctionReachedGlobal: true,
     globalFunctionReachedCosting: true,
+    stocksFunctionReachedGlobal: true,
+    globalFunctionReachedStocks: true,
   });
 
   const moduleBridgeResult = await page.evaluate(() => {

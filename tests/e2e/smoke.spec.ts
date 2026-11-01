@@ -42,4 +42,14 @@ test('the application shell stays within the current desktop or mobile viewport'
   await expect(page.locator('header')).toBeVisible();
   await expect(page.locator('nav')).toBeVisible();
   await expect(page.locator('nav button[data-tab="pos"]')).toBeVisible();
+
+  await page.locator('nav button[data-tab="stocks"]').click();
+  await expect(page.locator('section#stocks')).toHaveClass(/active/);
+  const stocksLayout = await page.evaluate(() => ({
+    viewportWidth: document.documentElement.clientWidth,
+    pageWidth: document.documentElement.scrollWidth,
+  }));
+  expect(stocksLayout.pageWidth).toBeLessThanOrEqual(
+    stocksLayout.viewportWidth + 1,
+  );
 });
