@@ -16,17 +16,18 @@ phases.
 - **3B2 — typed Costing:** released at merge `824a30a`; ingredients, mixtures,
   recipes, packaging, product costing, publication snapshots, and validation
   now run from typed modules.
-- **3C — typed Stocks and interaction island:** Phase 3C1 released at merge `af389a2`; stock
-  domain logic, persistence, recovery, source lifecycle, and loading now run
-  from typed modules. Phase 3C2 released at merge `aa23b5e`; the Stocks
-  view/controller boundary now runs from typed modules. Phase 3C3 migrates the
-  shared event and interaction boundary with independent parity coverage.
+- **3C — typed Stocks and interaction island:** Phase 3C1 released at merge
+  `af389a2`; stock domain logic, persistence, recovery, source lifecycle, and
+  loading now run from typed modules. Phase 3C2 released at merge `aa23b5e`;
+  the Stocks view/controller boundary now runs from typed modules. Phase 3C3
+  released at merge `34bd6d3`; the shared event and interaction boundary now
+  runs from typed modules.
 - **3D — closure:** clean Windows and CI test exits, signed-in production
   smoke, release evidence, and the final Phase 3 baseline.
 
 Phase 4 does not begin until every slice above is complete.
 
-## Phase 3C3 contract (in progress)
+## Phase 3C3 contract
 
 Phase 3C3 replaces only `assets/js/events.js` in the active runtime. The
 unchanged fallback exposes the public `activateAppTab` function and installs
@@ -78,7 +79,7 @@ This slice changes no UI, event behavior, inventory or pricing arithmetic,
 POS behavior, authentication, Supabase schema, RLS policy, stored data, or
 cloud format. Classic `boot.js` remains unchanged.
 
-## Phase 3C3 exit gates (pending)
+## Phase 3C3 exit gates (complete)
 
 - Clean dependency install, zero audit vulnerabilities, type-check, and
   production build.
@@ -99,8 +100,39 @@ cloud format. Classic `boot.js` remains unchanged.
 - Pull-request CI, post-merge CI, Pages deployment, and live production checks
   pass before Phase 3C3 is marked released.
 
-No Phase 3C3 release or deployment is claimed until every gate has recorded
-evidence.
+Every gate above passed before Phase 3C3 was marked released.
+
+## Phase 3C3 release record
+
+- Pull request: [#15](https://github.com/Lowkiiii/Scoopies/pull/15)
+- Implementation commit: `870141e3dc6057de087be363a7b5670c66e22058`
+- Merge commit: `34bd6d39d7221328fcac4a932c2f179208eaf2d2`
+- PR CI:
+  [41340848342](https://github.com/Lowkiiii/Scoopies/actions/runs/41340848342)
+- Main CI and Pages deployment:
+  [41341014473](https://github.com/Lowkiiii/Scoopies/actions/runs/41341014473)
+- Local verification: Node `24.22.2`; clean `npm ci`; zero audit
+  vulnerabilities; type-check and 48-module production build passed; all 38
+  Playwright tests passed, including the exact 182-test legacy and 175-name
+  compatibility baselines, exact one-function Events namespace, exact ordered
+  15-listener manifest, exact ordered 112-action dispatcher, focus and online
+  capture parity, and event-driven POS, Costing, and Stocks interactions on
+  desktop Chromium, Pixel Chrome, and iPhone WebKit.
+- Review evidence: independent scope, architecture, semantic parity, test,
+  cached-client, diff-integrity, and mobile audits found no release blocker.
+  The two missing focus/online and action-surface gates identified during final
+  review were added, rerun, and independently re-audited before commit.
+- Production asset verification: Pages deployed `index-C5s08f5g.js` and
+  `index-B0B7i9SZ.css`; the HTML, active module, stylesheet, and all six
+  retained transition assets returned HTTP 200. The active browser loaded the
+  exact 12-script runtime without requesting `core.js`, `costing.js`,
+  `stocks.js`, `render-stocks.js`, `events.js`, or `compatibility.js`. The live
+  Events fallback matched the merge source exactly after line-ending
+  normalization.
+- Production browser verification: a fresh 390-pixel Chromium session exposed
+  the exact one-name Events namespace and root proxy, loaded the expected
+  12-script runtime in order, displayed the Matcha Luna application, and
+  reported zero page errors, failed requests, or horizontal overflow.
 
 ## Phase 3C2 contract
 
