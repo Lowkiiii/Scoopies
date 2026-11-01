@@ -16,15 +16,91 @@ phases.
 - **3B2 — typed Costing:** released at merge `824a30a`; ingredients, mixtures,
   recipes, packaging, product costing, publication snapshots, and validation
   now run from typed modules.
-- **3C — typed Stocks island:** Phase 3C1 released at merge `af389a2`; stock
+- **3C — typed Stocks and interaction island:** Phase 3C1 released at merge `af389a2`; stock
   domain logic, persistence, recovery, source lifecycle, and loading now run
   from typed modules. Phase 3C2 released at merge `aa23b5e`; the Stocks
-  view/controller boundary now runs from typed modules. `events.js` remains
-  classic until it has independent parity coverage.
+  view/controller boundary now runs from typed modules. Phase 3C3 migrates the
+  shared event and interaction boundary with independent parity coverage.
 - **3D — closure:** clean Windows and CI test exits, signed-in production
   smoke, release evidence, and the final Phase 3 baseline.
 
 Phase 4 does not begin until every slice above is complete.
+
+## Phase 3C3 contract (in progress)
+
+Phase 3C3 replaces only `assets/js/events.js` in the active runtime. The
+unchanged fallback exposes the public `activateAppTab` function and installs
+15 listeners in this exact order:
+
+1. navigation `click`
+2. body image `error` with capture enabled
+3. body `input`
+4. body `change`
+5. body delegated action `click`
+6. body modal-backdrop `click`
+7. window `focus`
+8. window `online`
+9. body `focusout`
+10. body `pointerdown`
+11. body `pointermove`
+12. body `pointerup`
+13. body `pointercancel`
+14. body `lostpointercapture`
+15. body `keydown`
+
+All listeners, including the 112-case delegated action dispatcher, move
+together so their registration order, capture mode, default prevention,
+modal priority, asynchronous behavior, and live browser bindings remain
+unchanged. Typed Events exposes the exact one-function `events` namespace and
+the established `activateAppTab` browser-root proxy.
+
+The active runtime then loads these exact 12 classic scripts in order:
+
+1. `runtime-factories.js`
+2. `state.js`
+3. `pos-catalog.js`
+4. `workspace-sync.js`
+5. `pos-operations.js`
+6. `publication.js`
+7. `render-costing.js`
+8. `render-modals.js`
+9. `render-pos.js`
+10. `support.js`
+11. `boot.js`
+12. `start.js`
+
+The production entry must not request `core.js`, `costing.js`, `stocks.js`,
+`render-stocks.js`, `events.js`, or `compatibility.js`. All six unchanged
+files remain in the artifact so cached Phase 3B0 through 3C2 modules and
+pre-module HTML keep their original 18-script runtime.
+
+This slice changes no UI, event behavior, inventory or pricing arithmetic,
+POS behavior, authentication, Supabase schema, RLS policy, stored data, or
+cloud format. Classic `boot.js` remains unchanged.
+
+## Phase 3C3 exit gates (pending)
+
+- Clean dependency install, zero audit vulnerabilities, type-check, and
+  production build.
+- Exact one-function Events namespace, protected `activateAppTab` overlap,
+  175-name compatibility contract, and 182-test legacy baseline.
+- Exact 15-listener target, type, order, and capture fingerprint with no
+  duplicate installation.
+- Typed-versus-classic parity for navigation, image fallback, form changes,
+  delegated actions, modal backdrops, focus and online lifecycle, pointer
+  routing, and keyboard accessibility.
+- Live Events namespace and browser-root replacement checks, including the
+  classic online-listener capture behavior.
+- Active 12-script order with no request for any transition asset.
+- Original 18-script cached transition starts and exercises representative
+  interactions with all six retained fallback assets returning HTTP 200.
+- Event-driven POS, Costing, and Stocks interactions pass on desktop Chromium,
+  Pixel Chrome, and iPhone WebKit without horizontal overflow.
+- Pull-request CI, post-merge CI, Pages deployment, and live production checks
+  pass before Phase 3C3 is marked released.
+
+No Phase 3C3 release or deployment is claimed until every gate has recorded
+evidence.
 
 ## Phase 3C2 contract
 
