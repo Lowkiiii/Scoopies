@@ -1,8 +1,10 @@
 import { installCompatibilityFacade } from './compatibility/facade';
+import { registerCoreModule } from './compatibility/register-core';
 import { loadClassicScripts } from './legacy/load-classic-scripts';
 import { AFTER_COMPATIBILITY, BEFORE_COMPATIBILITY } from './legacy/runtime-manifest';
 
 const facade = installCompatibilityFacade(window);
+registerCoreModule(facade);
 
 const ready = (async () => {
   await loadClassicScripts(BEFORE_COMPATIBILITY);

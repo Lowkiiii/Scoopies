@@ -16,12 +16,15 @@ preserving its established browser contract:
 - [`index.html`](index.html) contains the document structure and UI markup.
 - [`assets/styles.css`](assets/styles.css) contains the application styles.
 - [`assets/js`](assets/js) contains responsibility-focused application scripts:
-  core helpers, state and persistence, costing, POS catalog and operations,
-  stocks, publication, rendering, events, support tools, and startup. The old
-  compatibility file is retained temporarily as an unreferenced fallback for
-  browsers holding pre-3B0 HTML.
+  state and persistence, costing, POS catalog and operations, stocks,
+  publication, rendering, events, support tools, and startup. The former
+  classic Core and compatibility files are retained as unreferenced transition
+  assets for browsers holding an older module entry or pre-3B0 HTML.
 - [`src/main.ts`](src/main.ts) is the Vite module entry. It installs the typed
-  compatibility facade and loads the remaining classic runtime in order.
+  compatibility facade, registers typed Core, and loads the remaining classic
+  runtime in order.
+- [`src/core`](src/core) contains the typed unit, money, identity, and stable
+  serialization helpers introduced by Phase 3B1.
 - [`src/compatibility`](src/compatibility) defines the stable
   `window.MatchaLunaApp` contract used while internals are modernized.
 - [`vite.config.ts`](vite.config.ts) builds the GitHub Pages artifact under the
@@ -44,8 +47,9 @@ database implementation phases documented below.
 ## Frontend verification
 
 Frontend Phases 1 through 3B0 provide an automated browser safety net for both
-the user-facing workflows and the compatibility boundary. Use the Node version
-recorded in [`.nvmrc`](.nvmrc), then run:
+the user-facing workflows and the compatibility boundary. Phase 3B1 extends
+that safety net while its typed Core release is being verified. Use the Node
+version recorded in [`.nvmrc`](.nvmrc), then run:
 
 ```text
 npm ci

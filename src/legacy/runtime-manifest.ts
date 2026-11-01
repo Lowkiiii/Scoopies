@@ -1,5 +1,4 @@
 export const BEFORE_COMPATIBILITY = Object.freeze([
-  'core.js',
   'runtime-factories.js',
   'state.js',
   'costing.js',
