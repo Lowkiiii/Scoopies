@@ -1,7 +1,9 @@
-export const BEFORE_COMPATIBILITY = Object.freeze([
+export const BEFORE_COSTING = Object.freeze([
   'runtime-factories.js',
   'state.js',
-  'costing.js',
+] as const);
+
+export const AFTER_COSTING_BEFORE_COMPATIBILITY = Object.freeze([
   'pos-catalog.js',
   'stocks.js',
   'workspace-sync.js',
@@ -14,6 +16,11 @@ export const BEFORE_COMPATIBILITY = Object.freeze([
   'support.js',
   'events.js',
   'boot.js',
+] as const);
+
+export const BEFORE_COMPATIBILITY = Object.freeze([
+  ...BEFORE_COSTING,
+  ...AFTER_COSTING_BEFORE_COMPATIBILITY,
 ] as const);
 
 export const AFTER_COMPATIBILITY = Object.freeze(['start.js'] as const);

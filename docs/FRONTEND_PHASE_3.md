@@ -13,14 +13,77 @@ phases.
   runtime in its protected order.
 - **3B1 — typed Core:** released at merge `82f6b0d`; units, money, identity,
   and serialization helpers now run from the typed module entry.
-- **3B2 — typed Costing:** ingredients, mixtures, recipes, packaging, product
-  costing, publication snapshots, and validation.
+- **3B2 — typed Costing (in progress):** ingredients, mixtures, recipes,
+  packaging, product costing, publication snapshots, and validation.
 - **3C — typed Stocks island:** stock domain logic, gateway, pending recovery,
   controller, view, and events.
 - **3D — closure:** clean Windows and CI test exits, signed-in production
   smoke, release evidence, and the final Phase 3 baseline.
 
 Phase 4 does not begin until every slice above is complete.
+
+## Phase 3B2 contract (in progress)
+
+Phase 3B2 replaces only `assets/js/costing.js` in the active runtime. Typed
+Costing registers these 24 existing browser globals at the original Costing
+position, after `state.js` and before the first Costing consumer:
+
+`isMixture`, `ingredientBaseUnit`, `ingredientTotalBase`,
+`stateIngredientLookup`, `ingredientCostInfo`, `mixtureBatchCost`,
+`ingCostPerBase`, `pkgCostPerPiece`, `packagingLineCost`, `lineCost`,
+`recipeTotal`, `recipePerServing`, `productPackagingCost`, `productCost`,
+`suggestedPrice`, `ingredientUsage`, `packagingUsage`, `recipeUsage`,
+`moneyToCentavos`, `snapshotNumber`, `publicationIngredientRecord`,
+`collectPublicationIngredient`, `buildProductCostingSnapshot`, and
+`validateProductForPublish`.
+
+The active runtime then loads these exact 15 classic scripts in order:
+
+1. `runtime-factories.js`
+2. `state.js`
+3. `pos-catalog.js`
+4. `stocks.js`
+5. `workspace-sync.js`
+6. `pos-operations.js`
+7. `publication.js`
+8. `render-costing.js`
+9. `render-modals.js`
+10. `render-pos.js`
+11. `render-stocks.js`
+12. `support.js`
+13. `events.js`
+14. `boot.js`
+15. `start.js`
+
+The production entry must not request `core.js`, `costing.js`, or
+`compatibility.js`. All three unchanged files remain in the artifact so cached
+Phase 3B0/3B1 modules and pre-module HTML continue to start safely.
+
+Costing must keep resolving the current mutable `state`, Core globals, and
+sibling Costing functions at call time. This preserves legacy rebinding,
+coercion, recursive mixture, publication snapshot, and validation behavior.
+
+This slice changes no calculation formula, UI, POS or Stocks behavior,
+authentication, Supabase schema, RLS policy, stored data, or cloud format.
+
+## Phase 3B2 exit gates (pending)
+
+- Clean dependency install, zero audit vulnerabilities, type-check, and
+  production build.
+- Golden coverage for all 24 Costing helpers plus a typed-versus-classic
+  behavior fingerprint and live-binding checks.
+- Exact 24-name Costing domain, 15-name Core domain, 175-name legacy contract,
+  and 182-test legacy baseline.
+- Active 15-script order with no request for any transition asset.
+- Original 18-script cached transition starts with `core.js`, `costing.js`, and
+  `compatibility.js` returning HTTP 200.
+- Desktop Chromium, Pixel Chrome, and iPhone WebKit pass without page or
+  console errors or horizontal overflow.
+- Pull-request CI, post-merge CI, Pages deployment, and live production checks
+  pass before Phase 3B2 is marked released.
+
+No Phase 3B2 release or deployment is claimed until every gate has recorded
+evidence.
 
 ## Phase 3B1 contract
 
