@@ -186,6 +186,10 @@ const protectedStocksContractNames = Object.freeze([
   'renderAll',
 ]);
 
+const expectedEventsNames = Object.freeze(['activateAppTab']);
+
+const protectedEventsContractNames = Object.freeze(['activateAppTab']);
+
 function legacyContractNames() {
   const source = readFileSync(resolve(process.cwd(), 'tests/costing.test.html'), 'utf8');
   const names = Array.from(source.matchAll(/\bapp\.([A-Za-z_$][\w$]*)/g), (match) => match[1]);
@@ -210,6 +214,8 @@ test('the compatibility facade exactly protects the legacy browser contract', as
     protectedCostingNames,
     stocksNames,
     protectedStocksNames,
+    eventsNames,
+    protectedEventsNames,
   }) => {
     const appWindow = window as typeof window & {
       MatchaLunaApp: {
@@ -219,6 +225,7 @@ test('the compatibility facade exactly protects the legacy browser contract', as
           core: Record<string, unknown>;
           costing: Record<string, unknown>;
           stocks: Record<string, unknown>;
+          events: Record<string, unknown>;
           legacy: Record<string, unknown>;
         };
         finalized: boolean;
@@ -345,6 +352,43 @@ test('the compatibility facade exactly protects the legacy browser contract', as
           appWindow.MatchaLunaApp.domains.legacy[name] !== root[name] ||
           appWindow.MatchaLunaApp.domains.stocks[name] !== root[name],
       ),
+      eventsOrder: Object.keys(appWindow.MatchaLunaApp.domains.events),
+      eventsNames: Object.keys(appWindow.MatchaLunaApp.domains.events).sort(),
+      missingEventsRootProperties: eventsNames.filter(
+        (name) => !Object.prototype.hasOwnProperty.call(root, name),
+      ),
+      mismatchedEventsRootValues: eventsNames.filter(
+        (name) => root[name] !== appWindow.MatchaLunaApp.domains.events[name],
+      ),
+      invalidEventsNamespaceDescriptors: eventsNames.filter((name) => {
+        const descriptor = Object.getOwnPropertyDescriptor(
+          appWindow.MatchaLunaApp.domains.events,
+          name,
+        );
+        return (
+          !descriptor ||
+          descriptor.configurable !== true ||
+          descriptor.enumerable !== true ||
+          descriptor.writable !== true ||
+          typeof descriptor.get === 'function' ||
+          typeof descriptor.set === 'function'
+        );
+      }),
+      invalidEventsRootDescriptors: eventsNames.filter((name) => {
+        const descriptor = Object.getOwnPropertyDescriptor(root, name);
+        return (
+          !descriptor ||
+          descriptor.configurable !== true ||
+          descriptor.enumerable !== true ||
+          typeof descriptor.get !== 'function' ||
+          typeof descriptor.set !== 'function'
+        );
+      }),
+      mismatchedProtectedEventsValues: protectedEventsNames.filter(
+        (name) =>
+          appWindow.MatchaLunaApp.domains.legacy[name] !== root[name] ||
+          appWindow.MatchaLunaApp.domains.events[name] !== root[name],
+      ),
       missingBrowserNatives: nativeNames.filter((name) => !(name in appWindow)),
       facadeBrowserNatives: nativeNames.filter((name) => appWindow.MatchaLunaApp.contractNames.includes(name)),
     };
@@ -356,6 +400,8 @@ test('the compatibility facade exactly protects the legacy browser contract', as
     protectedCostingNames: [...protectedCostingContractNames],
     stocksNames: [...expectedStocksNames],
     protectedStocksNames: [...protectedStocksContractNames],
+    eventsNames: [...expectedEventsNames],
+    protectedEventsNames: [...protectedEventsContractNames],
   });
 
   expect(contract.version).toBe(1);
@@ -384,6 +430,13 @@ test('the compatibility facade exactly protects the legacy browser contract', as
   expect(contract.invalidStocksNamespaceDescriptors).toEqual([]);
   expect(contract.invalidStocksRootDescriptors).toEqual([]);
   expect(contract.mismatchedProtectedStocksValues).toEqual([]);
+  expect(contract.eventsOrder).toEqual(expectedEventsNames);
+  expect(contract.eventsNames).toEqual([...expectedEventsNames].sort());
+  expect(contract.missingEventsRootProperties).toEqual([]);
+  expect(contract.mismatchedEventsRootValues).toEqual([]);
+  expect(contract.invalidEventsNamespaceDescriptors).toEqual([]);
+  expect(contract.invalidEventsRootDescriptors).toEqual([]);
+  expect(contract.mismatchedProtectedEventsValues).toEqual([]);
   expect(contract.missingBrowserNatives).toEqual([]);
   expect(contract.facadeBrowserNatives).toEqual([]);
 
@@ -394,6 +447,7 @@ test('the compatibility facade exactly protects the legacy browser contract', as
           core: Record<string, unknown>;
           costing: Record<string, unknown>;
           stocks: Record<string, unknown>;
+          events: Record<string, unknown>;
           legacy: Record<string, unknown>;
         };
       };
@@ -404,10 +458,12 @@ test('the compatibility facade exactly protects the legacy browser contract', as
       UNIT_FACTOR: unknown;
       suggestedPrice: unknown;
       stockSourcePayload: unknown;
+      activateAppTab: unknown;
     };
     const core = appWindow.MatchaLunaApp.domains.core;
     const costing = appWindow.MatchaLunaApp.domains.costing;
     const stocks = appWindow.MatchaLunaApp.domains.stocks;
+    const events = appWindow.MatchaLunaApp.domains.events;
     const legacy = appWindow.MatchaLunaApp.domains.legacy;
     const originalState = appWindow.state;
     const originalRenderAll = appWindow.renderAll;
@@ -416,6 +472,7 @@ test('the compatibility facade exactly protects the legacy browser contract', as
     const originalUnitFactor = appWindow.UNIT_FACTOR;
     const originalSuggestedPrice = appWindow.suggestedPrice;
     const originalStockSourcePayload = appWindow.stockSourcePayload;
+    const originalActivateAppTab = appWindow.activateAppTab;
     const stateFromNamespace = { source: 'namespace' };
     const stateFromGlobal = { source: 'global' };
     const renderFromNamespace = () => 'namespace';
@@ -428,6 +485,8 @@ test('the compatibility facade exactly protects the legacy browser contract', as
     const suggestedPriceFromGlobal = () => 44;
     const stockSourcePayloadFromNamespace = () => 55;
     const stockSourcePayloadFromGlobal = () => 66;
+    const activateAppTabFromNamespace = () => 77;
+    const activateAppTabFromGlobal = () => 88;
 
     try {
       legacy.state = stateFromNamespace;
@@ -469,6 +528,13 @@ test('the compatibility facade exactly protects the legacy browser contract', as
       const globalFunctionReachedStocks =
         stocks.stockSourcePayload === stockSourcePayloadFromGlobal;
 
+      events.activateAppTab = activateAppTabFromNamespace;
+      const eventsFunctionReachedGlobal =
+        appWindow.activateAppTab === activateAppTabFromNamespace;
+      appWindow.activateAppTab = activateAppTabFromGlobal;
+      const globalFunctionReachedEvents =
+        events.activateAppTab === activateAppTabFromGlobal;
+
       return {
         namespaceStateReachedGlobal,
         globalStateReachedNamespace,
@@ -484,6 +550,8 @@ test('the compatibility facade exactly protects the legacy browser contract', as
         globalFunctionReachedCosting,
         stocksFunctionReachedGlobal,
         globalFunctionReachedStocks,
+        eventsFunctionReachedGlobal,
+        globalFunctionReachedEvents,
       };
     } finally {
       appWindow.state = originalState;
@@ -493,6 +561,7 @@ test('the compatibility facade exactly protects the legacy browser contract', as
       appWindow.UNIT_FACTOR = originalUnitFactor;
       appWindow.suggestedPrice = originalSuggestedPrice;
       appWindow.stockSourcePayload = originalStockSourcePayload;
+      appWindow.activateAppTab = originalActivateAppTab;
     }
   });
 
@@ -511,6 +580,8 @@ test('the compatibility facade exactly protects the legacy browser contract', as
     globalFunctionReachedCosting: true,
     stocksFunctionReachedGlobal: true,
     globalFunctionReachedStocks: true,
+    eventsFunctionReachedGlobal: true,
+    globalFunctionReachedEvents: true,
   });
 
   const moduleBridgeResult = await page.evaluate(() => {
