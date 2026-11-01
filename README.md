@@ -4,15 +4,37 @@ Matcha Luna's costing calculator and point-of-sale system.
 
 ## Current application
 
-The production costing app is a static GitHub Pages application in
-[`index.html`](index.html). Its browser regression suite is
+The production costing app is a static GitHub Pages application whose entry
+point is [`index.html`](index.html). Its browser regression suite is
 [`tests/costing.test.html`](tests/costing.test.html).
+
+## Frontend source layout
+
+Phase 2 of the frontend modernization separates the static application by
+responsibility without changing behavior:
+
+- [`index.html`](index.html) contains the document structure and UI markup.
+- [`assets/styles.css`](assets/styles.css) contains the application styles.
+- [`assets/js`](assets/js) contains responsibility-focused application scripts:
+  core helpers, state and persistence, costing, POS catalog and operations,
+  stocks, publication, rendering, events, support tools, and startup.
+- [`assets/js/compatibility.js`](assets/js/compatibility.js) defines the stable
+  `window.MatchaLunaApp` contract used while internals are modernized.
+
+The JavaScript files intentionally remain ordered, synchronous classic scripts.
+Do not add `type="module"`, `async`, `defer`, an IIFE, or a strict-mode wrapper
+yet: the protected legacy suite still accesses established application
+functions through `window`. New internal modules can register descriptors with
+the compatibility facade while the direct browser contract remains intact.
+
+This frontend-modernization numbering is separate from the historical POS
+database implementation phases documented below.
 
 ## Frontend verification
 
-Phase 1 adds an automated browser safety net without changing the application
-or its deployment format. Use the Node version recorded in [`.nvmrc`](.nvmrc),
-then run:
+Phases 1 and 2 provide an automated browser safety net for both the user-facing
+workflows and the compatibility boundary. Use the Node version recorded in
+[`.nvmrc`](.nvmrc), then run:
 
 ```text
 npm ci
@@ -28,6 +50,8 @@ Focused commands are also available:
 
 ```text
 npm run test:legacy
+npm run test:assets
+npm run test:compatibility
 npm run test:smoke
 ```
 

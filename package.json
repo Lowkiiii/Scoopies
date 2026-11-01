@@ -8,6 +8,8 @@
     "test": "playwright test",
     "test:e2e": "playwright test",
     "test:legacy": "playwright test tests/e2e/legacy-suite.spec.ts --project=chromium-desktop",
+    "test:assets": "playwright test tests/e2e/assets.spec.ts --project=chromium-desktop",
+    "test:compatibility": "playwright test tests/e2e/compatibility.spec.ts --project=chromium-desktop",
     "test:smoke": "playwright test tests/e2e/smoke.spec.ts"
   },
   "engines": {
