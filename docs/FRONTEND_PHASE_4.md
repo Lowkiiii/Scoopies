@@ -28,11 +28,10 @@ that schema, its RPCs, or production data; see
   Ingredients, Packaging, Recipes, and Pricing render boundary merged at
   `659b9b9e6de5e05927571867dd7de4f202314c29`. Every applicable gate passed
   and the release evidence is recorded below.
-- **4E — typed POS presentation (implementation in progress):** the exact
-  catalog, cart, payment, receipt, register-status, and
-  interaction-preservation boundary is frozen below and implemented on the
-  Phase 4E branch. It remains unreleased until every applicable gate passes
-  and release evidence is recorded.
+- **4E — typed POS presentation (released):** the exact catalog, cart,
+  payment, receipt, register-status, and interaction-preservation boundary
+  merged at `b6d8f217a606adcce814b0ddba65730a150fae5c`. Every applicable gate
+  passed and the release evidence is recorded below.
 - Later slices remain bounded by the migration waves below. Each requires its
   own exact API/parity contract before implementation.
 
@@ -608,7 +607,7 @@ its payment controls, but must not add an item, edit payment input, submit a
 sale, open/close a shift, void a receipt, refresh, or permit any business-data
 write.
 
-### Phase 4E implementation status
+### Phase 4E implementation status (released)
 
 - The exact ordered 19-name POS presentation API is implemented in typed,
   responsibility-focused modules and registered after classic
@@ -619,8 +618,9 @@ write.
 - The POS namespace is separate from the existing Stocks-domain `renderPos`
   and `renderAll` functions, and all root, sibling, state, helper, browser
   native, and later-defined dependencies remain call-time live bindings.
-- Release status is still pending the full clean-install, audit, type-check,
-  build, 57-run browser matrix, production-smoke, and independent review gates.
+- The clean-install, audit, type-check, build, 57-run browser matrix,
+  production artifact, 390-pixel browser, signed-in smoke, and independent
+  review gates passed; the exact release evidence is recorded below.
 
 ## Universal executable-slice gates
 
@@ -943,6 +943,94 @@ Every Phase 4D gate above passed before the phase was marked released.
   its compatibility registration and manifest slot, exact tests, matrix
   configuration, and documentation; the retained classic fallback remained
   byte-identical.
+
+## Phase 4E exit gates (complete)
+
+- The exact ordered 19-binding POS presentation API is registered after
+  classic `render-modals.js` and before the typed Stocks view. Typed domain
+  order is Core, Runtime, Costing, Stocks, POS, Support, Events, Legacy, while
+  compatibility remains version 1 with exactly 175 protected names.
+- Typed-versus-classic renderer and controller fingerprints preserve exact
+  values, HTML, coercion, locale handling, repeated calls, DOM effects,
+  failure order, focus, scroll, caret restoration, and call-time access to
+  sibling functions and browser natives.
+- Root/domain reassignment remains bidirectionally live. The existing typed
+  Stocks `renderPos` and `renderAll` functions remain in the Stocks domain,
+  and all classic and typed downstream consumers continue to resolve the new
+  POS presentation functions live.
+- The active classic runtime is exactly eight scripts and no longer requests
+  `render-pos.js`. The cached/pre-module transition remains exactly 18
+  scripts; the retained fallback is unchanged at Git blob
+  `4b40f2e9d57d1f5b11debe8bab95883d30e5df3c` and canonical SHA-256
+  `AF0676AD15E53099F1F9B526FE9340A63C9A88671191E793AA56CE4EA34FDE12`.
+- The exact 182-test legacy baseline, 175-name compatibility baseline, and
+  57-run cross-browser matrix pass locally and in Ubuntu/Windows CI.
+- The tested `main` artifact is live, matches all 22 GitHub Pages files
+  byte-for-byte, passes fresh 390-pixel browser verification, and passes the
+  guarded signed-in production smoke.
+- Independent parity, test-strength, scope/data-safety, and final-diff audits
+  found no blocker. No auth, Supabase, RPC, storage, persistence, checkout,
+  shift, void, stock, schema, cloud, or business-data behavior changed.
+
+Every Phase 4E gate above passed before the phase was marked released.
+
+## Phase 4E release record
+
+- Contract pull request: [#29](https://github.com/Lowkiiii/Scoopies/pull/29)
+- Contract commit: `512d8a06b41c27cf3956772a3a84844aa0be8139`
+- Contract merge commit: `c97312b15ab2c29de8b56de8a81e80dcb903a57d`
+- Contract PR CI:
+  [41493938101](https://github.com/Lowkiiii/Scoopies/actions/runs/41493938101)
+- Contract main CI and Pages deployment:
+  [41494465084](https://github.com/Lowkiiii/Scoopies/actions/runs/41494465084)
+- Implementation pull request:
+  [#30](https://github.com/Lowkiiii/Scoopies/pull/30)
+- Implementation commit: `fafe89578f514fb591a8489c803afe02b3f50c71`
+- Implementation merge commit:
+  `b6d8f217a606adcce814b0ddba65730a150fae5c`
+- Implementation PR CI:
+  [41498399877](https://github.com/Lowkiiii/Scoopies/actions/runs/41498399877)
+- Main CI and Pages deployment:
+  [41498858258](https://github.com/Lowkiiii/Scoopies/actions/runs/41498858258)
+- Signed-in production smoke:
+  [41499853409](https://github.com/Lowkiiii/Scoopies/actions/runs/41499853409)
+- Local verification: Node `24.22.2`; clean `npm ci`; zero audit
+  vulnerabilities; strict type-check and 65-module production build passed;
+  all 57 Playwright runs passed (45 desktop Chromium, 6 Pixel Chrome, and 6
+  iPhone WebKit), including the exact 182-test legacy and 175-name
+  compatibility baselines.
+- Runtime verification: the exact ordered POS presentation API contains
+  `posPaymentLabel`, `posSummaryHtml`, `posReceiptHtml`,
+  `posProductCardHtml`, `posCatalogHtml`, `posCashSuggestions`,
+  `updatePosPaymentPreview`, `posCartHtml`, `posSalesRowsHtml`,
+  `posRecentHtml`, `posShiftBarHtml`, `posNoShiftGateHtml`, `managePosMenu`,
+  `posWorkspaceHtml`, `posMobileOrderBarHtml`, `focusPosCart`,
+  `posSyncStatusHtml`, `posCriticalRefreshNoticeHtml`, and
+  `renderPosPreservingInteraction`. Typed domain sizes are Core 15, Runtime 4,
+  Costing 37, Stocks 63, POS 19, Support 3, and Events 1.
+- Cross-platform evidence: the complete implementation PR and post-merge
+  matrices passed on both Ubuntu and Windows. Pages packaged only the verified
+  Ubuntu `dist/` after both operating-system jobs passed.
+- Production artifact verification: all 22 files in the downloaded tested CI
+  artifact returned HTTP 200 from GitHub Pages and matched live bytes exactly.
+  Pages served `index-B5WJ7yAv.js` and `index-B0B7i9SZ.css`; the exact
+  eight-script active runtime did not request the classic POS renderer, while
+  the exact 18-script cached transition and unchanged `render-pos.js` fallback
+  matched the tested artifact.
+- Production browser verification: a fresh 390-pixel Chromium session loaded
+  the exact active order, finalized the version-1 175-name contract, exposed
+  typed domain sizes 15/4/37/63/19/3/1 in the exact Core/Runtime/Costing/
+  Stocks/POS/Support/Events order, displayed at 390/390 width, and reported
+  zero page errors, console errors, failed requests, or server errors.
+- Signed-in verification: the protected main-only smoke loaded the real POS,
+  Stocks, Ingredients, Recipes, and Pricing views. Client and network guards
+  allowed no business-data write to escape and retained no credentials,
+  screenshots, traces, videos, or business-data artifacts.
+- Review evidence: independent parity, test-strength, scope/data-safety, and
+  final-diff audits found no blocker. The 17-file implementation changed only
+  the typed POS presentation boundary, its compatibility registration and
+  manifest slot, exact tests, matrix configuration, and documentation; the
+  retained classic fallback remained byte-identical.
 
 No later Phase 4 executable slice is released until its exact API and parity
 contract is frozen and all applicable gates have recorded evidence.
