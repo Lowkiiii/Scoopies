@@ -44,6 +44,9 @@ preserving its established browser contract:
   build migration, invariants, release gates, and rollback.
 - [`docs/FRONTEND_PHASE_3.md`](docs/FRONTEND_PHASE_3.md) freezes the remaining
   typed-runtime migration and its Phase 4 entry gate.
+- [`docs/FRONTEND_PHASE_4.md`](docs/FRONTEND_PHASE_4.md) inventories the
+  remaining classic runtime and defines the bounded migration waves, universal
+  release gates, rollback, and first typed-factory slice.
 
 The remaining JavaScript runtime files are intentionally loaded as ordered
 classic scripts by the module bootstrap. Do not independently add `async`,
