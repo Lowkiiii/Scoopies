@@ -16,7 +16,6 @@ const activeRuntimeFiles = [
   'pos-operations.js',
   'publication.js',
   'render-modals.js',
-  'render-pos.js',
   'boot.js',
   'start.js',
 ];

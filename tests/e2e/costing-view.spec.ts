@@ -26,7 +26,6 @@ const activeRuntimeFiles = [
   'pos-operations.js',
   'publication.js',
   'render-modals.js',
-  'render-pos.js',
   'boot.js',
   'start.js',
 ] as const;
@@ -786,6 +785,7 @@ test('typed Costing view exposes the exact API at the original runtime boundary'
     'runtime',
     'costing',
     'stocks',
+    'pos',
     'support',
     'events',
     'legacy',
@@ -839,7 +839,6 @@ test('typed Costing view exposes the exact API at the original runtime boundary'
     'pos-operations.js',
     'publication.js',
     'render-modals.js',
-    'render-pos.js',
   ]);
   expect(fallback.status()).toBe(200);
   expect(canonicalFallback).toBe(canonicalClassicSource);
