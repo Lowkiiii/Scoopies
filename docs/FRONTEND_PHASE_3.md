@@ -22,10 +22,82 @@ phases.
   the Stocks view/controller boundary now runs from typed modules. Phase 3C3
   released at merge `34bd6d3`; the shared event and interaction boundary now
   runs from typed modules.
-- **3D — closure:** clean Windows and CI test exits, signed-in production
-  smoke, release evidence, and the final Phase 3 baseline.
+- **3D — closure (in progress):** clean Windows and CI test exits, signed-in
+  production smoke, release evidence, and the final Phase 3 baseline.
 
 Phase 4 does not begin until every slice above is complete.
+
+## Phase 3D contract (in progress)
+
+Phase 3D closes and freezes the frontend modernization. It introduces no new
+runtime migration and changes no UI, pricing or inventory arithmetic, POS
+behavior, authentication flow, Supabase schema, RLS policy, stored data, or
+cloud format.
+
+The final protected Phase 3 baseline is:
+
+- Node `24.22.2` with a clean dependency install and zero high-severity audit
+  findings.
+- Exact 182-test legacy baseline and 175-name browser compatibility contract.
+- Typed domains with exact API sizes: Core 15, Costing 24, Stocks 63, and
+  Events 1.
+- Exact 12-script active classic runtime.
+- Exact 18-script cached transition with six unchanged fallback assets:
+  `core.js`, `costing.js`, `stocks.js`, `render-stocks.js`, `events.js`, and
+  `compatibility.js`.
+- Default Playwright matrix of 38 runs across desktop Chromium, Pixel Chrome,
+  and iPhone WebKit.
+- GitHub Pages deployment from only the tested `dist/` artifact.
+
+Phase 3D hardens the durable release gates with an explicit dependency audit
+and the complete browser matrix on both Ubuntu and Windows. Pages still
+packages the Ubuntu-produced artifact, but only after both operating-system
+jobs pass.
+
+The signed-in production smoke is separate from the default regression suite.
+It uses a dedicated existing account supplied only through protected GitHub
+environment secrets, runs against the real Pages URL, creates a fresh browser
+context, and performs read-only checks of cloud readiness, POS catalog and
+payment controls, Stocks, Ingredients, Recipes, and Pricing. It must not open
+or close a shift, submit or void a sale, mutate inventory or costing data, or
+retain screenshots, traces, videos, credentials, or business-data artifacts.
+
+### Signed-in smoke operation
+
+1. Create the GitHub environment `production-smoke` and restrict it to the
+   `main` branch.
+2. Add `MATCHA_LUNA_SMOKE_EMAIL` and `MATCHA_LUNA_SMOKE_PASSWORD` as environment
+   secrets. Use an existing dedicated test account that belongs to the real
+   Matcha Luna workspace; never commit or paste either value into an issue,
+   pull request, log, or documentation.
+3. After the tested `main` artifact is live, manually run the **Signed-in
+   production smoke** workflow on `main`.
+4. Record the successful workflow URL in the Phase 3D release evidence. A
+   missing secret, missing production data, blocked write attempt, browser
+   error, failed request, or server error must fail the smoke without changing
+   production business data.
+
+## Phase 3D exit gates (pending)
+
+- Clean Windows `npm ci`, explicit `npm audit --audit-level=high`, type-check,
+  production build, and full 38-run browser suite exit successfully without a
+  leftover preview process.
+- Pull-request and post-merge CI pass the explicit audit, type-check, build,
+  and full browser suite on both Ubuntu and Windows.
+- Exact legacy, compatibility, typed-domain, active-runtime, cached-transition,
+  and fallback-asset baselines above remain green.
+- A real read-only signed-in production smoke passes through the protected
+  production-smoke environment without sharing or recording credentials.
+- The historical Phase 3A release record and current README source map are
+  complete and accurate.
+- The tested `main` artifact deploys through Pages; live HTML, module,
+  stylesheet, fallback assets, runtime order, compatibility namespaces,
+  errors, failed requests, and 390-pixel overflow are verified.
+- Final Phase 3 release evidence is recorded and the repository is clean and
+  synchronized on `main`.
+
+No Phase 3D or final Phase 3 release is claimed until every gate above,
+including the real signed-in production smoke, has recorded evidence.
 
 ## Phase 3C3 contract
 

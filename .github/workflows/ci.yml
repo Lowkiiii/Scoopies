@@ -35,6 +35,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Audit dependencies
+        run: npm audit --audit-level=high
+
       - name: Type-check build and test code
         run: npm run typecheck
 
@@ -67,10 +70,56 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
+  windows-browser-tests:
+    name: Windows browser tests
+    runs-on: windows-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Audit dependencies
+        run: npm audit --audit-level=high
+
+      - name: Type-check build and test code
+        run: npm run typecheck
+
+      - name: Build production artifact
+        run: npm run build
+
+      - name: Install browser engines
+        run: npx playwright install chromium webkit
+
+      - name: Run browser tests
+        run: npm run test:e2e
+
+      - name: Upload Playwright report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report-windows-${{ github.run_attempt }}
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
+          retention-days: 14
+
   package-pages:
     name: Package verified Pages artifact
     if: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
-    needs: browser-tests
+    needs: [browser-tests, windows-browser-tests]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:

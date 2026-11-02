@@ -1,0 +1,51 @@
+name: Signed-in production smoke
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: signed-in-production-smoke
+  cancel-in-progress: false
+
+jobs:
+  signed-in-smoke:
+    name: Read-only signed-in smoke
+    if: ${{ github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: production-smoke
+      url: https://lowkiiii.github.io/Scoopies/
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Audit dependencies
+        run: npm audit --audit-level=high
+
+      - name: Type-check smoke tooling
+        run: npm run typecheck
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run read-only signed-in production smoke
+        run: npm run test:production:smoke
+        env:
+          CI: true
+          MATCHA_LUNA_PRODUCTION_URL: https://lowkiiii.github.io/Scoopies/
+          MATCHA_LUNA_SMOKE_EMAIL: ${{ secrets.MATCHA_LUNA_SMOKE_EMAIL }}
+          MATCHA_LUNA_SMOKE_PASSWORD: ${{ secrets.MATCHA_LUNA_SMOKE_PASSWORD }}
