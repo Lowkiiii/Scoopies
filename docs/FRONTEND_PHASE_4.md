@@ -20,10 +20,10 @@ that schema, its RPCs, or production data; see
 - **4B — typed runtime factories (released):** the first executable slice,
   merged at `e353f0078e86029b19f6b02d8e0701b5a7b96f53`. Every applicable gate
   passed and the release evidence is recorded below.
-- **4C — typed support utilities (implementation in progress):** the exact
-  backup export/import and example-data boundary is frozen below. Its
-  implementation remains unreleased until every applicable gate passes and
-  release evidence is recorded.
+- **4C — typed support utilities (released):** the exact backup export/import
+  and example-data boundary merged at
+  `c576aca099a72a9ebae5814b4b223088107bdaaa`. Every applicable gate passed
+  and the release evidence is recorded below.
 - Later slices remain bounded by the migration waves below. Each requires its
   own exact API/parity contract before implementation.
 
@@ -497,6 +497,85 @@ Every Phase 4B gate above passed before the phase was marked released.
   The implementation changed only the typed runtime boundary, its
   compatibility registration, manifest entry, tests, and documentation; the
   retained classic fallback remained byte-identical.
+
+## Phase 4C exit gates (complete)
+
+- The exact ordered Support API `exportData`, `handleFileImport`,
+  `exampleData` is registered after Stocks view and before Events.
+- Typed-versus-classic traces preserve export dependency order, separate live
+  URL lookups, import callback/error boundaries, exact parsed-object identity,
+  the 17-ID example graph, state-before-pricing mutation, raw values, and deep
+  repeated-call isolation.
+- Root/domain reassignment remains live. The compatibility contract remains
+  version 1 with exactly 175 names, and none of the Support names is added to
+  the protected list.
+- The active classic runtime is exactly 10 scripts and does not request
+  `support.js`. The cached/pre-module transition remains exactly 18 scripts;
+  the retained fallback is unchanged at Git blob
+  `7385c19d6fabcfaea9293379c41755982567fa3b` and returns HTTP 200.
+- The exact 182-test legacy baseline, 175-name compatibility baseline, and
+  45-run cross-browser matrix pass locally and in Ubuntu/Windows CI.
+- The tested `main` artifact is live, matches GitHub Pages, passes 390-pixel
+  browser verification, and passes the guarded signed-in production smoke.
+- Independent parity, scope/data-safety, test, and final-diff audits found no
+  blocker. No UI, classic asset, dependency, workflow, auth, Supabase, RPC,
+  storage, schema, cloud, or business-data behavior changed.
+
+Every Phase 4C gate above passed before the phase was marked released.
+
+## Phase 4C release record
+
+- Contract pull request: [#23](https://github.com/Lowkiiii/Scoopies/pull/23)
+- Contract commit: `dbb2473d3671dd6019a5bd1a84c313090591a61e`
+- Contract merge commit: `43a987045680b5297fa50b0f8096a5654592925f`
+- Contract PR CI:
+  [41445963481](https://github.com/Lowkiiii/Scoopies/actions/runs/41445963481)
+- Contract main CI and Pages deployment:
+  [41446272376](https://github.com/Lowkiiii/Scoopies/actions/runs/41446272376)
+- Implementation pull request:
+  [#24](https://github.com/Lowkiiii/Scoopies/pull/24)
+- Implementation commit: `d4e2760101f7f23902e1acef11010cb9ede61caf`
+- Implementation merge commit:
+  `c576aca099a72a9ebae5814b4b223088107bdaaa`
+- Implementation PR CI:
+  [41448644764](https://github.com/Lowkiiii/Scoopies/actions/runs/41448644764)
+- Main CI and Pages deployment:
+  [41448941575](https://github.com/Lowkiiii/Scoopies/actions/runs/41448941575)
+- Signed-in production smoke:
+  [41455131857](https://github.com/Lowkiiii/Scoopies/actions/runs/41455131857)
+- Local verification: Node `24.22.2`; clean `npm ci`; zero audit
+  vulnerabilities; strict type-check and 56-module production build passed;
+  all 45 Playwright runs passed (37 desktop Chromium, 4 Pixel Chrome, and 4
+  iPhone WebKit), including the exact 182-test legacy and 175-name
+  compatibility baselines.
+- Runtime verification: the exact ordered Support API contains `exportData`,
+  `handleFileImport`, and `exampleData`; typed domain sizes are Core 15,
+  Runtime 4, Costing 24, Stocks 63, Support 3, and Events 1. Exact
+  typed/classic export, import, and example fingerprints, callback-time
+  dependencies, bidirectional live reassignment, and Events guards passed.
+- Cross-platform evidence: the complete implementation PR and post-merge
+  matrices passed on both Ubuntu and Windows. Pages packaged only the verified
+  Ubuntu `dist/` after both operating-system jobs passed.
+- Production artifact verification: all 22 files in the downloaded tested CI
+  artifact returned HTTP 200 from GitHub Pages and matched live content after
+  line-ending normalization. Pages served `index-8fu7O1Dd.js` and
+  `index-B0B7i9SZ.css`; the exact 10-script active runtime did not request the
+  classic Support file, while the exact 18-script cached transition and
+  unchanged `support.js` fallback matched the tested artifact.
+- Production browser verification: a fresh 390-pixel Chromium session loaded
+  the exact active order, finalized the version-1 175-name contract, exposed
+  typed domain sizes 15/4/24/63/3/1 in the exact Core/Runtime/Costing/Stocks/
+  Support/Events order, displayed at 390/390 width, and reported zero page
+  errors, console errors, or failed requests.
+- Signed-in verification: the protected main-only smoke loaded the real POS,
+  Stocks, Ingredients, Recipes, and Pricing views. Client and network guards
+  allowed no business-data write to escape and retained no credentials,
+  screenshots, traces, videos, or business-data artifacts. Import and example
+  actions were not invoked against production.
+- Review evidence: independent parity, scope/data-safety, test, and final-diff
+  audits found no blocker. The 13-file implementation changed only the typed
+  Support boundary, its registration/manifest, exact tests, and documentation;
+  the retained classic fallback remained byte-identical.
 
 No later Phase 4 executable slice is released until its exact API and parity
 contract is frozen and all applicable gates have recorded evidence.
