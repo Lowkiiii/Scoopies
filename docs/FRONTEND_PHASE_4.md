@@ -20,6 +20,9 @@ that schema, its RPCs, or production data; see
 - **4B — typed runtime factories (released):** the first executable slice,
   merged at `e353f0078e86029b19f6b02d8e0701b5a7b96f53`. Every applicable gate
   passed and the release evidence is recorded below.
+- **4C — typed support utilities (contract defined; implementation pending):**
+  the exact backup export/import and example-data boundary is frozen below.
+  No executable Phase 4C release is claimed yet.
 - Later slices remain bounded by the migration waves below. Each requires its
   own exact API/parity contract before implementation.
 
@@ -234,6 +237,106 @@ Its browser matrix must become exactly 41 runs: the Phase 4A baseline plus
 three desktop-only Runtime tests for exact factory shapes and identity,
 typed-versus-classic parity, and registration-before-state replacement paths.
 The 182-test legacy and 175-name compatibility baselines remain unchanged.
+
+## Phase 4C contract — typed support utilities
+
+`support.js` is the next executable slice. It exposes exactly three functions,
+but it is not a pure utility file: import and example-data flows can replace
+costing state, and `exampleData()` writes the new state before pricing it.
+
+| Function | Exact return | Responsibility |
+| --- | --- | --- |
+| `exportData()` | `undefined` | Download the live costing state as formatted JSON |
+| `handleFileImport(event)` | `undefined` | Parse one selected backup and delegate safe replacement |
+| `exampleData()` | new `CostingState` | Build, assign, price, and return the cookie example graph |
+
+Phase 4C must:
+
+1. Add responsibility-focused typed Support modules and publish the exact
+   ordered API `exportData`, `handleFileImport`, `exampleData`.
+2. Register that API as `window.MatchaLunaApp.domains.support` after the typed
+   Stocks view and before Events registration and installation. All three
+   browser-root properties and the Support namespace must remain writable,
+   accessor-backed live bindings.
+3. Keep the compatibility contract at version 1 with exactly 175 protected
+   names. None of the three Support functions joins that protected list.
+4. Remove only `support.js` from the active classic manifest, reducing the
+   exact active runtime from 11 scripts to 10. Retain the unchanged classic
+   file in `assets/js` and the exact 18-script cached/pre-module transition.
+   The frozen fallback Git blob is
+   `7385c19d6fabcfaea9293379c41755982567fa3b`.
+5. Preserve all dependency lookup at call time, including inside the deferred
+   file-reader callback. Required live dependencies include `state`,
+   `APP_BRAND_NAME`, `APP_BRAND_SLUG`, `replaceCostingStateSafely`, `uid`,
+   `productCost`, `suggestedPrice`, and `ceilTo`, plus the relevant browser
+   constructors and APIs.
+
+`exportData()` must preserve the exact two-space `JSON.stringify` output,
+`application/json` Blob type, `<live slug>-backup.json` filename, detached
+anchor click, immediate revocation of that exact object URL, and `undefined`
+return. It must not save, sync, log, or mutate state.
+
+`handleFileImport(event)` must preserve all current branches and ordering:
+
+- Ignore targets whose ID is not `importFile`, and return when no first file is
+  selected.
+- Construct a `FileReader`, assign its `load` callback, and call `readAsText`
+  with only `files[0]`.
+- Parse inside the callback and require only a truthy value whose
+  `ingredients` field is an array. No stricter schema, file-type, or file-size
+  validation belongs in this parity slice.
+- Pass the parsed object unchanged to the live replacement binding with exact
+  activity text `Imported a backup file`. Show `Backup imported successfully.`
+  only when replacement returns truthy.
+- Convert parse, validation, replacement, and success-alert exceptions to
+  `Could not read that file: <message>`, then clear the input value.
+- Keep reader construction and `readAsText` outside that callback `try/catch`.
+  Synchronous read failures still propagate without clearing the input; no new
+  reader `error` or `abort` behavior is introduced.
+
+`exampleData()` must preserve the exact graph, property order, and mutation
+sequence:
+
+- Call the live `uid()` exactly 17 times in the current order to create one
+  category, four purchased ingredients, three packaging items, one recipe,
+  four recipe lines, one product, and three packaging lines.
+- Create the exact raw top-level order `schemaVersion`,
+  `ingredientCategories`, `ingredients`, `mixtureDrafts`, `packaging`,
+  `recipes`, `products`, including the current legacy `qty` fields and values.
+- Assign the new object to live global `state` before calling
+  `productCost(product)`, then call `suggestedPrice(cost, 60)`, test the result
+  with live `isFinite`, and call `ceilTo(result, 5)` only for a finite result.
+  The current real-costing result is `55`; a non-finite result stores `''`.
+- Return the exact same object reference assigned to global `state`. Repeated
+  calls must build isolated objects and arrays.
+
+The signed-in example-data block, exact warning, confirmation prompt, and
+pending-remote handling stay in Events. Import continues to delegate state
+normalization, inventory identity/dimension protection, save, and rendering to
+the existing typed Stocks replacement path. Phase 4C does not authorize UI,
+auth, Supabase, RPC, storage, schema, cloud, or business-data changes.
+
+Phase 4C adds exactly four desktop-only Playwright tests, taking the full
+matrix from 41 to 45 runs: 37 desktop Chromium, 4 Pixel Chrome, and 4 iPhone
+WebKit. They must prove:
+
+1. The exact Support API/order/descriptors, registration point, bidirectional
+   live reassignment, exact 10-script active path, exact 18-script cached path,
+   unchanged fallback, and HTTP 200 fallback delivery.
+2. Typed-versus-classic export traces: exact JSON, Blob type, filename,
+   click/revoke order, return value, live dependencies, and zero persistence
+   mutation.
+3. Typed-versus-classic import traces: irrelevant/no-file no-ops, first-file
+   selection, success, safe-replacement rejection, malformed/invalid data,
+   thrown replacement, exact alerts, input reset, synchronous read failure,
+   and dependency reassignment between `readAsText` and `load`.
+4. Typed-versus-classic example fingerprints: key/ID/reference order, 17 live
+   IDs, state-before-costing timing, price `55`, non-finite pricing, repeated
+   isolation, and signed-in/offline Events guards with exact prompt and notice.
+
+The exact 182-test legacy and 175-name compatibility baselines remain
+unchanged. The signed-in production smoke may verify the read-only Support
+domain, but must not invoke import or example-data actions against production.
 
 ## Universal executable-slice gates
 
