@@ -57,11 +57,13 @@ database implementation phases documented below.
 
 ## Frontend verification
 
-Frontend Phases 1 through 3C3 provide an automated browser safety net for both
+Frontend Phases 1 through 3D provide an automated browser safety net for both
 the user-facing workflows and the compatibility boundary. Phase 3C2 extends
 that protection to the typed Stocks view/controller and its cached-client
 transition path. Phase 3C3 extends the same boundary to shared browser events
-and interactions. Use the Node version recorded in
+and interactions. Phase 3D adds explicit dependency auditing, the complete
+browser matrix on Ubuntu and Windows, and a protected read-only signed-in
+production smoke. Use the Node version recorded in
 [`.nvmrc`](.nvmrc), then run:
 
 ```text
@@ -75,8 +77,12 @@ npm test
 artifact. It runs the
 protected 182-test legacy browser suite plus desktop and mobile smoke checks.
 Pull requests and pushes to `main` run the same type-check, build, and browser
-checks through [`.github/workflows/ci.yml`](.github/workflows/ci.yml). A passing
-`main` run deploys that exact tested artifact to GitHub Pages.
+checks on both Ubuntu and Windows through
+[`.github/workflows/ci.yml`](.github/workflows/ci.yml). A passing `main` run
+deploys the exact Ubuntu-tested artifact to GitHub Pages only after both
+operating-system jobs pass. The manual
+[signed-in production smoke](.github/workflows/production-smoke.yml) verifies
+the live cloud-backed screens without permitting business-data writes.
 
 Focused commands are also available:
 
