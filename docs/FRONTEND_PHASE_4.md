@@ -32,10 +32,11 @@ that schema, its RPCs, or production data; see
   payment, receipt, register-status, and interaction-preservation boundary
   merged at `b6d8f217a606adcce814b0ddba65730a150fae5c`. Every applicable gate
   passed and the release evidence is recorded below.
-- **4F — typed POS publication (contract frozen):** the exact publication
-  status, modal, RPC, safe product deletion, and ingredient-dependency boundary
-  is frozen below. Implementation has not started and no executable behavior
-  changes are authorized until this contract passes review and CI.
+- **4F — typed POS publication (implementation candidate):** the exact
+  publication status, modal, RPC, safe product deletion, and ingredient-
+  dependency contract merged at
+  `4b88c5b34113180e7d32d81c3fd90e9f30b3cddd`. Its bounded implementation is
+  under verification and is not released until every gate below passes.
 - Later slices remain bounded by the migration waves below. Each requires its
   own exact API/parity contract before implementation.
 
@@ -807,13 +808,20 @@ product, delete a product, invoke a manual or write-capable refresh action,
 alter a field, or permit any business-data write. Normal startup/login reads
 and read-only status refreshes remain allowed under the existing network guard.
 
-### Phase 4F implementation status (contract only)
+### Phase 4F implementation status (release candidate)
 
-- The exact 10-name atomic boundary, Publication namespace, registration slot,
-  mutation/failure semantics, fallback identity, and 64-run matrix are frozen.
-- No executable source, runtime manifest, backend, or production-data change is
-  part of the contract slice. Implementation begins only from the released
-  contract baseline after its cross-platform CI and review gates pass.
+- The exact ordered 10-name API is implemented in responsibility-focused typed
+  Publication modules and registered after classic `workspace-sync.js` and
+  `pos-operations.js`, before the typed Costing view.
+- The active manifest omits only `publication.js`, leaving exactly seven
+  classic scripts. The unchanged file remains in `assets/js` and in the exact
+  18-script cached/pre-module transition.
+- Four desktop parity/data-safety tests and one cross-project write-free mobile
+  test implement the frozen 64-run matrix. Release still requires the complete
+  local, Ubuntu, Windows, Pages, production-browser, signed-in smoke, and final
+  independent-review gates.
+- No backend, schema, RLS, auth, storage format, RPC contract, or production-data
+  change is part of the implementation.
 
 ## Universal executable-slice gates
 

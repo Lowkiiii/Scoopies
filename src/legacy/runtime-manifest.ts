@@ -9,7 +9,6 @@ export const AFTER_COSTING_BEFORE_STOCKS = Object.freeze([
 export const AFTER_STOCKS_BEFORE_COSTING_VIEW = Object.freeze([
   'workspace-sync.js',
   'pos-operations.js',
-  'publication.js',
 ] as const);
 
 export const AFTER_COSTING_VIEW_BEFORE_STOCKS_VIEW = Object.freeze([

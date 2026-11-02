@@ -24,7 +24,6 @@ const activeRuntimeFiles = [
   'pos-catalog.js',
   'workspace-sync.js',
   'pos-operations.js',
-  'publication.js',
   'render-modals.js',
   'boot.js',
   'start.js',
@@ -785,6 +784,7 @@ test('typed Costing view exposes the exact API at the original runtime boundary'
     'runtime',
     'costing',
     'stocks',
+    'publication',
     'pos',
     'support',
     'events',
@@ -837,7 +837,6 @@ test('typed Costing view exposes the exact API at the original runtime boundary'
     'pos-catalog.js',
     'workspace-sync.js',
     'pos-operations.js',
-    'publication.js',
     'render-modals.js',
   ]);
   expect(fallback.status()).toBe(200);

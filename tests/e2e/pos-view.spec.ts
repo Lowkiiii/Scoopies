@@ -30,7 +30,6 @@ const activeRuntimeFiles = [
   'pos-catalog.js',
   'workspace-sync.js',
   'pos-operations.js',
-  'publication.js',
   'render-modals.js',
   'boot.js',
   'start.js',
@@ -691,8 +690,8 @@ test('typed POS view keeps the exact boundary, registration slot, runtime, and f
   expect(contract).toMatchObject({
     version: 1,
     contractLength: 175,
-    domainOrder: ['core', 'runtime', 'costing', 'stocks', 'pos', 'support', 'events', 'legacy'],
-    domainSizes: { core: 15, runtime: 4, costing: 37, stocks: 63, pos: 19, support: 3, events: 1 },
+    domainOrder: ['core', 'runtime', 'costing', 'stocks', 'publication', 'pos', 'support', 'events', 'legacy'],
+    domainSizes: { core: 15, runtime: 4, costing: 37, stocks: 63, publication: 10, pos: 19, support: 3, events: 1 },
     posOrder: posViewNames,
     protectedNames: [],
     activeRuntime: activeRuntimeFiles,
@@ -711,7 +710,7 @@ test('typed POS view keeps the exact boundary, registration slot, runtime, and f
   expect(contract.boundary).toEqual({
     hasPos: false,
     root: posViewNames.map(() => 'undefined'),
-    scripts: ['state.js', 'pos-catalog.js', 'workspace-sync.js', 'pos-operations.js', 'publication.js', 'render-modals.js'],
+    scripts: ['state.js', 'pos-catalog.js', 'workspace-sync.js', 'pos-operations.js', 'render-modals.js'],
   });
   expect(contract.stocksTail).toContain('renderPos');
   expect(contract.stocksTail).toContain('renderAll');
