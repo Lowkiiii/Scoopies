@@ -24,10 +24,10 @@ that schema, its RPCs, or production data; see
   and example-data boundary merged at
   `c576aca099a72a9ebae5814b4b223088107bdaaa`. Every applicable gate passed
   and the release evidence is recorded below.
-- **4D — typed costing presentation (contract frozen):** the exact shared
-  helpers and Ingredients, Packaging, Recipes, and Pricing render boundary is
-  frozen below. Its implementation remains unreleased until every applicable
-  gate passes and release evidence is recorded.
+- **4D — typed costing presentation (implementation in progress):** the exact
+  shared helpers and Ingredients, Packaging, Recipes, and Pricing render
+  boundary is frozen below. Its implementation remains unreleased until every
+  applicable gate passes and release evidence is recorded.
 - Later slices remain bounded by the migration waves below. Each requires its
   own exact API/parity contract before implementation.
 
