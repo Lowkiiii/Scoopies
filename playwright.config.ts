@@ -41,7 +41,7 @@ export default defineConfig({
     },
     {
       name: 'mobile-chrome',
-      testMatch: /(?:smoke|stocks-mobile|events-mobile)\.spec\.ts/,
+      testMatch: /(?:smoke|stocks-mobile|events-mobile|costing-view-mobile)\.spec\.ts/,
       use: {
         ...devices['Pixel 5'],
         channel: chromiumChannel,
@@ -49,7 +49,7 @@ export default defineConfig({
     },
     {
       name: 'mobile-safari',
-      testMatch: /(?:smoke|stocks-mobile|events-mobile)\.spec\.ts/,
+      testMatch: /(?:smoke|stocks-mobile|events-mobile|costing-view-mobile)\.spec\.ts/,
       use: {
         ...devices['iPhone 13'],
         browserName: 'webkit',

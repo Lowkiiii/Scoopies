@@ -1,5 +1,8 @@
 import { installCompatibilityFacade } from './compatibility/facade';
 import { registerCostingModule } from './compatibility/register-costing';
+import {
+  registerCostingViewModule,
+} from './compatibility/register-costing-view';
 import { registerCoreModule } from './compatibility/register-core';
 import { registerEventsModule } from './compatibility/register-events';
 import { registerRuntimeModule } from './compatibility/register-runtime';
@@ -10,9 +13,10 @@ import { installEventHandlers } from './events';
 import { loadClassicScripts } from './legacy/load-classic-scripts';
 import {
   AFTER_COMPATIBILITY,
+  AFTER_COSTING_VIEW_BEFORE_STOCKS_VIEW,
   AFTER_COSTING_BEFORE_STOCKS,
   AFTER_EVENTS_BEFORE_COMPATIBILITY,
-  AFTER_STOCKS_BEFORE_VIEW,
+  AFTER_STOCKS_BEFORE_COSTING_VIEW,
   AFTER_STOCKS_VIEW_BEFORE_EVENTS,
   BEFORE_COSTING,
 } from './legacy/runtime-manifest';
@@ -26,7 +30,9 @@ const ready = (async () => {
   registerCostingModule(facade, window);
   await loadClassicScripts(AFTER_COSTING_BEFORE_STOCKS);
   registerStocksModule(facade, window);
-  await loadClassicScripts(AFTER_STOCKS_BEFORE_VIEW);
+  await loadClassicScripts(AFTER_STOCKS_BEFORE_COSTING_VIEW);
+  registerCostingViewModule(facade, window);
+  await loadClassicScripts(AFTER_COSTING_VIEW_BEFORE_STOCKS_VIEW);
   registerStocksViewModule(facade, window);
   await loadClassicScripts(AFTER_STOCKS_VIEW_BEFORE_EVENTS);
   registerSupportModule(facade, window);

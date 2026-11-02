@@ -15,7 +15,6 @@ const activeRuntimeFiles = [
   'workspace-sync.js',
   'pos-operations.js',
   'publication.js',
-  'render-costing.js',
   'render-modals.js',
   'render-pos.js',
   'boot.js',

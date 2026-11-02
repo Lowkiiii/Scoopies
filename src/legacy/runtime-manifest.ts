@@ -6,11 +6,13 @@ export const AFTER_COSTING_BEFORE_STOCKS = Object.freeze([
   'pos-catalog.js',
 ] as const);
 
-export const AFTER_STOCKS_BEFORE_VIEW = Object.freeze([
+export const AFTER_STOCKS_BEFORE_COSTING_VIEW = Object.freeze([
   'workspace-sync.js',
   'pos-operations.js',
   'publication.js',
-  'render-costing.js',
+] as const);
+
+export const AFTER_COSTING_VIEW_BEFORE_STOCKS_VIEW = Object.freeze([
   'render-modals.js',
   'render-pos.js',
 ] as const);
@@ -24,7 +26,8 @@ export const AFTER_EVENTS_BEFORE_COMPATIBILITY = Object.freeze([
 export const BEFORE_COMPATIBILITY = Object.freeze([
   ...BEFORE_COSTING,
   ...AFTER_COSTING_BEFORE_STOCKS,
-  ...AFTER_STOCKS_BEFORE_VIEW,
+  ...AFTER_STOCKS_BEFORE_COSTING_VIEW,
+  ...AFTER_COSTING_VIEW_BEFORE_STOCKS_VIEW,
   ...AFTER_STOCKS_VIEW_BEFORE_EVENTS,
   ...AFTER_EVENTS_BEFORE_COMPATIBILITY,
 ] as const);

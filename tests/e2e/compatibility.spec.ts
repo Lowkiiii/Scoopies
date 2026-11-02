@@ -64,6 +64,19 @@ const expectedCostingNames = Object.freeze([
   'collectPublicationIngredient',
   'buildProductCostingSnapshot',
   'validateProductForPublish',
+  'unitOptions',
+  'optionList',
+  'escapeHtml',
+  'categoryOptions',
+  'ingredientOptions',
+  'selectedRealCategory',
+  'ingredientMatchesView',
+  'renderCategoryBar',
+  'renderIngredients',
+  'renderPackaging',
+  'renderRecipes',
+  'recipeBreakdownHtml',
+  'renderProducts',
 ]);
 
 const protectedCostingContractNames = Object.freeze([
@@ -80,6 +93,8 @@ const protectedCostingContractNames = Object.freeze([
   'ingredientUsage',
   'buildProductCostingSnapshot',
   'validateProductForPublish',
+  'renderIngredients',
+  'renderProducts',
 ]);
 
 const expectedStocksDomainNames = Object.freeze([
