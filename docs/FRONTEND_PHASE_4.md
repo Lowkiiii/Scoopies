@@ -14,8 +14,9 @@ that schema, its RPCs, or production data; see
   implementation merge `ddb96e26747736a7aae15d3095380e56ac085b8b`, with
   its evidence recorded
   in [`FRONTEND_PHASE_3.md`](FRONTEND_PHASE_3.md).
-- **4A — architecture contract and inventory (in progress):** documentation
-  only; no executable source or business behavior changes.
+- **4A — architecture contract and inventory (released):** merged at
+  `0546a5d97fe7e01a465cbc01c2838b7ebd4ba636`; documentation only, with no
+  executable source or business behavior changes. Release evidence is below.
 - **4B — typed runtime factories (planned):** the first executable slice,
   defined below. It does not begin until 4A passes every exit gate.
 - Later slices remain bounded by the migration waves below. Each requires its
@@ -269,7 +270,7 @@ storage, RPCs, or business data for a frontend migration rollback. Retained
 classic files remain the compatibility source; do not edit them during their
 typed replacement slice.
 
-## Phase 4A exit gates (pending)
+## Phase 4A exit gates (complete)
 
 - This architecture contract records the exact Phase 3 baseline, remaining
   runtime inventory, dependency shape, migration waves, universal release
@@ -284,5 +285,44 @@ typed replacement slice.
 - Phase 4A release evidence is recorded and the repository is clean and
   synchronized on `main` before Phase 4B begins.
 
-No Phase 4A or Phase 4B release is claimed until its applicable gates have
-recorded evidence.
+Every Phase 4A gate above passed before the phase was marked released.
+
+## Phase 4A release record
+
+- Pull request: [#19](https://github.com/Lowkiiii/Scoopies/pull/19)
+- Documentation commit: `2db8d506d6650a9d0740a6c58e82065adfa6fb69`
+- Merge commit: `0546a5d97fe7e01a465cbc01c2838b7ebd4ba636`
+- PR CI:
+  [41440147588](https://github.com/Lowkiiii/Scoopies/actions/runs/41440147588)
+- Main CI and Pages deployment:
+  [41440417099](https://github.com/Lowkiiii/Scoopies/actions/runs/41440417099)
+- Signed-in production smoke:
+  [41440965740](https://github.com/Lowkiiii/Scoopies/actions/runs/41440965740)
+- Local verification: Node `24.22.2`; clean `npm ci`; zero audit
+  vulnerabilities; type-check and 48-module production build passed; all 38
+  Playwright runs passed, including the exact 182-test legacy and 175-name
+  compatibility baselines, typed domain sizes Core 15, Costing 24, Stocks 63,
+  and Events 1, the active 12-script runtime, and the cached 18-script
+  transition.
+- Cross-platform evidence: the complete PR and post-merge matrices passed on
+  both Ubuntu and Windows. Pages packaged only the verified Ubuntu `dist/`
+  after both operating-system jobs passed.
+- Review evidence: independent runtime-inventory, architecture-contract, and
+  corrected final-diff audits found no blocker. The final Phase 4A diff changed
+  only `README.md` and this document.
+- Production artifact verification: all 22 files in the downloaded tested CI
+  artifact returned HTTP 200 from GitHub Pages and matched live content after
+  line-ending normalization. Pages served `index-C5s08f5g.js` and
+  `index-B0B7i9SZ.css`; all 12 active scripts, all six retained typed
+  fallbacks, and the browser-test asset matched the tested artifact.
+- Production browser verification: a fresh 390-pixel Chromium session loaded
+  the exact active 12-script order, finalized the 175-name contract, exposed
+  typed domain sizes 15/24/63/1, displayed at 390/390 width, and reported zero
+  page errors, console errors, or failed requests.
+- Signed-in verification: the protected main-only smoke loaded the real POS,
+  Stocks, Ingredients, Recipes, and Pricing views. Client and network guards
+  allowed no business-data write to escape and retained no credentials,
+  screenshots, traces, videos, or business-data artifacts.
+
+No Phase 4B release is claimed until its applicable gates have recorded
+evidence.
