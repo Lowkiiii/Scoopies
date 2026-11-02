@@ -6,6 +6,7 @@ import {
 import { registerCoreModule } from './compatibility/register-core';
 import { registerEventsModule } from './compatibility/register-events';
 import { registerPosViewModule } from './compatibility/register-pos-view';
+import { registerPublicationModule } from './compatibility/register-publication';
 import { registerRuntimeModule } from './compatibility/register-runtime';
 import { registerStocksModule } from './compatibility/register-stocks';
 import { registerStocksViewModule } from './compatibility/register-stocks-view';
@@ -32,6 +33,7 @@ const ready = (async () => {
   await loadClassicScripts(AFTER_COSTING_BEFORE_STOCKS);
   registerStocksModule(facade, window);
   await loadClassicScripts(AFTER_STOCKS_BEFORE_COSTING_VIEW);
+  registerPublicationModule(facade, window);
   registerCostingViewModule(facade, window);
   await loadClassicScripts(AFTER_COSTING_VIEW_BEFORE_STOCKS_VIEW);
   registerPosViewModule(facade, window);
