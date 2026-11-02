@@ -11,7 +11,6 @@ const expectedRuntimeFiles = [
   'render-costing.js',
   'render-modals.js',
   'render-pos.js',
-  'support.js',
   'boot.js',
   'start.js',
 ];
@@ -105,6 +104,7 @@ test('the module bootstrap loads the classic runtime without changing the app co
   expect(assetResponses.has('/Scoopies/assets/js/costing.js')).toBe(false);
   expect(assetResponses.has('/Scoopies/assets/js/stocks.js')).toBe(false);
   expect(assetResponses.has('/Scoopies/assets/js/render-stocks.js')).toBe(false);
+  expect(assetResponses.has('/Scoopies/assets/js/support.js')).toBe(false);
   expect(assetResponses.has('/Scoopies/assets/js/events.js')).toBe(false);
   expect(assetResponses.has('/Scoopies/assets/js/compatibility.js')).toBe(false);
   expect(pageErrors, 'The app must not produce uncaught browser errors.').toEqual([]);

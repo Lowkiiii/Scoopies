@@ -202,6 +202,12 @@ const protectedRuntimeContractNames = Object.freeze([
   'freshStockModal',
 ]);
 
+const expectedSupportNames = Object.freeze([
+  'exportData',
+  'handleFileImport',
+  'exampleData',
+]);
+
 function legacyContractNames() {
   const source = readFileSync(resolve(process.cwd(), 'tests/costing.test.html'), 'utf8');
   const names = Array.from(source.matchAll(/\bapp\.([A-Za-z_$][\w$]*)/g), (match) => match[1]);
@@ -228,6 +234,7 @@ test('the compatibility facade exactly protects the legacy browser contract', as
     protectedStocksNames,
     runtimeNames,
     protectedRuntimeNames,
+    supportNames,
     eventsNames,
     protectedEventsNames,
   }) => {
@@ -240,6 +247,7 @@ test('the compatibility facade exactly protects the legacy browser contract', as
           costing: Record<string, unknown>;
           stocks: Record<string, unknown>;
           runtime: Record<string, unknown>;
+          support: Record<string, unknown>;
           events: Record<string, unknown>;
           legacy: Record<string, unknown>;
         };
@@ -404,6 +412,38 @@ test('the compatibility facade exactly protects the legacy browser contract', as
           appWindow.MatchaLunaApp.domains.legacy[name] !== root[name] ||
           appWindow.MatchaLunaApp.domains.runtime[name] !== root[name],
       ),
+      supportOrder: Object.keys(appWindow.MatchaLunaApp.domains.support),
+      supportNames: Object.keys(appWindow.MatchaLunaApp.domains.support).sort(),
+      missingSupportRootProperties: supportNames.filter(
+        (name) => !Object.prototype.hasOwnProperty.call(root, name),
+      ),
+      mismatchedSupportRootValues: supportNames.filter(
+        (name) => root[name] !== appWindow.MatchaLunaApp.domains.support[name],
+      ),
+      invalidSupportNamespaceDescriptors: supportNames.filter((name) => {
+        const descriptor = Object.getOwnPropertyDescriptor(
+          appWindow.MatchaLunaApp.domains.support,
+          name,
+        );
+        return (
+          !descriptor ||
+          descriptor.configurable !== true ||
+          descriptor.enumerable !== true ||
+          descriptor.writable !== true ||
+          typeof descriptor.get === 'function' ||
+          typeof descriptor.set === 'function'
+        );
+      }),
+      invalidSupportRootDescriptors: supportNames.filter((name) => {
+        const descriptor = Object.getOwnPropertyDescriptor(root, name);
+        return (
+          !descriptor ||
+          descriptor.configurable !== true ||
+          descriptor.enumerable !== true ||
+          typeof descriptor.get !== 'function' ||
+          typeof descriptor.set !== 'function'
+        );
+      }),
       eventsOrder: Object.keys(appWindow.MatchaLunaApp.domains.events),
       eventsNames: Object.keys(appWindow.MatchaLunaApp.domains.events).sort(),
       missingEventsRootProperties: eventsNames.filter(
@@ -454,6 +494,7 @@ test('the compatibility facade exactly protects the legacy browser contract', as
     protectedStocksNames: [...protectedStocksContractNames],
     runtimeNames: [...expectedRuntimeNames],
     protectedRuntimeNames: [...protectedRuntimeContractNames],
+    supportNames: [...expectedSupportNames],
     eventsNames: [...expectedEventsNames],
     protectedEventsNames: [...protectedEventsContractNames],
   });
@@ -491,6 +532,12 @@ test('the compatibility facade exactly protects the legacy browser contract', as
   expect(contract.invalidRuntimeNamespaceDescriptors).toEqual([]);
   expect(contract.invalidRuntimeRootDescriptors).toEqual([]);
   expect(contract.mismatchedProtectedRuntimeValues).toEqual([]);
+  expect(contract.supportOrder).toEqual(expectedSupportNames);
+  expect(contract.supportNames).toEqual([...expectedSupportNames].sort());
+  expect(contract.missingSupportRootProperties).toEqual([]);
+  expect(contract.mismatchedSupportRootValues).toEqual([]);
+  expect(contract.invalidSupportNamespaceDescriptors).toEqual([]);
+  expect(contract.invalidSupportRootDescriptors).toEqual([]);
   expect(contract.eventsOrder).toEqual(expectedEventsNames);
   expect(contract.eventsNames).toEqual([...expectedEventsNames].sort());
   expect(contract.missingEventsRootProperties).toEqual([]);

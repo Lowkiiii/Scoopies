@@ -15,9 +15,7 @@ export const AFTER_STOCKS_BEFORE_VIEW = Object.freeze([
   'render-pos.js',
 ] as const);
 
-export const AFTER_STOCKS_VIEW_BEFORE_EVENTS = Object.freeze([
-  'support.js',
-] as const);
+export const AFTER_STOCKS_VIEW_BEFORE_EVENTS = Object.freeze([] as const);
 
 export const AFTER_EVENTS_BEFORE_COMPATIBILITY = Object.freeze([
   'boot.js',
