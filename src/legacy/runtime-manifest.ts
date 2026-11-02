@@ -1,5 +1,4 @@
 export const BEFORE_COSTING = Object.freeze([
-  'runtime-factories.js',
   'state.js',
 ] as const);
 
