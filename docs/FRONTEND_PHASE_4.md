@@ -32,11 +32,11 @@ that schema, its RPCs, or production data; see
   payment, receipt, register-status, and interaction-preservation boundary
   merged at `b6d8f217a606adcce814b0ddba65730a150fae5c`. Every applicable gate
   passed and the release evidence is recorded below.
-- **4F — typed POS publication (implementation candidate):** the exact
-  publication status, modal, RPC, safe product deletion, and ingredient-
-  dependency contract merged at
-  `4b88c5b34113180e7d32d81c3fd90e9f30b3cddd`. Its bounded implementation is
-  under verification and is not released until every gate below passes.
+- **4F — typed POS publication (released):** the exact publication status,
+  modal, RPC, safe product deletion, and ingredient-dependency contract merged
+  at `4b88c5b34113180e7d32d81c3fd90e9f30b3cddd`; its bounded implementation
+  merged at `02e7465c2ac91bbe8d8fd3c6e2fc0016a774438c`. Every applicable gate
+  passed and the release evidence is recorded below.
 - Later slices remain bounded by the migration waves below. Each requires its
   own exact API/parity contract before implementation.
 
@@ -808,7 +808,7 @@ product, delete a product, invoke a manual or write-capable refresh action,
 alter a field, or permit any business-data write. Normal startup/login reads
 and read-only status refreshes remain allowed under the existing network guard.
 
-### Phase 4F implementation status (release candidate)
+### Phase 4F implementation status (released)
 
 - The exact ordered 10-name API is implemented in responsibility-focused typed
   Publication modules and registered after classic `workspace-sync.js` and
@@ -817,9 +817,9 @@ and read-only status refreshes remain allowed under the existing network guard.
   classic scripts. The unchanged file remains in `assets/js` and in the exact
   18-script cached/pre-module transition.
 - Four desktop parity/data-safety tests and one cross-project write-free mobile
-  test implement the frozen 64-run matrix. Release still requires the complete
-  local, Ubuntu, Windows, Pages, production-browser, signed-in smoke, and final
-  independent-review gates.
+  test implement the frozen 64-run matrix. The complete local, Ubuntu, Windows,
+  Pages, production-browser, signed-in smoke, and independent-review gates all
+  passed.
 - No backend, schema, RLS, auth, storage format, RPC contract, or production-data
   change is part of the implementation.
 
@@ -1232,6 +1232,96 @@ Every Phase 4E gate above passed before the phase was marked released.
   the typed POS presentation boundary, its compatibility registration and
   manifest slot, exact tests, matrix configuration, and documentation; the
   retained classic fallback remained byte-identical.
+
+## Phase 4F exit gates (complete)
+
+- The exact ordered 10-binding Publication API is registered after classic
+  `workspace-sync.js` and `pos-operations.js`, before the typed Costing view.
+  Typed domain order is Core, Runtime, Costing, Stocks, Publication, POS,
+  Support, Events, Legacy, while compatibility remains version 1 with exactly
+  175 protected names.
+- Typed-versus-classic fingerprints preserve exact values, HTML, modal and
+  focus behavior, timeout fallbacks, native-call order, dependency traversal,
+  RPC payloads, stale-session and stale-generation exits, error handling, and
+  call-time access to sibling functions and browser state.
+- Product deletion remains fail-closed. Rejected, cancelled, stale, missing,
+  unauthorized, disconnected, and actively published paths perform no product
+  or persistence mutation; confirmed deletion retains its exact single strict-
+  ID assignment and follow-up order.
+- The active classic runtime is exactly seven scripts and no longer requests
+  `publication.js`. The cached/pre-module transition remains exactly 18
+  scripts; the retained fallback is unchanged at Git blob
+  `49d4ec24d9fecf986ce7d4f373acd339ac483ca7` and canonical SHA-256
+  `78BD373602F683259C1E5CF166B21084F21D2E19E83687CAF7C4C0307AFFE1B5`.
+- The exact 182-test legacy baseline, 175-name compatibility baseline, and
+  64-run cross-browser matrix pass locally and in Ubuntu/Windows CI.
+- The tested `main` artifact is live, matches all 22 GitHub Pages files
+  byte-for-byte, passes fresh 390-pixel browser verification, and passes the
+  guarded signed-in production smoke.
+- Independent source-parity, test-strength, scope/data-safety, final-diff, and
+  release-readiness audits found no blocker. No auth, Supabase, RPC contract,
+  storage, persistence, checkout, shift, void, stock, schema, cloud, or
+  business-data behavior changed.
+
+Every Phase 4F gate above passed before the phase was marked released.
+
+## Phase 4F release record
+
+- Contract pull request: [#32](https://github.com/Lowkiiii/Scoopies/pull/32)
+- Contract commit: `0633f004dcdaca67d4752a51b0da97d4bfed3dc2`
+- Contract merge commit: `4b88c5b34113180e7d32d81c3fd90e9f30b3cddd`
+- Contract PR CI:
+  [41515973930](https://github.com/Lowkiiii/Scoopies/actions/runs/41515973930)
+- Contract main CI and Pages deployment:
+  [41516412455](https://github.com/Lowkiiii/Scoopies/actions/runs/41516412455)
+- Implementation pull request:
+  [#33](https://github.com/Lowkiiii/Scoopies/pull/33)
+- Implementation commit: `e60b212c6ab64b594a9363f9dc53713333f2175a`
+- Implementation merge commit:
+  `02e7465c2ac91bbe8d8fd3c6e2fc0016a774438c`
+- Implementation PR CI:
+  [41521076956](https://github.com/Lowkiiii/Scoopies/actions/runs/41521076956)
+- Main CI and Pages deployment:
+  [41521530950](https://github.com/Lowkiiii/Scoopies/actions/runs/41521530950)
+- Signed-in production smoke:
+  [41522515831](https://github.com/Lowkiiii/Scoopies/actions/runs/41522515831)
+- Local verification: Node `24.22.2`; clean `npm ci`; zero audit
+  vulnerabilities; strict type-check and 73-module production build passed;
+  all 64 Playwright runs passed (50 desktop Chromium, 7 Pixel Chrome, and 7
+  iPhone WebKit), including the exact 182-test legacy and 175-name
+  compatibility baselines.
+- Runtime verification: the exact ordered Publication API contains
+  `publicationStatusFor`, `posPublicationHtml`, `openPublishProductModal`,
+  `closePublishProductModal`, `renderPublishProductModal`,
+  `waitForCostingSync`, `publishProductToPos`,
+  `explainPublishedProductDelete`, `deleteCostingProduct`, and
+  `ingredientDependsOn`. Typed domain sizes are Core 15, Runtime 4, Costing 37,
+  Stocks 63, Publication 10, POS 19, Support 3, and Events 1.
+- Cross-platform evidence: the complete implementation PR and post-merge
+  matrices passed on both Ubuntu and Windows. Pages packaged only the verified
+  Ubuntu `dist/` after both operating-system jobs passed.
+- Production artifact verification: all 22 files in the downloaded tested CI
+  artifact returned HTTP 200 from GitHub Pages and matched live bytes exactly.
+  Pages served `index-D4nE7OhW.js` and `index-B0B7i9SZ.css`; the exact seven-
+  script active runtime did not request the classic Publication asset, while
+  the exact 18-script cached transition and unchanged `publication.js`
+  fallback matched the tested artifact.
+- Production browser verification: a fresh 390-pixel Chromium session loaded
+  the exact active order, finalized the version-1 175-name contract, exposed
+  typed domain sizes 15/4/37/63/10/19/3/1 in the exact Core/Runtime/Costing/
+  Stocks/Publication/POS/Support/Events order, displayed at 390/390 width, and
+  reported zero page errors, console errors, failed requests, or server
+  errors.
+- Signed-in verification: the protected main-only smoke loaded the real POS,
+  Stocks, Ingredients, Recipes, and Pricing views. Client and network guards
+  allowed no business-data write to escape and retained no credentials,
+  screenshots, traces, videos, or business-data artifacts.
+- Review evidence: independent source-parity, test-strength, scope/data-
+  safety, final-diff, and release-readiness audits found no blocker. The
+  21-file implementation changed only the typed Publication authority
+  boundary, its compatibility registration and manifest slot, exact tests,
+  matrix configuration, and documentation; the retained classic fallback
+  remained byte-identical.
 
 No later Phase 4 executable slice is released until its exact API and parity
 contract is frozen and all applicable gates have recorded evidence.
