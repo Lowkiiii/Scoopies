@@ -37,6 +37,10 @@ that schema, its RPCs, or production data; see
   at `4b88c5b34113180e7d32d81c3fd90e9f30b3cddd`; its bounded implementation
   merged at `02e7465c2ac91bbe8d8fd3c6e2fc0016a774438c`. Every applicable gate
   passed and the release evidence is recorded below.
+- **4G — typed modal workflows (contract only):** the exact shared modal,
+  category, purchased-input, mixture-session, draft, editor, validation, and
+  mixture-commit boundary is frozen below. No executable implementation or
+  runtime change is part of the contract slice.
 - Later slices remain bounded by the migration waves below. Each requires its
   own exact API/parity contract before implementation.
 
@@ -822,6 +826,269 @@ and read-only status refreshes remain allowed under the existing network guard.
   passed.
 - No backend, schema, RLS, auth, storage format, RPC contract, or production-data
   change is part of the implementation.
+
+## Phase 4G contract — typed modal workflows
+
+`render-modals.js` is the next executable boundary. Although its UI is split
+across category, purchased-input, draft, and combined-cost dialogs, the file
+cannot be activated safely one island at a time: its classic global function
+declarations share mutable modal/session state and its root properties already
+exist once the script loads. A partial overlay would introduce split classic/
+typed ownership or a temporary replacement mechanism. Phase 4G therefore
+moves the exact 46-function browser boundary atomically while implementing it
+as small responsibility-focused typed modules.
+
+The exact ordered API is:
+
+1. `refreshModalBodyClass`
+2. `focusSoon`
+3. `focusLastMixtureField`
+4. `consumePendingRemoteForCommit`
+5. `applyPendingAfterModal`
+6. `openCategoryModal`
+7. `closeCategoryModal`
+8. `purchasedIngredientCategoryOptions`
+9. `openPurchasedIngredientModal`
+10. `closePurchasedIngredientModal`
+11. `savePurchasedIngredient`
+12. `categoryNameError`
+13. `saveCategory`
+14. `deleteCategory`
+15. `newMixtureDraft`
+16. `draftIngredientLookup`
+17. `mixtureCandidates`
+18. `draftMixtureInfo`
+19. `sanitizeMixtureSessionCategories`
+20. `captureMixtureSession`
+21. `mixtureSessionChanged`
+22. `hasDraftValue`
+23. `mixtureSessionHasMeaningfulWork`
+24. `setMixtureError`
+25. `openMixtureModal`
+26. `closeMixtureModal`
+27. `currentMixtureDraftConflict`
+28. `saveCurrentMixtureDraft`
+29. `requestCloseMixtureModal`
+30. `discardMixtureChanges`
+31. `renderDraftButton`
+32. `formatDraftTime`
+33. `renderDraftsModal`
+34. `openDraftsModal`
+35. `closeDraftsModal`
+36. `resumeMixtureDraft`
+37. `deleteMixtureDraft`
+38. `mixtureComponentCost`
+39. `beginQuickIngredient`
+40. `setMixtureSaving`
+41. `renderMixtureModal`
+42. `refreshMixtureTotals`
+43. `quickIngredientError`
+44. `addQuickIngredient`
+45. `mixtureValidationError`
+46. `saveMixture`
+
+The implementation must keep that public order while splitting ownership into
+at least these internal responsibilities:
+
+| Typed responsibility | Exact public bindings |
+| --- | --- |
+| Shared lifecycle and remote-commit helpers | 1, 2, 4, and 5 |
+| Category and purchased-input workflows | 6–14 |
+| Mixture session, conflict, and draft-save lifecycle | 15–30 |
+| Draft-list rendering and persistence | 31–37 |
+| Mixture editor, rendering, and validation | 3 and 38–45 |
+| Final mixture commit | 46 |
+
+Phase 4G must:
+
+1. Publish the exact ordered API above as a new `modals` compatibility domain.
+   Its bindings and matching browser-root globals remain writable,
+   accessor-backed, and bidirectionally live.
+2. Register the typed Modals domain at the original runtime position: after
+   Publication and the typed Costing view, before the typed POS and Stocks
+   views. Domain order becomes Core, Runtime, Costing, Stocks, Publication,
+   Modals, POS, Support, Events, Legacy.
+3. Keep compatibility contract version 1 with exactly 175 protected names.
+   The five protected names owned by this slice remain
+   `refreshModalBodyClass`, `draftMixtureInfo`, `openMixtureModal`,
+   `closeMixtureModal`, and `saveMixture`.
+4. Remove only `render-modals.js` from the active classic manifest, reducing
+   the exact active path from seven scripts to six. Retain the unchanged file
+   in `assets/js` and in the exact 18-script cached/pre-module transition. Its
+   frozen Git blob is `86175e501cbaaaa4136b01f7e9c0ec1483ab9b2d`; its
+   canonical LF SHA-256 is
+   `881269390352390F1C77F78B3D9230403E2A7E41498C11B0DA3B33914299819C`.
+5. Resolve mutable state, sibling functions, later-defined consumers, and
+   browser natives at call time. This includes all costing state and modal/
+   session globals; `document`, `localStorage`, `String`, `Date`, `JSON`,
+   `Object`, `Array`, `parseInt`, `isNaN`, `setTimeout`, `alert`, and
+   `confirm`; state normalization/reconciliation; Costing unit, option,
+   escaping, lookup, calculation, snapshot, serialization, dependency, and ID-
+   remapping helpers; save/history/render/status helpers; and every sibling in
+   the 46-name API.
+6. Preserve exact return values, Promise behavior, object and property order,
+   identity, coercion, validation order, messages, HTML, DOM replacement,
+   inert/ARIA behavior, focus scheduling/restoration, native calls, mutation
+   order, persistence calls, and async exception boundaries.
+
+The shared lifecycle contract remains exact:
+
+- `refreshModalBodyClass` derives one open flag from category, purchased,
+  mixture, drafts, publication, Stocks, and POS-operation modal state. It
+  toggles `body.modal-open`, `inert`, and `aria-hidden` on the same optional
+  header and wrap nodes in the same order.
+- `focusSoon` and `focusLastMixtureField` retain zero-delay scheduling, live
+  selector lookup, last-row selection, optional-node behavior, and exact focus
+  timing.
+- `consumePendingRemoteForCommit` returns `false` without work when no pending
+  remote exists. Otherwise it preserves normalize, three-way merge, inventory-
+  lifecycle reconciliation, state replacement, pending clear, synced-state and
+  snapshot updates, best-effort localStorage write, deferred blocked-source
+  alert, optional render, and `true` return in the same order. Only the existing
+  localStorage write remains caught.
+- `applyPendingAfterModal` retains its zero-delay pending/editing recheck and
+  passes the then-current pending object to the live remote-apply helper.
+
+The category and purchased-input contract remains exact:
+
+- Add/edit/missing category modal setup, title/value/error changes, open flags,
+  return-focus capture, focus timing, close resets, skip-remote behavior, and
+  optional focus calls do not change.
+- Category options retain Uncategorized first, current escaping and string
+  selection rules, and live category order. Name validation retains trimming,
+  reserved-name checks, case-insensitive duplicate checks, ID exclusion, and
+  current exceptions.
+- Purchased-ingredient save consumes pending remote with `false` before
+  validation. Category save consumes it with the default render argument before
+  reading and validating the name. Their rejected and successful branches,
+  created-object key order, stale-category fallback, UI filters, history/save/
+  close/render/focus order, and boolean returns remain exact.
+- Category deletion itself does not consume pending remote; delegated Events
+  continues to do that first. Missing/cancelled paths, exact confirmation text
+  and pluralization, ingredient and every draft-category reassignment,
+  changed-draft timestamping, strict-ID category filter, UI selection, and
+  history/save/render order remain exact.
+
+The mixture-session and draft contract remains exact:
+
+- New-draft defaults, selected-category behavior, live draft/pending/source
+  lookup, dependency-cycle filtering, costing lookup, category sanitization,
+  snapshots, equality, meaningful-work detection, error setting, and all
+  nullish/string/coercion rules remain unchanged.
+- Mixture open/close retains missing-source alerts, read-only behavior, source
+  snapshots, every session-global reset, return-focus rules, fallback focus,
+  remote application, rendering, and timer order.
+- Draft-conflict detection retains deletion, stable-fingerprint, and timestamp
+  checks in the current order. Draft save retains all no-op/error gates,
+  pending-remote reconciliation, conflict-copy and ID-remapping behavior,
+  record property order, timestamps, replace/append behavior, notices, local/
+  cloud status text, persistence, rendering, and optional close behavior.
+- Close and discard retain automatic draft-save behavior and exact confirmation
+  rules. Draft button/count, Philippine locale formatting and fallback, sort
+  order, empty and populated HTML, open/close focus, resume/missing/source-
+  deleted behavior, and draft deletion mutation/persistence order remain exact.
+
+The editor, validation, and final-commit contract remains exact:
+
+- Component cost preserves lookup, dimension checks, `NaN`, unit conversion,
+  and recursive ingredient costing. Quick-ingredient creation, validation,
+  duplicate rules, zero-price behavior, append order, default component unit,
+  rerender, and focus remain unchanged.
+- Saving-state ARIA and disabled-control bookkeeping retain exact dataset keys,
+  pre-disabled values, iteration, and restoration. Mixture and drafts HTML,
+  classes, attributes, labels, messages, order, missing-source option, allowed
+  units, read-only controls, totals, and errors remain byte-for-byte equivalent
+  for the same live inputs.
+- Mixture validation keeps its current first-error order for name, duplicates,
+  yield, empty components, missing sources, repeated sources, incompatible
+  units, quantities, invalid component costing, inventory-dimension changes,
+  and final draft costing.
+- `saveMixture` remains an `async` function with no internal `await`, preserving
+  Promise resolution and synchronous work-before-resolution behavior. It keeps
+  pending-remote reconciliation first; draft conflict, quick ingredient,
+  deleted/changed source, ID collision, validation, referenced pending-
+  ingredient materialization, exact saved shape, replace/append, active-draft
+  removal, UI filters, history/save/close/render/focus order, and every cancel/
+  error branch's exact mutation or no-mutation effects.
+
+Phase 4G does not authorize a UI redesign, wording change, new validation,
+schema or storage-format change, Supabase migration, RLS/auth change, new
+direct RPC or network surface, retry policy, cloud behavior change, business-
+data repair, or production-data mutation. Existing delegated `save()` calls
+and their local/cloud behavior remain exact. Tests exercise mutation and
+persistence only through deterministic stubs.
+
+Phase 4G adds exactly eight desktop-only parity/safety tests plus two modal
+mobile tests that run in all three projects. The complete matrix becomes
+exactly 78 runs: 60 desktop Chromium, 9 Pixel Chrome, and 9 iPhone WebKit.
+They must prove:
+
+1. Exact API order/descriptors, 46-name Modals domain, registration slot,
+   bidirectional live reassignment, five protected-name invariants, exact six-
+   script active and 18-script cached paths, unchanged fallback/hash, and HTTP
+   200 fallback delivery.
+2. Typed-versus-classic shared lifecycle, focus, pending-remote merge,
+   reconciliation, localStorage failure, blocked-source alert, render/no-render,
+   delayed remote-apply, return, exception, native-call, and repeated-call
+   traces with call-time dependencies.
+3. Category and purchased-input options, validation, add/edit/open/close,
+   skip-remote, missing-node, focus, inert/ARIA, backdrop, Escape, Enter,
+   pending-remote, rejected-save, successful-save, and exact mutation-order
+   parity.
+4. Category deletion missing/cancelled/singular/plural/success branches,
+   cascading ingredient and draft reassignment, timestamp and strict-ID
+   behavior, zero direct missing/cancel mutation with no pending remote, and
+   live typed Events consumers that consume pending remote exactly once before
+   delegating to deletion.
+5. Mixture creation, lookup, dependency-cycle filtering, costing, category
+   sanitization, snapshot/change/meaningful-work, open/read-only/close, missing-
+   source, focus, and session-reset parity.
+6. Draft conflict, save, conflict copy, owned-ID remapping, automatic close,
+   discard, list/button/time rendering, open/close, resume, missing/source-
+   deleted, delete, persistence, and mutation-order parity.
+7. Mixture component cost, quick ingredient, saving-state restoration, full
+   editor rendering, totals refresh, validation first-error order, coercion,
+   missing sources, incompatible dimensions, and repeated-call parity.
+8. Final mixture commit missing/changed source, cancel/overwrite, ID collision,
+   draft conflict, quick-input block, validation, pending ingredient, replace/
+   append, active-draft removal, success, exception, exact Promise, and exact
+   rejected-path effects. Every rejection and exception snapshot and trace must
+   match classic exactly, including pending-remote reconciliation, category
+   sanitization, source/ID session changes, and any partial pending-ingredient
+   mutation completed before a thrown dependency. Typed code may add no
+   history, delegated save, close, render, focus, or state effect beyond that
+   exact classic trace.
+9. At desktop, Pixel, and iPhone widths, category, purchased-input, and drafts
+   dialogs can be opened, edited locally, navigated, and dismissed without
+   saving, overflow, focus loss, page/console error, failed request, server
+   error, storage mutation, fetch, RPC/query, cloud-storage access, persistence,
+   or business-data mutation.
+10. At all three widths, realistic create/edit/read-only mixture dialogs,
+    component rows, quick-input panel, long copy, totals, actions, and local
+    field edits remain reachable and contained. Writable create/edit sessions
+    dismiss only through confirmed Discard changes; read-only sessions close
+    normally. X, Escape, backdrop, and automatic draft-save behavior remain in
+    desktop parity test 6. State and `state.mixtureDrafts` snapshots remain
+    unchanged after the mobile dismissal paths.
+
+Both mobile tests must install and assert guards for `window.fetch`, Storage
+`setItem`/`removeItem`/`clear`, `cloud.client.rpc`, `cloud.client.from`,
+`cloud.client.storage.from`, `save`, `logChanges`, and relevant remote-apply/
+persistence hooks. Every guard must prove it was installed and retain a zero
+counter; an absent client or missing hook may not satisfy a zero-call check.
+
+The exact 182-test legacy and 175-name compatibility baselines remain
+unchanged. The guarded signed-in production smoke may verify the Modals domain
+and normal application rendering, but must not invoke category, purchased-
+ingredient, draft, mixture-save, delete, or other business-data mutations.
+
+### Phase 4G implementation status (contract only)
+
+- The exact 46-function atomic boundary, internal module responsibilities,
+  runtime transition, safety invariants, and frozen 78-run matrix are defined.
+- No TypeScript implementation, registration, manifest, test-matrix, backend,
+  UI, persistence, cloud, or production-data change is part of this contract
+  slice.
 
 ## Universal executable-slice gates
 
