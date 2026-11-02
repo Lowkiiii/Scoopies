@@ -32,6 +32,10 @@ that schema, its RPCs, or production data; see
   payment, receipt, register-status, and interaction-preservation boundary
   merged at `b6d8f217a606adcce814b0ddba65730a150fae5c`. Every applicable gate
   passed and the release evidence is recorded below.
+- **4F — typed POS publication (contract frozen):** the exact publication
+  status, modal, RPC, safe product deletion, and ingredient-dependency boundary
+  is frozen below. Implementation has not started and no executable behavior
+  changes are authorized until this contract passes review and CI.
 - Later slices remain bounded by the migration waves below. Each requires its
   own exact API/parity contract before implementation.
 
@@ -621,6 +625,195 @@ write.
 - The clean-install, audit, type-check, build, 57-run browser matrix,
   production artifact, 390-pixel browser, signed-in smoke, and independent
   review gates passed; the exact release evidence is recorded below.
+
+## Phase 4F contract — typed POS publication
+
+`publication.js` is the next executable slice. It is a high-risk authority
+boundary: it renders publication state, coordinates the publish modal and its
+transaction state, calls the existing versioned publish RPC, protects deletion
+of published costing products, and supplies the recursive dependency check used
+by the later classic mixture modal. It has no eager top-level business effect.
+The file moves atomically as the exact ordered 10-binding API below:
+
+| Binding | Exact return/effect | Responsibility |
+| --- | --- | --- |
+| `publicationStatusFor(product)` | publication status object | Compare live costing with the active frozen POS version |
+| `posPublicationHtml(product)` | HTML string | Pricing-page publication status, permission, and action row |
+| `openPublishProductModal(id)` | boolean | Validate readiness and open a frozen publish review |
+| `closePublishProductModal()` | boolean | Close, restore focus, and apply a pending remote update |
+| `renderPublishProductModal()` | `undefined` | Render the exact snapshot, validation, progress, and actions |
+| `waitForCostingSync(timeoutMs)` | promise | Wait for a saved costing state or reject deterministically |
+| `publishProductToPos()` | promise of boolean | Guard and submit one versioned publication request |
+| `explainPublishedProductDelete(product)` | `undefined` | Explain why an active published product cannot be deleted |
+| `deleteCostingProduct(id)` | promise of boolean | Reverify publication authority before local costing deletion |
+| `ingredientDependsOn(startId, targetId, seen, lookup)` | boolean | Detect direct, nested, and cyclic mixture dependencies |
+
+Phase 4F must:
+
+1. Add responsibility-focused Publication bindings, status, modal, operation,
+   dependency, and API modules. Register the exact ordered 10-name API above as
+   a new `publication` namespace. `ingredientDependsOn` stays in this atomic
+   compatibility boundary even though it is Costing-adjacent; extracting it is
+   not authorized while the classic file remains a fallback.
+2. Register Publication at the original runtime position: after classic
+   `workspace-sync.js` and `pos-operations.js`, and before the existing typed
+   Costing-view registration. Publication-domain values are configurable,
+   enumerable, and writable; every matching browser-root property remains an
+   accessor-backed live binding with bidirectional reassignment.
+3. Preserve domain order Core, Runtime, Costing, Stocks, Publication, POS,
+   Support, Events, Legacy, with exact typed domain sizes
+   `15 / 4 / 37 / 63 / 10 / 19 / 3 / 1`. Compatibility remains version 1 with
+   exactly 175 names. Exactly `closePublishProductModal`,
+   `deleteCostingProduct`, `openPublishProductModal`, and
+   `publishProductToPos` are already protected compatibility names; Phase 4F
+   neither adds nor removes a protected name.
+4. Remove only `publication.js` from the active classic manifest, reducing the
+   exact active runtime from 8 scripts to 7. Retain the classic file unchanged
+   in `assets/js` and in the exact 18-script cached/pre-module transition. Its
+   frozen fallback Git blob is
+   `49d4ec24d9fecf986ce7d4f373acd339ac483ca7`; its canonical LF SHA-256 is
+   `78BD373602F683259C1E5CF166B21084F21D2E19E83687CAF7C4C0307AFFE1B5`.
+5. Preserve every sibling, state, native, DOM, cloud, and later-defined helper
+   lookup at call time. Publication siblings resolve through the live
+   Publication namespace; external dependencies resolve through the live
+   browser root. No dependency may be captured eagerly during registration.
+
+The publication status and modal contract must preserve the current text,
+Unicode, markup, classes, attributes, ARIA, ordering, native coercion, thrown
+errors, and side effects:
+
+- Status comparison retains the exact archived, invalid, unpublished,
+  unavailable, published, and changed results, including the observable record
+  lookup and validation call before the archived return. It compares the
+  current name, recipe, price, ingredient cost, packaging cost, and stable
+  serialized costing snapshot exactly as today. Locale timestamp formatting and
+  the existing non-owner/non-manager privacy branch remain unchanged.
+- The publication row retains the exact loading, error-or-missing-business,
+  costing-cloud-unready, `!posCanPublish()`, archived, publish, and update button
+  precedence together with its signed-out and read-only labels/details. It must
+  not perform a network or persistence action while rendering.
+- Opening first passes the `posCanPublish` readiness gate, then applies any
+  pending remote costing state and validates the current product before it
+  captures the exact source fingerprint and expected active version,
+  initializes modal state, renders, and schedules category focus in the
+  existing order. Closing remains blocked while submitting; otherwise it clears
+  the same fields and hides the modal. Its first zero-delay callback restores
+  focus when still attached and invokes `applyPendingAfterModal`, which retains
+  its own nested zero-delay application and failure order.
+- Modal rendering retains the exact price/cost/profit calculation, field
+  limits, disabled/progress behavior, notices, escaping, and frozen-version
+  explanation. It still looks up the content node and then the current product
+  before its combined missing-value return; the lookup and exception order must
+  not be shortened to an early content-only return.
+- `waitForCostingSync` checks the partner-update guard before pending-save
+  completion, rejects an unsaved local state only after pending work drains,
+  retains literal `timeoutMs || 8000` behavior (including zero and `NaN`
+  falling back to 8,000 ms), performs the same immediate first check, uses the
+  same 80 ms polling interval, and retains the current deterministic messages.
+
+The publish operation is a single guarded state machine and must remain exact:
+
+- It short-circuits an absent modal/snapshot or duplicate submission, then
+  preserves validation, trimmed category/size limits, source-fingerprint and
+  permission checks before entering the submitting state.
+- It captures the POS load generation, user, business, and costing generation
+  before waiting. The same stale-account, stale-workspace, disconnected-costing,
+  and changed-fingerprint checks run in the same order before the RPC. After the
+  wait, it re-fetches the current product, revalidates it, and repeats the blank
+  size source fingerprint check before building the sized snapshot.
+- It calls `pos_publish_costing_product` exactly once with the same business,
+  source product/recipe, trimmed name, centavo price/cost values, costing
+  snapshot, nullable size/category, and expected-active-version payload. There
+  is no client-side retry after an ambiguous or deterministic failure.
+- Immediately after the RPC resolves, the same request-generation guard runs
+  before `rpcRows` or result validation. It then validates the same result row,
+  writes the same local publication shape, and attempts publication-status and
+  catalog refresh in the same order.
+  Either refresh may fail without relabeling an already-confirmed publication
+  as failed. Session-generation checks still prevent stale success UI.
+- Success follows the exact sequence notice, `publishSubmitting = false`, close
+  modal, render Products, then render POS. Ordinary failure clears submitting,
+  maps the same friendly error, refreshes status only for PostgreSQL `40001`,
+  and rerenders the modal. Session-change and post-refresh generation exits
+  still perform no stale UI work and must not alter a newer or already-closed
+  modal.
+
+The deletion and dependency safety contract must remain exact:
+
+- A known active publication blocks deletion before any confirmation or
+  network call. Outside test mode, deletion requires a session, connected
+  cloud, business, and owner/manager role, then obtains fresh publication
+  status. A failed or stale verification deletes nothing. The target and active
+  publication are re-read after refresh, and confirmation happens only after
+  every guard passes.
+- Confirmed deletion performs exactly one `state.products` filter assignment,
+  using strict `item.id !== id`, then `logChanges()`, `save()`, and `renderAll()`
+  in that order. Cancellation, a missing target, or any failed guard performs
+  none of those mutations. The known-active fast path explains and returns
+  without rerendering; an active publication discovered by refresh explains,
+  calls `renderProducts()`, and then returns.
+- Dependency traversal preserves direct equality, the shared `seen` map,
+  cycle termination, caller-supplied lookup, default live state lookup, mixture
+  detection, component order, short-circuiting, and recursive return behavior.
+
+Phase 4F does not authorize a Supabase migration, RLS/auth/storage change, RPC
+change, new RPC, product archive feature, retry policy, UI redesign, message
+change, deletion relaxation, or any modification of production data. Tests may
+exercise RPC and persistence paths only through installed deterministic stubs.
+
+Phase 4F adds exactly four desktop-only tests plus one publication mobile test
+that runs in all three projects. The complete matrix becomes exactly 64 runs:
+50 desktop Chromium, 7 Pixel Chrome, and 7 iPhone WebKit. They must prove:
+
+1. Exact API order/descriptors, 10-name Publication domain, root/domain live
+   reassignment, original registration slot, exact 7-script active path, exact
+   18-script cached path, unchanged fallback/hash, protected-name invariants,
+   and HTTP 200 delivery.
+2. Typed-versus-classic exact return, value, HTML, DOM, state, trace, timeout,
+   native-call, exception, focus, callback, dependency-cycle, and repeated-call
+   fingerprints for status, publication row, modal lifecycle/rendering, sync
+   wait, explanation, and dependency traversal. It must prove call-time sibling
+   and root lookups rather than merely equal final output.
+3. Publish success, validation, fingerprint drift, pending-remote/save/local
+   dirty, timeout, duplicate-submit, stale user/business/generation, missing
+   result, catalog/status-refresh failure, `40001`, friendly-error, and
+   session-change parity. The test must assert the exact one-RPC payload,
+   no automatic retry, local publication shape, notices, rerender order, and no
+   costing-state, business-data, persistence, or local publication-record
+   mutation caused by the publish operation before a validated RPC result,
+   while preserving the exact pre-RPC submitting, error, modal, DOM, and
+   pending-remote traces.
+4. Product-delete missing/known-published/signed-out/disconnected/role/refresh/
+   recheck/cancel/success parity under an explicit `TEST_MODE = false` fixture,
+   with zero business-data/persistence-write assertions for every rejected
+   branch and exact mutation order for success. Read-only status refresh and
+   ephemeral publication-status refresh remain allowed where they exist, and
+   the refreshed-active branch retains its current `renderProducts()` call.
+   Downstream typed
+   Costing and Events consumers plus classic `state.js` and `render-modals.js`
+   must observe root and Publication-domain reassignment.
+5. At desktop, Pixel, and iPhone widths, a realistic publication row and modal
+   can be opened, edited locally, dismissed, and reached without overflow,
+   page/console error, failed request, server error, storage mutation, fetch,
+   RPC/query, cloud-storage access, or business action. Installed guards for
+   fetch, Storage `setItem`/`removeItem`/`clear`, client `rpc`/`from`, and
+   `storage.from` must all be asserted; zero-call checks may not pass through an
+   absent client or uninstalled guard.
+
+The exact 182-test legacy and 175-name compatibility baselines remain
+unchanged. The guarded signed-in production smoke may inspect publication
+status in Pricing, but must not open a publication modal, publish/update a
+product, delete a product, invoke a manual or write-capable refresh action,
+alter a field, or permit any business-data write. Normal startup/login reads
+and read-only status refreshes remain allowed under the existing network guard.
+
+### Phase 4F implementation status (contract only)
+
+- The exact 10-name atomic boundary, Publication namespace, registration slot,
+  mutation/failure semantics, fallback identity, and 64-run matrix are frozen.
+- No executable source, runtime manifest, backend, or production-data change is
+  part of the contract slice. Implementation begins only from the released
+  contract baseline after its cross-platform CI and review gates pass.
 
 ## Universal executable-slice gates
 
