@@ -19,14 +19,15 @@ preserving its established browser contract:
   state and persistence, POS catalog and operations, stocks, publication,
   rendering, events, support tools, and startup. The former classic Core,
   Runtime factories, Costing, Costing presentation (`render-costing.js`),
-  Stocks domain, Stocks view, Support (`support.js`), Events (`events.js`), and
-  compatibility files are retained as unreferenced fallbacks for browsers
-  holding an older module entry or pre-3B0 HTML.
+  POS presentation (`render-pos.js`), Stocks domain, Stocks view, Support
+  (`support.js`), Events (`events.js`), and compatibility files are retained as
+  unreferenced fallbacks for browsers holding an older module entry or pre-3B0
+  HTML.
 - [`src/main.ts`](src/main.ts) is the Vite module entry. It installs the typed
   compatibility facade, registers typed Core, Runtime factories, Costing,
-  Costing presentation, Stocks domain, Stocks view/controller, Support, and
-  Events modules at their established runtime positions, and loads the
-  remaining classic runtime in order.
+  Costing presentation, Stocks domain, POS presentation, Stocks
+  view/controller, Support, and Events modules at their established runtime
+  positions, and loads the remaining classic runtime in order.
 - [`src/core`](src/core) contains the typed unit, money, identity, and stable
   serialization helpers introduced by Phase 3B1.
 - [`src/runtime`](src/runtime) contains the typed fresh-state factories
@@ -37,6 +38,9 @@ preserving its established browser contract:
 - [`src/stocks`](src/stocks) contains typed inventory source lifecycle,
   persistence, recovery, mutation, loading, rendering, and modal/controller
   logic introduced by Phases 3C1 and 3C2.
+- [`src/pos`](src/pos) contains the typed POS catalog, cart, receipt, register
+  status, payment-preview, and interaction-preservation presentation boundary
+  introduced by Phase 4E.
 - [`src/events`](src/events) contains the typed navigation, delegated form and
   action handling, lifecycle, pointer, modal, and keyboard interactions
   introduced by Phase 3C3.
@@ -52,8 +56,8 @@ preserving its established browser contract:
   typed-runtime migration and its Phase 4 entry gate.
 - [`docs/FRONTEND_PHASE_4.md`](docs/FRONTEND_PHASE_4.md) inventories the
   remaining classic runtime and defines the bounded migration waves, universal
-  release gates, rollback, and typed Runtime-factory, Support, and Costing
-  presentation slices.
+  release gates, rollback, and typed Runtime-factory, Support,
+  Costing-presentation, and POS-presentation slices.
 
 The remaining JavaScript runtime files are intentionally loaded as ordered
 classic scripts by the module bootstrap. Do not independently add `async`,
@@ -76,7 +80,9 @@ browser matrix on Ubuntu and Windows, and a protected read-only signed-in
 production smoke. Phase 4B adds typed Runtime factories, Phase 4C adds the
 typed backup export/import and example-data Support boundary, and Phase 4D
 adds the typed Costing presentation boundary with exact classic and mobile
-parity coverage. Use the Node version recorded in
+parity coverage. Phase 4E adds the typed POS presentation boundary with the
+same exact classic, interaction, and mobile parity coverage. Use the Node
+version recorded in
 [`.nvmrc`](.nvmrc), then run:
 
 ```text
@@ -88,7 +94,7 @@ npm test
 
 `npm test` first creates a fresh `dist/`, then previews and exercises that
 artifact. It runs the protected 182-test legacy browser suite inside an exact
-51-run matrix: 41 desktop Chromium, 5 Pixel Chrome, and 5 iPhone WebKit runs.
+57-run matrix: 45 desktop Chromium, 6 Pixel Chrome, and 6 iPhone WebKit runs.
 Pull requests and pushes to `main` run the same type-check, build, and browser
 checks on both Ubuntu and Windows through
 [`.github/workflows/ci.yml`](.github/workflows/ci.yml). A passing `main` run

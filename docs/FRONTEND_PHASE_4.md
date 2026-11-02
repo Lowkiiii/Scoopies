@@ -28,10 +28,11 @@ that schema, its RPCs, or production data; see
   Ingredients, Packaging, Recipes, and Pricing render boundary merged at
   `659b9b9e6de5e05927571867dd7de4f202314c29`. Every applicable gate passed
   and the release evidence is recorded below.
-- **4E — typed POS presentation (contract frozen):** the exact catalog, cart,
-  payment, receipt, register-status, and interaction-preservation boundary is
-  frozen below. Its implementation remains unreleased until every applicable
-  gate passes and release evidence is recorded.
+- **4E — typed POS presentation (implementation in progress):** the exact
+  catalog, cart, payment, receipt, register-status, and
+  interaction-preservation boundary is frozen below and implemented on the
+  Phase 4E branch. It remains unreleased until every applicable gate passes
+  and release evidence is recorded.
 - Later slices remain bounded by the migration waves below. Each requires its
   own exact API/parity contract before implementation.
 
@@ -606,6 +607,20 @@ unchanged. The guarded signed-in production smoke may inspect the real POS and
 its payment controls, but must not add an item, edit payment input, submit a
 sale, open/close a shift, void a receipt, refresh, or permit any business-data
 write.
+
+### Phase 4E implementation status
+
+- The exact ordered 19-name POS presentation API is implemented in typed,
+  responsibility-focused modules and registered after classic
+  `render-modals.js` and before the existing typed Stocks-view registration.
+- The active manifest omits only `render-pos.js`, leaving exactly eight classic
+  scripts. The unchanged file remains in `assets/js` and in the exact
+  18-script cached/pre-module transition.
+- The POS namespace is separate from the existing Stocks-domain `renderPos`
+  and `renderAll` functions, and all root, sibling, state, helper, browser
+  native, and later-defined dependencies remain call-time live bindings.
+- Release status is still pending the full clean-install, audit, type-check,
+  build, 57-run browser matrix, production-smoke, and independent review gates.
 
 ## Universal executable-slice gates
 

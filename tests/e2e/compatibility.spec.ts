@@ -171,6 +171,28 @@ const expectedStocksNames = Object.freeze([
   ...expectedStocksViewNames,
 ]);
 
+const expectedPosNames = Object.freeze([
+  'posPaymentLabel',
+  'posSummaryHtml',
+  'posReceiptHtml',
+  'posProductCardHtml',
+  'posCatalogHtml',
+  'posCashSuggestions',
+  'updatePosPaymentPreview',
+  'posCartHtml',
+  'posSalesRowsHtml',
+  'posRecentHtml',
+  'posShiftBarHtml',
+  'posNoShiftGateHtml',
+  'managePosMenu',
+  'posWorkspaceHtml',
+  'posMobileOrderBarHtml',
+  'focusPosCart',
+  'posSyncStatusHtml',
+  'posCriticalRefreshNoticeHtml',
+  'renderPosPreservingInteraction',
+]);
+
 const protectedStocksContractNames = Object.freeze([
   'stockSourcePayload',
   'costingBulkInventoryIssue',
@@ -247,6 +269,7 @@ test('the compatibility facade exactly protects the legacy browser contract', as
     protectedCostingNames,
     stocksNames,
     protectedStocksNames,
+    posNames,
     runtimeNames,
     protectedRuntimeNames,
     supportNames,
@@ -261,6 +284,7 @@ test('the compatibility facade exactly protects the legacy browser contract', as
           core: Record<string, unknown>;
           costing: Record<string, unknown>;
           stocks: Record<string, unknown>;
+          pos: Record<string, unknown>;
           runtime: Record<string, unknown>;
           support: Record<string, unknown>;
           events: Record<string, unknown>;
@@ -279,6 +303,7 @@ test('the compatibility facade exactly protects the legacy browser contract', as
       finalized: appWindow.MatchaLunaApp.finalized,
       readyResolved: true,
       contractNames: appWindow.MatchaLunaApp.contractNames.slice().sort(),
+      domainOrder: Object.keys(appWindow.MatchaLunaApp.domains),
       namespaceNames: Object.keys(appWindow.MatchaLunaApp.domains.legacy).sort(),
       missing: appWindow.MatchaLunaApp.contractNames.filter(
         (name) => !Object.prototype.hasOwnProperty.call(appWindow, name),
@@ -390,6 +415,38 @@ test('the compatibility facade exactly protects the legacy browser contract', as
           appWindow.MatchaLunaApp.domains.legacy[name] !== root[name] ||
           appWindow.MatchaLunaApp.domains.stocks[name] !== root[name],
       ),
+      posOrder: Object.keys(appWindow.MatchaLunaApp.domains.pos),
+      posNames: Object.keys(appWindow.MatchaLunaApp.domains.pos).sort(),
+      missingPosRootProperties: posNames.filter(
+        (name) => !Object.prototype.hasOwnProperty.call(root, name),
+      ),
+      mismatchedPosRootValues: posNames.filter(
+        (name) => root[name] !== appWindow.MatchaLunaApp.domains.pos[name],
+      ),
+      invalidPosNamespaceDescriptors: posNames.filter((name) => {
+        const descriptor = Object.getOwnPropertyDescriptor(
+          appWindow.MatchaLunaApp.domains.pos,
+          name,
+        );
+        return (
+          !descriptor ||
+          descriptor.configurable !== true ||
+          descriptor.enumerable !== true ||
+          descriptor.writable !== true ||
+          typeof descriptor.get === 'function' ||
+          typeof descriptor.set === 'function'
+        );
+      }),
+      invalidPosRootDescriptors: posNames.filter((name) => {
+        const descriptor = Object.getOwnPropertyDescriptor(root, name);
+        return (
+          !descriptor ||
+          descriptor.configurable !== true ||
+          descriptor.enumerable !== true ||
+          typeof descriptor.get !== 'function' ||
+          typeof descriptor.set !== 'function'
+        );
+      }),
       runtimeOrder: Object.keys(appWindow.MatchaLunaApp.domains.runtime),
       runtimeNames: Object.keys(appWindow.MatchaLunaApp.domains.runtime).sort(),
       missingRuntimeRootProperties: runtimeNames.filter(
@@ -507,6 +564,7 @@ test('the compatibility facade exactly protects the legacy browser contract', as
     protectedCostingNames: [...protectedCostingContractNames],
     stocksNames: [...expectedStocksNames],
     protectedStocksNames: [...protectedStocksContractNames],
+    posNames: [...expectedPosNames],
     runtimeNames: [...expectedRuntimeNames],
     protectedRuntimeNames: [...protectedRuntimeContractNames],
     supportNames: [...expectedSupportNames],
@@ -518,6 +576,16 @@ test('the compatibility facade exactly protects the legacy browser contract', as
   expect(contract.finalized).toBe(true);
   expect(contract.readyResolved).toBe(true);
   expect(contract.contractNames).toEqual(legacyContractNames());
+  expect(contract.domainOrder).toEqual([
+    'core',
+    'runtime',
+    'costing',
+    'stocks',
+    'pos',
+    'support',
+    'events',
+    'legacy',
+  ]);
   expect(contract.namespaceNames).toEqual(contract.contractNames);
   expect(contract.missing).toEqual([]);
   expect(contract.invalidProxies).toEqual([]);
@@ -540,6 +608,12 @@ test('the compatibility facade exactly protects the legacy browser contract', as
   expect(contract.invalidStocksNamespaceDescriptors).toEqual([]);
   expect(contract.invalidStocksRootDescriptors).toEqual([]);
   expect(contract.mismatchedProtectedStocksValues).toEqual([]);
+  expect(contract.posOrder).toEqual(expectedPosNames);
+  expect(contract.posNames).toEqual([...expectedPosNames].sort());
+  expect(contract.missingPosRootProperties).toEqual([]);
+  expect(contract.mismatchedPosRootValues).toEqual([]);
+  expect(contract.invalidPosNamespaceDescriptors).toEqual([]);
+  expect(contract.invalidPosRootDescriptors).toEqual([]);
   expect(contract.runtimeOrder).toEqual(expectedRuntimeNames);
   expect(contract.runtimeNames).toEqual([...expectedRuntimeNames].sort());
   expect(contract.missingRuntimeRootProperties).toEqual([]);
