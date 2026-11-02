@@ -18,13 +18,13 @@ preserving its established browser contract:
 - [`assets/js`](assets/js) contains responsibility-focused application scripts:
   state and persistence, POS catalog and operations, stocks, publication,
   rendering, events, support tools, and startup. The former classic Core,
-  Costing, Stocks domain, Stocks view, and compatibility files are retained as
-  unreferenced transition assets for browsers holding an older module entry or
-  pre-3B0 HTML.
+  Costing, Stocks domain, Stocks view, Events (`events.js`), and compatibility
+  files are retained as unreferenced fallbacks for browsers holding an older
+  module entry or pre-3B0 HTML.
 - [`src/main.ts`](src/main.ts) is the Vite module entry. It installs the typed
   compatibility facade, registers typed Core, Costing, Stocks domain, and
-  Stocks view/controller modules at their established runtime positions, and
-  loads the remaining classic runtime in order.
+  Stocks view/controller and Events modules at their established runtime
+  positions, and loads the remaining classic runtime in order.
 - [`src/core`](src/core) contains the typed unit, money, identity, and stable
   serialization helpers introduced by Phase 3B1.
 - [`src/costing`](src/costing) contains typed ingredient, mixture, recipe,
@@ -33,6 +33,9 @@ preserving its established browser contract:
 - [`src/stocks`](src/stocks) contains typed inventory source lifecycle,
   persistence, recovery, mutation, loading, rendering, and modal/controller
   logic introduced by Phases 3C1 and 3C2.
+- [`src/events`](src/events) contains the typed navigation, delegated form and
+  action handling, lifecycle, pointer, modal, and keyboard interactions
+  introduced by Phase 3C3.
 - [`src/compatibility`](src/compatibility) defines the stable
   `window.MatchaLunaApp` contract used while internals are modernized.
 - [`vite.config.ts`](vite.config.ts) builds the GitHub Pages artifact under the

@@ -120,12 +120,23 @@ frontend-only rollback.
 
 ## Release record
 
-Record the following when Phase 3A is released:
-
-- Merge commit and pull request
-- CI and Pages run URLs
-- Type-check and build results
-- Browser, legacy, and facade results
-- Public asset result
-- Signed-in smoke result
-- Rollback commit and run, if used
+- Pull request:
+  [#4](https://github.com/Lowkiiii/Scoopies/pull/4)
+- Implementation commit: `b82be2d24fdc87f533cceeda61f09fccb1f08c80`
+- Merge commit: `c3f24d62513d289f1bd92348fdf28009b3e8d0b4`
+- PR CI:
+  [41299309574](https://github.com/Lowkiiii/Scoopies/actions/runs/41299309574)
+- Main CI and Pages deployment:
+  [41299440742](https://github.com/Lowkiiii/Scoopies/actions/runs/41299440742)
+- Automated release evidence: clean dependency install, type-check,
+  production build, protected 182-test legacy baseline, exact 175-name facade
+  contract, desktop Chromium, Pixel Chrome, and iPhone WebKit checks, tested
+  artifact packaging, and Pages deployment all passed.
+- Public release evidence: the repository-owned workflow deployed the exact
+  artifact uploaded by the successful browser job; later typed-runtime phases
+  continued to preserve the Phase 3A base path and cached classic transition.
+- Signed-in smoke evidence: no contemporaneous signed-in result was recorded.
+  This is explicitly carried forward as a mandatory Phase 3D closure gate and
+  must not be backfilled without a real read-only production check. No
+  credentials are shared or committed for that check.
+- Rollback: none required.
