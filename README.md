@@ -86,8 +86,10 @@ adds the typed Costing presentation boundary with exact classic and mobile
 parity coverage. Phase 4E adds the typed POS presentation boundary with the
 same exact classic, interaction, and mobile parity coverage. Phase 4F adds the
 typed Publication authority boundary with exact RPC, stale-session, deletion,
-dependency, fallback, and write-free mobile coverage. Use the Node
-version recorded in
+dependency, fallback, and write-free mobile coverage. Phase 4G freezes the
+next atomic 46-function modal-workflow boundary and its internally separated
+typed responsibilities; it is contract-only and changes no runtime behavior.
+Use the Node version recorded in
 [`.nvmrc`](.nvmrc), then run:
 
 ```text
