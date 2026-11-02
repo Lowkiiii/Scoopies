@@ -20,9 +20,10 @@ that schema, its RPCs, or production data; see
 - **4B — typed runtime factories (released):** the first executable slice,
   merged at `e353f0078e86029b19f6b02d8e0701b5a7b96f53`. Every applicable gate
   passed and the release evidence is recorded below.
-- **4C — typed support utilities (contract defined; implementation pending):**
-  the exact backup export/import and example-data boundary is frozen below.
-  No executable Phase 4C release is claimed yet.
+- **4C — typed support utilities (implementation in progress):** the exact
+  backup export/import and example-data boundary is frozen below. Its
+  implementation remains unreleased until every applicable gate passes and
+  release evidence is recorded.
 - Later slices remain bounded by the migration waves below. Each requires its
   own exact API/parity contract before implementation.
 

@@ -5,6 +5,7 @@ import { registerEventsModule } from './compatibility/register-events';
 import { registerRuntimeModule } from './compatibility/register-runtime';
 import { registerStocksModule } from './compatibility/register-stocks';
 import { registerStocksViewModule } from './compatibility/register-stocks-view';
+import { registerSupportModule } from './compatibility/register-support';
 import { installEventHandlers } from './events';
 import { loadClassicScripts } from './legacy/load-classic-scripts';
 import {
@@ -28,6 +29,7 @@ const ready = (async () => {
   await loadClassicScripts(AFTER_STOCKS_BEFORE_VIEW);
   registerStocksViewModule(facade, window);
   await loadClassicScripts(AFTER_STOCKS_VIEW_BEFORE_EVENTS);
+  registerSupportModule(facade, window);
   registerEventsModule(facade, window);
   installEventHandlers(window);
   await loadClassicScripts(AFTER_EVENTS_BEFORE_COMPATIBILITY);

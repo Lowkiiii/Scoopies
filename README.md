@@ -18,12 +18,13 @@ preserving its established browser contract:
 - [`assets/js`](assets/js) contains responsibility-focused application scripts:
   state and persistence, POS catalog and operations, stocks, publication,
   rendering, events, support tools, and startup. The former classic Core,
-  Runtime factories, Costing, Stocks domain, Stocks view, Events (`events.js`),
-  and compatibility files are retained as unreferenced fallbacks for browsers
-  holding an older module entry or pre-3B0 HTML.
+  Runtime factories, Costing, Stocks domain, Stocks view, Support
+  (`support.js`), Events (`events.js`), and compatibility files are retained as
+  unreferenced fallbacks for browsers holding an older module entry or pre-3B0
+  HTML.
 - [`src/main.ts`](src/main.ts) is the Vite module entry. It installs the typed
   compatibility facade, registers typed Core, Runtime factories, Costing,
-  Stocks domain, Stocks view/controller, and Events modules at their
+  Stocks domain, Stocks view/controller, Support, and Events modules at their
   established runtime positions, and loads the remaining classic runtime in
   order.
 - [`src/core`](src/core) contains the typed unit, money, identity, and stable
@@ -39,6 +40,8 @@ preserving its established browser contract:
 - [`src/events`](src/events) contains the typed navigation, delegated form and
   action handling, lifecycle, pointer, modal, and keyboard interactions
   introduced by Phase 3C3.
+- [`src/support`](src/support) contains the typed backup export/import and
+  example-data utilities introduced by Phase 4C.
 - [`src/compatibility`](src/compatibility) defines the stable
   `window.MatchaLunaApp` contract used while internals are modernized.
 - [`vite.config.ts`](vite.config.ts) builds the GitHub Pages artifact under the
@@ -49,7 +52,7 @@ preserving its established browser contract:
   typed-runtime migration and its Phase 4 entry gate.
 - [`docs/FRONTEND_PHASE_4.md`](docs/FRONTEND_PHASE_4.md) inventories the
   remaining classic runtime and defines the bounded migration waves, universal
-  release gates, rollback, and first typed-factory slice.
+  release gates, rollback, and typed Runtime-factory and Support slices.
 
 The remaining JavaScript runtime files are intentionally loaded as ordered
 classic scripts by the module bootstrap. Do not independently add `async`,
@@ -69,7 +72,9 @@ that protection to the typed Stocks view/controller and its cached-client
 transition path. Phase 3C3 extends the same boundary to shared browser events
 and interactions. Phase 3D adds explicit dependency auditing, the complete
 browser matrix on Ubuntu and Windows, and a protected read-only signed-in
-production smoke. Use the Node version recorded in
+production smoke. Phase 4B adds typed Runtime factories, and Phase 4C adds the
+typed backup export/import and example-data Support boundary with exact
+classic-parity coverage. Use the Node version recorded in
 [`.nvmrc`](.nvmrc), then run:
 
 ```text
@@ -80,8 +85,8 @@ npm test
 ```
 
 `npm test` first creates a fresh `dist/`, then previews and exercises that
-artifact. It runs the
-protected 182-test legacy browser suite plus desktop and mobile smoke checks.
+artifact. It runs the protected 182-test legacy browser suite inside an exact
+45-run matrix: 37 desktop Chromium, 4 Pixel Chrome, and 4 iPhone WebKit runs.
 Pull requests and pushes to `main` run the same type-check, build, and browser
 checks on both Ubuntu and Windows through
 [`.github/workflows/ci.yml`](.github/workflows/ci.yml). A passing `main` run
