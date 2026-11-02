@@ -22,12 +22,14 @@ phases.
   the Stocks view/controller boundary now runs from typed modules. Phase 3C3
   released at merge `34bd6d3`; the shared event and interaction boundary now
   runs from typed modules.
-- **3D — closure (in progress):** clean Windows and CI test exits, signed-in
-  production smoke, release evidence, and the final Phase 3 baseline.
+- **3D — closure:** released at merge `ddb96e2`; clean Windows and CI test
+  exits, signed-in production smoke, release evidence, and the final Phase 3
+  baseline are complete.
 
-Phase 4 does not begin until every slice above is complete.
+Every Frontend Phase 3 slice is complete and the protected Phase 4 entry
+baseline is released.
 
-## Phase 3D contract (in progress)
+## Phase 3D contract
 
 Phase 3D closes and freezes the frontend modernization. It introduces no new
 runtime migration and changes no UI, pricing or inventory arithmetic, POS
@@ -77,7 +79,7 @@ retain screenshots, traces, videos, credentials, or business-data artifacts.
    error, failed request, or server error must fail the smoke without changing
    production business data.
 
-## Phase 3D exit gates (pending)
+## Phase 3D exit gates (complete)
 
 - Clean Windows `npm ci`, explicit `npm audit --audit-level=high`, type-check,
   production build, and full 38-run browser suite exit successfully without a
@@ -96,8 +98,46 @@ retain screenshots, traces, videos, credentials, or business-data artifacts.
 - Final Phase 3 release evidence is recorded and the repository is clean and
   synchronized on `main`.
 
-No Phase 3D or final Phase 3 release is claimed until every gate above,
-including the real signed-in production smoke, has recorded evidence.
+Every gate above passed before Phase 3D and final Frontend Phase 3 were marked
+released.
+
+## Phase 3D release record
+
+- Pull request: [#17](https://github.com/Lowkiiii/Scoopies/pull/17)
+- Implementation commit: `a73b64c406965538dff4860e4409b2b6e872f662`
+- Merge commit: `ddb96e26747736a7aae15d3095380e56ac085b8b`
+- PR CI:
+  [41418702787](https://github.com/Lowkiiii/Scoopies/actions/runs/41418702787)
+- Main CI and Pages deployment:
+  [41430303473](https://github.com/Lowkiiii/Scoopies/actions/runs/41430303473)
+- Signed-in production smoke:
+  [41436972484](https://github.com/Lowkiiii/Scoopies/actions/runs/41436972484)
+- Local verification: Node `24.22.2`; clean dependency install; zero audit
+  vulnerabilities; type-check and 48-module production build passed; all 38
+  Playwright runs passed, including the exact 182-test legacy and 175-name
+  compatibility baselines and typed domain sizes Core 15, Costing 24, Stocks
+  63, and Events 1.
+- Cross-platform release evidence: the complete PR and post-merge matrices
+  passed on both Ubuntu and Windows. Pages packaged only the verified
+  Ubuntu-produced `dist/` after both operating-system jobs passed.
+- Review evidence: independent CI, signed-in-smoke security, Windows-exit, and
+  final-diff audits found no release blocker. The pre-login write edge found
+  during review was blocked at the browser network boundary and independently
+  re-audited before merge.
+- Production asset verification: the downloaded tested CI artifact matched the
+  live HTML after line-ending normalization. Pages served
+  `index-C5s08f5g.js` and `index-B0B7i9SZ.css` with HTTP 200; all six retained
+  fallback assets matched the artifact after line-ending normalization; and
+  the active browser loaded the exact 12-script runtime in order.
+- Production browser verification: a fresh 390-pixel Chromium session exposed
+  the finalized 175-name facade and exact typed domain sizes, displayed the
+  Matcha Luna application at 390/390 width, and reported zero page errors,
+  console errors, or failed requests.
+- Signed-in verification: the main-only `production-smoke` environment loaded
+  the real production POS, Stocks, Ingredients, Recipes, and Pricing views.
+  Its client and network guards allowed no business-data write to escape, and
+  it retained no credentials, screenshots, traces, videos, or business-data
+  artifacts.
 
 ## Phase 3C3 contract
 

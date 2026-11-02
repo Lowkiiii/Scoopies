@@ -136,7 +136,8 @@ frontend-only rollback.
   artifact uploaded by the successful browser job; later typed-runtime phases
   continued to preserve the Phase 3A base path and cached classic transition.
 - Signed-in smoke evidence: no contemporaneous signed-in result was recorded.
-  This is explicitly carried forward as a mandatory Phase 3D closure gate and
-  must not be backfilled without a real read-only production check. No
-  credentials are shared or committed for that check.
+  That historical gap was not backfilled. Its carried-forward Phase 3D closure
+  gate was fulfilled by the real read-only production run
+  [41436972484](https://github.com/Lowkiiii/Scoopies/actions/runs/41436972484),
+  without sharing or committing credentials.
 - Rollback: none required.
