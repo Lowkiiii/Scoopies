@@ -28,6 +28,10 @@ that schema, its RPCs, or production data; see
   Ingredients, Packaging, Recipes, and Pricing render boundary merged at
   `659b9b9e6de5e05927571867dd7de4f202314c29`. Every applicable gate passed
   and the release evidence is recorded below.
+- **4E — typed POS presentation (contract frozen):** the exact catalog, cart,
+  payment, receipt, register-status, and interaction-preservation boundary is
+  frozen below. Its implementation remains unreleased until every applicable
+  gate passes and release evidence is recorded.
 - Later slices remain bounded by the migration waves below. Each requires its
   own exact API/parity contract before implementation.
 
@@ -456,6 +460,152 @@ The exact 182-test legacy and 175-name compatibility baselines remain
 unchanged. The guarded signed-in production smoke may open and inspect all
 four costing tabs, but must not submit a field, invoke an action, or permit any
 business-data write.
+
+## Phase 4E contract — typed POS presentation
+
+`render-pos.js` is the next executable slice. It contains presentation helpers
+and four narrowly bounded browser interactions, but it does not submit a sale,
+open or close a shift, void a receipt, refresh a workspace, authenticate, or
+directly access network, Supabase, RPC, storage, or persistence surfaces. The
+already-typed `renderPos()` remains in the Stocks view boundary. This file moves
+atomically as the exact ordered 19-binding API below:
+
+| Binding | Exact return/effect | Responsibility |
+| --- | --- | --- |
+| `posPaymentLabel(method)` | label string | Map GCash, GoTyme, and default Cash labels |
+| `posSummaryHtml()` | HTML string | Current report-mode sales metrics |
+| `posReceiptHtml()` | HTML string | Last recorded receipt card |
+| `posProductCardHtml(item, locked)` | HTML string | Catalog drink card and cart-version state |
+| `posCatalogHtml()` | HTML string; may normalize category | Catalog groups, filters, empty/error states |
+| `posCashSuggestions(total)` | fresh candidate array | Exact and rounded tender choices |
+| `updatePosPaymentPreview()` | `undefined`; DOM-only update | Change, error, and review-button preview |
+| `posCartHtml()` | HTML string | Cart, payment, confirmation, and recovery panel |
+| `posSalesRowsHtml(sales, allowVoid)` | HTML string | Receipt/history rows and optional void control |
+| `posRecentHtml()` | HTML string | Recent-sales loading, empty, or row state |
+| `posShiftBarHtml()` | HTML string | Open-shift or pending-recovery status |
+| `posNoShiftGateHtml()` | HTML string | Register verification and start-selling gate |
+| `managePosMenu()` | boolean | Permission-gated Pricing navigation and focus |
+| `posWorkspaceHtml()` | HTML string | Catalog and current-order workspace |
+| `posMobileOrderBarHtml()` | HTML string | Mobile cart shortcut and total |
+| `focusPosCart()` | boolean | Scroll and focus the current-order panel |
+| `posSyncStatusHtml()` | HTML string | Register synchronization status |
+| `posCriticalRefreshNoticeHtml()` | HTML string | Preserved-order refresh warning |
+| `renderPosPreservingInteraction()` | `undefined` | Rerender and restore focus/caret identity |
+
+Phase 4E must:
+
+1. Add responsibility-focused POS view bindings, renderer, interaction, and
+   API modules and register the exact ordered 19-name API above as a new `pos`
+   namespace. The existing typed Stocks-domain `renderPos` and `renderAll`
+   remain outside this slice.
+2. Register the new POS descriptors at the original runtime position: after
+   classic `render-modals.js` and before the existing typed Stocks-view
+   registration. POS-domain values are configurable, enumerable, and writable;
+   every matching browser-root property remains an accessor-backed live
+   binding with bidirectional reassignment.
+3. Preserve domain order Core, Runtime, Costing, Stocks, POS, Support, Events,
+   Legacy, with exact typed domain sizes `15 / 4 / 37 / 63 / 19 / 3 / 1`.
+   Compatibility remains version 1 with exactly 175 names. None of the 19 POS
+   presentation names joins the protected compatibility-name list.
+4. Remove only `render-pos.js` from the active classic manifest, reducing the
+   exact active runtime from 9 scripts to 8. Retain the classic file unchanged
+   in `assets/js` and in the exact 18-script cached/pre-module transition. Its
+   frozen fallback Git blob is
+   `4b40f2e9d57d1f5b11debe8bab95883d30e5df3c`; its canonical LF SHA-256 is
+   `AF0676AD15E53099F1F9B526FE9340A63C9A88671191E793AA56CE4EA34FDE12`.
+5. Preserve every dependency lookup and expression order at call time. Live
+   root dependencies include `posCheckout`, `posOpsModal`, `document`, `Array`,
+   `Date`, `Math`, `Number`, `String`, the later-defined typed `renderPos`,
+   escaping/money/mode helpers, cart and catalog helpers, permission and image
+   helpers, modal/navigation/focus helpers, and every relevant sibling in this
+   19-name API.
+
+The HTML/value contract must preserve current text, Unicode, markup, classes,
+attributes, inline styles, ARIA, ordering, truthiness, coercion, and errors:
+
+- Unknown or missing payment methods still fall through to `Cash`; GCash and
+  GoTyme retain their exact casing. All native `Number`, `String`, `Math`, and
+  `Date` calls remain live and retain current thrown/coercive behavior.
+- Cash suggestions preserve the original `total` value and type as the first
+  eligible candidate, plus the next ₱50 and fixed ₱100, ₱200, ₱500, and ₱1,000
+  candidates in centavos. Current coercive eligibility, filtering,
+  deduplication, ordering, and the exact first-four slice remain unchanged.
+- Catalog loading and error branches return before category normalization.
+  The current fixed Matcha/Hojicha grouping, conditional category chips,
+  category normalization, empty/setup permissions, stale-version review badge,
+  selected quantity, disabled state, drink image, price, and accessible labels
+  remain exact.
+- Summary, receipt, cart, recent-sales, shift, gate, workspace, mobile shortcut,
+  sync, and refresh-warning branches retain exact empty/loading/error/recovery,
+  Live/Training, cash/GCash/GoTyme, stale/locked/pending/confirming, profit/void,
+  permission, locale-date, centavo, repeated-helper, and missing-value behavior.
+- Some inherited values currently enter classes or markup through existing
+  helpers and branches. This parity migration must not silently change escaping
+  or identifier semantics; any hardening requires a separately reviewed slice.
+
+The four interaction paths must retain their exact side effects and failure
+boundaries:
+
+- `updatePosPaymentPreview` updates only the existing change element,
+  conditionally clears `.pos-error.textContent` when both that node and
+  `posCheckout.error` are truthy, and updates the review-button disabled state.
+  It does not clear `posCheckout.error`; validation remains after the preceding
+  DOM work.
+- `managePosMenu` short-circuits on permission failure, conditionally closes an
+  open operations modal, activates Pricing, then schedules publication-control
+  focus. Its exact boolean returns and call order remain unchanged.
+- `focusPosCart` returns `false` when the panel is absent. Otherwise it scrolls
+  with the current options, attempts focus with `preventScroll`, falls back to
+  plain focus only for the first failure, and returns `true`; a second focus
+  failure may still propagate.
+- `renderPosPreservingInteraction` captures only a control inside `#posRoot`,
+  including the current `tagName` read stored as the otherwise-unused `tag`,
+  calls the live later-defined `renderPos` exactly once, and restores by ID or
+  the exact action/ID/method/centavos/mode signature. Missing or disabled
+  replacements, nested focus fallbacks, swallowed focus/selection errors,
+  selection indices, and return values remain exact.
+
+No Phase 4E renderer or interaction may call checkout, shift, void, refresh,
+save, history, fetch, Supabase, RPC, auth, cloud synchronization, storage, or
+business-data mutation. The only allowed application-state effect is the
+existing indirect category normalization inside `posCatalogHtml`; other
+allowed effects are the exact DOM, modal, tab, scroll, focus, and selection
+operations documented above.
+
+Phase 4E adds exactly three desktop-only parity tests plus one POS-view mobile
+test that runs in all three projects. The complete matrix becomes exactly 57
+runs: 45 desktop Chromium, 6 Pixel Chrome, and 6 iPhone WebKit. They must prove:
+
+1. Exact API order/descriptors, new 19-name POS domain, root/domain
+   reassignment, original registration slot, exact 8-script active path, exact
+   18-script cached path, unchanged fallback/hash, and HTTP 200 delivery.
+2. Typed-versus-classic exact value and HTML fingerprints for payment,
+   summary, receipt, catalog, cash suggestions, cart, sales, shift, workspace,
+   mobile bar, sync, and warning branches, including live dependency access,
+   explicit call-time/no-eager-capture traces for `document`, `Array`, `Date`,
+   `Math`, `Number`, and `String`, category normalization, coercion, locale,
+   repeated calls, failure order, and unchanged state/persistence snapshots
+   apart from that allowed normalization.
+3. Typed-versus-classic return, trace, DOM, call-order, error, focus, scroll,
+   rerender lookup, disabled-control, and caret behavior for all four
+   interaction functions and their missing-node/fallback cases. Downstream
+   integration and live reassignment must reach typed Stocks `renderPos`, typed
+   Events consumers, classic `workspace-sync.js`, and classic
+   `pos-operations.js` through both root and POS-domain surfaces.
+4. At desktop, Pixel, and iPhone widths, a realistic Matcha/Hojicha catalog,
+   cart, payment, confirmation/recovery, receipt, category, mobile-order, and
+   recent-sales view remains contained and reachable with no document overflow,
+   page/console error, failed request, server error, storage mutation, fetch,
+   RPC/query, cloud-storage access, or business action. The test must seed and
+   assert installed guards for fetch, Storage `setItem`/`removeItem`/`clear`,
+   client `rpc`/`from`, and `storage.from`; zero-call assertions may not pass
+   through an absent client or uninstalled guard.
+
+The exact 182-test legacy and 175-name compatibility baselines remain
+unchanged. The guarded signed-in production smoke may inspect the real POS and
+its payment controls, but must not add an item, edit payment input, submit a
+sale, open/close a shift, void a receipt, refresh, or permit any business-data
+write.
 
 ## Universal executable-slice gates
 
