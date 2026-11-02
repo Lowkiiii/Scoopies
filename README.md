@@ -18,15 +18,18 @@ preserving its established browser contract:
 - [`assets/js`](assets/js) contains responsibility-focused application scripts:
   state and persistence, POS catalog and operations, stocks, publication,
   rendering, events, support tools, and startup. The former classic Core,
-  Costing, Stocks domain, Stocks view, Events (`events.js`), and compatibility
-  files are retained as unreferenced fallbacks for browsers holding an older
-  module entry or pre-3B0 HTML.
+  Runtime factories, Costing, Stocks domain, Stocks view, Events (`events.js`),
+  and compatibility files are retained as unreferenced fallbacks for browsers
+  holding an older module entry or pre-3B0 HTML.
 - [`src/main.ts`](src/main.ts) is the Vite module entry. It installs the typed
-  compatibility facade, registers typed Core, Costing, Stocks domain, and
-  Stocks view/controller and Events modules at their established runtime
-  positions, and loads the remaining classic runtime in order.
+  compatibility facade, registers typed Core, Runtime factories, Costing,
+  Stocks domain, Stocks view/controller, and Events modules at their
+  established runtime positions, and loads the remaining classic runtime in
+  order.
 - [`src/core`](src/core) contains the typed unit, money, identity, and stable
   serialization helpers introduced by Phase 3B1.
+- [`src/runtime`](src/runtime) contains the typed fresh-state factories
+  introduced by Phase 4B.
 - [`src/costing`](src/costing) contains typed ingredient, mixture, recipe,
   packaging, product, publication snapshot, and validation logic introduced by
   Phase 3B2.

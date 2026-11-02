@@ -17,8 +17,9 @@ that schema, its RPCs, or production data; see
 - **4A — architecture contract and inventory (released):** merged at
   `0546a5d97fe7e01a465cbc01c2838b7ebd4ba636`; documentation only, with no
   executable source or business behavior changes. Release evidence is below.
-- **4B — typed runtime factories (planned):** the first executable slice,
-  defined below. It does not begin until 4A passes every exit gate.
+- **4B — typed runtime factories (in progress):** the first executable slice,
+  defined below. Its implementation remains unreleased until every gate below
+  passes and release evidence is recorded.
 - Later slices remain bounded by the migration waves below. Each requires its
   own exact API/parity contract before implementation.
 
@@ -228,6 +229,11 @@ exact field/default order, repeated-call and every-array isolation, root/domain
 live reassignment, registration-before-`state.js` proof, exact four-name typed
 domain, exact 11-script active runtime, and the retained 18-script cached path
 with `runtime-factories.js` returning HTTP 200.
+
+Its browser matrix must become exactly 41 runs: the Phase 4A baseline plus
+three desktop-only Runtime tests for exact factory shapes and identity,
+typed-versus-classic parity, and registration-before-state replacement paths.
+The 182-test legacy and 175-name compatibility baselines remain unchanged.
 
 ## Universal executable-slice gates
 

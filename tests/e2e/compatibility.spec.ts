@@ -190,6 +190,18 @@ const expectedEventsNames = Object.freeze(['activateAppTab']);
 
 const protectedEventsContractNames = Object.freeze(['activateAppTab']);
 
+const expectedRuntimeNames = Object.freeze([
+  'freshPosOpsModal',
+  'freshPosSalesHistory',
+  'freshStockState',
+  'freshStockModal',
+]);
+
+const protectedRuntimeContractNames = Object.freeze([
+  'freshStockState',
+  'freshStockModal',
+]);
+
 function legacyContractNames() {
   const source = readFileSync(resolve(process.cwd(), 'tests/costing.test.html'), 'utf8');
   const names = Array.from(source.matchAll(/\bapp\.([A-Za-z_$][\w$]*)/g), (match) => match[1]);
@@ -214,6 +226,8 @@ test('the compatibility facade exactly protects the legacy browser contract', as
     protectedCostingNames,
     stocksNames,
     protectedStocksNames,
+    runtimeNames,
+    protectedRuntimeNames,
     eventsNames,
     protectedEventsNames,
   }) => {
@@ -225,6 +239,7 @@ test('the compatibility facade exactly protects the legacy browser contract', as
           core: Record<string, unknown>;
           costing: Record<string, unknown>;
           stocks: Record<string, unknown>;
+          runtime: Record<string, unknown>;
           events: Record<string, unknown>;
           legacy: Record<string, unknown>;
         };
@@ -352,6 +367,43 @@ test('the compatibility facade exactly protects the legacy browser contract', as
           appWindow.MatchaLunaApp.domains.legacy[name] !== root[name] ||
           appWindow.MatchaLunaApp.domains.stocks[name] !== root[name],
       ),
+      runtimeOrder: Object.keys(appWindow.MatchaLunaApp.domains.runtime),
+      runtimeNames: Object.keys(appWindow.MatchaLunaApp.domains.runtime).sort(),
+      missingRuntimeRootProperties: runtimeNames.filter(
+        (name) => !Object.prototype.hasOwnProperty.call(root, name),
+      ),
+      mismatchedRuntimeRootValues: runtimeNames.filter(
+        (name) => root[name] !== appWindow.MatchaLunaApp.domains.runtime[name],
+      ),
+      invalidRuntimeNamespaceDescriptors: runtimeNames.filter((name) => {
+        const descriptor = Object.getOwnPropertyDescriptor(
+          appWindow.MatchaLunaApp.domains.runtime,
+          name,
+        );
+        return (
+          !descriptor ||
+          descriptor.configurable !== true ||
+          descriptor.enumerable !== true ||
+          descriptor.writable !== true ||
+          typeof descriptor.get === 'function' ||
+          typeof descriptor.set === 'function'
+        );
+      }),
+      invalidRuntimeRootDescriptors: runtimeNames.filter((name) => {
+        const descriptor = Object.getOwnPropertyDescriptor(root, name);
+        return (
+          !descriptor ||
+          descriptor.configurable !== true ||
+          descriptor.enumerable !== true ||
+          typeof descriptor.get !== 'function' ||
+          typeof descriptor.set !== 'function'
+        );
+      }),
+      mismatchedProtectedRuntimeValues: protectedRuntimeNames.filter(
+        (name) =>
+          appWindow.MatchaLunaApp.domains.legacy[name] !== root[name] ||
+          appWindow.MatchaLunaApp.domains.runtime[name] !== root[name],
+      ),
       eventsOrder: Object.keys(appWindow.MatchaLunaApp.domains.events),
       eventsNames: Object.keys(appWindow.MatchaLunaApp.domains.events).sort(),
       missingEventsRootProperties: eventsNames.filter(
@@ -400,6 +452,8 @@ test('the compatibility facade exactly protects the legacy browser contract', as
     protectedCostingNames: [...protectedCostingContractNames],
     stocksNames: [...expectedStocksNames],
     protectedStocksNames: [...protectedStocksContractNames],
+    runtimeNames: [...expectedRuntimeNames],
+    protectedRuntimeNames: [...protectedRuntimeContractNames],
     eventsNames: [...expectedEventsNames],
     protectedEventsNames: [...protectedEventsContractNames],
   });
@@ -430,6 +484,13 @@ test('the compatibility facade exactly protects the legacy browser contract', as
   expect(contract.invalidStocksNamespaceDescriptors).toEqual([]);
   expect(contract.invalidStocksRootDescriptors).toEqual([]);
   expect(contract.mismatchedProtectedStocksValues).toEqual([]);
+  expect(contract.runtimeOrder).toEqual(expectedRuntimeNames);
+  expect(contract.runtimeNames).toEqual([...expectedRuntimeNames].sort());
+  expect(contract.missingRuntimeRootProperties).toEqual([]);
+  expect(contract.mismatchedRuntimeRootValues).toEqual([]);
+  expect(contract.invalidRuntimeNamespaceDescriptors).toEqual([]);
+  expect(contract.invalidRuntimeRootDescriptors).toEqual([]);
+  expect(contract.mismatchedProtectedRuntimeValues).toEqual([]);
   expect(contract.eventsOrder).toEqual(expectedEventsNames);
   expect(contract.eventsNames).toEqual([...expectedEventsNames].sort());
   expect(contract.missingEventsRootProperties).toEqual([]);

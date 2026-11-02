@@ -2,6 +2,7 @@ import { installCompatibilityFacade } from './compatibility/facade';
 import { registerCostingModule } from './compatibility/register-costing';
 import { registerCoreModule } from './compatibility/register-core';
 import { registerEventsModule } from './compatibility/register-events';
+import { registerRuntimeModule } from './compatibility/register-runtime';
 import { registerStocksModule } from './compatibility/register-stocks';
 import { registerStocksViewModule } from './compatibility/register-stocks-view';
 import { installEventHandlers } from './events';
@@ -17,6 +18,7 @@ import {
 
 const facade = installCompatibilityFacade(window);
 registerCoreModule(facade);
+registerRuntimeModule(facade);
 
 const ready = (async () => {
   await loadClassicScripts(BEFORE_COSTING);
