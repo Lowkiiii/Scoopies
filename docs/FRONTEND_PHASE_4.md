@@ -24,10 +24,10 @@ that schema, its RPCs, or production data; see
   and example-data boundary merged at
   `c576aca099a72a9ebae5814b4b223088107bdaaa`. Every applicable gate passed
   and the release evidence is recorded below.
-- **4D — typed costing presentation (implementation in progress):** the exact
-  shared helpers and Ingredients, Packaging, Recipes, and Pricing render
-  boundary is frozen below. Its implementation remains unreleased until every
-  applicable gate passes and release evidence is recorded.
+- **4D — typed costing presentation (released):** the exact shared helpers and
+  Ingredients, Packaging, Recipes, and Pricing render boundary merged at
+  `659b9b9e6de5e05927571867dd7de4f202314c29`. Every applicable gate passed
+  and the release evidence is recorded below.
 - Later slices remain bounded by the migration waves below. Each requires its
   own exact API/parity contract before implementation.
 
@@ -694,6 +694,90 @@ Every Phase 4C gate above passed before the phase was marked released.
   audits found no blocker. The 13-file implementation changed only the typed
   Support boundary, its registration/manifest, exact tests, and documentation;
   the retained classic fallback remained byte-identical.
+
+## Phase 4D exit gates (complete)
+
+- The exact ordered 13-binding Costing presentation API is registered after
+  `publication.js` and before `render-modals.js` and `render-pos.js`, growing
+  the Costing domain from 24 to 37 names without changing compatibility
+  version 1 or its exact 175-name baseline.
+- Typed-versus-classic helper and DOM fingerprints preserve values, coercion,
+  escaping, grouping, filtering, failure order, return values, missing-node
+  behavior, publication HTML, and exact call-time dependency access, including
+  ordered `state` and `ingredientUi` reads and the allowed invalid-category
+  reset.
+- Root/domain reassignment remains live. Only `renderIngredients` and
+  `renderProducts` join the protected Costing contract list.
+- The active classic runtime is exactly 9 scripts and does not request
+  `render-costing.js`. The cached/pre-module transition remains exactly 18
+  scripts; the retained fallback is unchanged at Git blob
+  `2ac06eb5e370e4026393ff3623b0dd59ed39117d` and canonical SHA-256
+  `FA9B4020D890BCD0AE5D9C4249213A182C2B3563D23C40BCD0B33440DBE2E04E`.
+- The exact 182-test legacy baseline, 175-name compatibility baseline, and
+  51-run cross-browser matrix pass locally and in Ubuntu/Windows CI.
+- The tested `main` artifact is live, matches all 22 GitHub Pages files
+  byte-for-byte, passes fresh 390-pixel browser verification, and passes the
+  guarded signed-in production smoke.
+- Independent contract, parity, scope/data-safety, security, test, mobile, and
+  release-readiness audits found no blocker. No auth, Supabase, RPC, storage,
+  persistence, schema, cloud, or business-data behavior changed.
+
+Every Phase 4D gate above passed before the phase was marked released.
+
+## Phase 4D release record
+
+- Contract pull request: [#26](https://github.com/Lowkiiii/Scoopies/pull/26)
+- Contract commit: `711b1c098cd606fcd271772286ac93eb3409b109`
+- Contract merge commit: `471bcf48877476e737bcb5c89c7f9756c1890745`
+- Contract PR CI:
+  [41460060122](https://github.com/Lowkiiii/Scoopies/actions/runs/41460060122)
+- Contract main CI and Pages deployment:
+  [41460470177](https://github.com/Lowkiiii/Scoopies/actions/runs/41460470177)
+- Implementation pull request:
+  [#27](https://github.com/Lowkiiii/Scoopies/pull/27)
+- Implementation commit: `a0258d81abaf2643ea4b1d0b3e9db0df53bbd495`
+- Implementation merge commit:
+  `659b9b9e6de5e05927571867dd7de4f202314c29`
+- Implementation PR CI:
+  [41488923329](https://github.com/Lowkiiii/Scoopies/actions/runs/41488923329)
+- Main CI and Pages deployment:
+  [41489311793](https://github.com/Lowkiiii/Scoopies/actions/runs/41489311793)
+- Signed-in production smoke:
+  [41490087267](https://github.com/Lowkiiii/Scoopies/actions/runs/41490087267)
+- Local verification: Node `24.22.2`; zero audit vulnerabilities; strict
+  type-check and 60-module production build passed; all 51 Playwright runs
+  passed (41 desktop Chromium, 5 Pixel Chrome, and 5 iPhone WebKit), including
+  the exact 182-test legacy and 175-name compatibility baselines.
+- Runtime verification: the exact ordered Costing presentation API contains
+  `unitOptions`, `optionList`, `escapeHtml`, `categoryOptions`,
+  `ingredientOptions`, `selectedRealCategory`, `ingredientMatchesView`,
+  `renderCategoryBar`, `renderIngredients`, `renderPackaging`, `renderRecipes`,
+  `recipeBreakdownHtml`, and `renderProducts`. Typed domain sizes are Core 15,
+  Runtime 4, Costing 37, Stocks 63, Support 3, and Events 1.
+- Cross-platform evidence: the complete implementation PR and post-merge
+  matrices passed on both Ubuntu and Windows. Pages packaged only the verified
+  Ubuntu `dist/` after both operating-system jobs passed.
+- Production artifact verification: all 22 files in the downloaded tested CI
+  artifact returned HTTP 200 from GitHub Pages and matched live bytes exactly.
+  Pages served `index-CrIo5T4u.js` and `index-B0B7i9SZ.css`; the exact 9-script
+  active runtime did not request the classic Costing renderer, while the exact
+  18-script cached transition and unchanged `render-costing.js` fallback
+  matched the tested artifact.
+- Production browser verification: a fresh 390-pixel Chromium session loaded
+  the exact active order, finalized the version-1 175-name contract, exposed
+  typed domain sizes 15/4/37/63/3/1 in the exact Core/Runtime/Costing/Stocks/
+  Support/Events order, displayed at 390/390 width, and reported zero page
+  errors, console errors, failed requests, or server errors.
+- Signed-in verification: the protected main-only smoke loaded the real POS,
+  Stocks, Ingredients, Recipes, and Pricing views. Client and network guards
+  allowed no business-data write to escape and retained no credentials,
+  screenshots, traces, videos, or business-data artifacts.
+- Review evidence: independent contract, source-parity, test, security/scope,
+  mobile, final-diff, and release-readiness audits found no blocker. The
+  15-file implementation changed only the typed Costing presentation boundary,
+  its compatibility registration and manifest slot, exact tests, matrix
+  configuration, and documentation; the retained classic fallback remained
+  byte-identical.
 
 No later Phase 4 executable slice is released until its exact API and parity
 contract is frozen and all applicable gates have recorded evidence.
