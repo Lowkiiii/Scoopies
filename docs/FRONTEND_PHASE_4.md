@@ -24,6 +24,10 @@ that schema, its RPCs, or production data; see
   and example-data boundary merged at
   `c576aca099a72a9ebae5814b4b223088107bdaaa`. Every applicable gate passed
   and the release evidence is recorded below.
+- **4D — typed costing presentation (contract frozen):** the exact shared
+  helpers and Ingredients, Packaging, Recipes, and Pricing render boundary is
+  frozen below. Its implementation remains unreleased until every applicable
+  gate passes and release evidence is recorded.
 - Later slices remain bounded by the migration waves below. Each requires its
   own exact API/parity contract before implementation.
 
@@ -338,6 +342,120 @@ WebKit. They must prove:
 The exact 182-test legacy and 175-name compatibility baselines remain
 unchanged. The signed-in production smoke may verify the read-only Support
 domain, but must not invoke import or example-data actions against production.
+
+## Phase 4D contract — typed costing presentation
+
+`render-costing.js` is the next executable slice. It has no direct network,
+Supabase, storage, authentication, persistence, or event-listener authority,
+but its boundary is wider than the four visible costing pages: later classic
+and typed code also consumes its shared escaping and option helpers. The whole
+file therefore moves atomically as this exact ordered 13-binding API:
+
+| Binding | Exact return/effect | Responsibility |
+| --- | --- | --- |
+| `unitOptions` | mutable `['g','kg','ml','l','piece']` | Shared costing unit choices |
+| `optionList(arr, selected, useObj)` | HTML string | Primitive or object `<option>` list |
+| `escapeHtml(value)` | escaped string | Escape exactly `&`, `<`, `>`, and `"` |
+| `categoryOptions(selected)` | HTML string | Category choices with Uncategorized first |
+| `ingredientOptions(selected, list)` | HTML string | Purchased and prepared-mixture groups |
+| `selectedRealCategory()` | category or `null` | Resolve the selected non-special category |
+| `ingredientMatchesView(ingredient)` | boolean | Apply folder and search filters |
+| `renderCategoryBar()` | `undefined` | Normalize the filter and replace category chips |
+| `renderIngredients()` | `undefined` | Replace search status and Ingredients table |
+| `renderPackaging()` | `undefined` | Replace the Packaging table |
+| `renderRecipes()` | `undefined` | Replace the Recipes cards and line tables |
+| `recipeBreakdownHtml(recipe)` | HTML string | Per-serving ingredient breakdown |
+| `renderProducts()` | `undefined` | Replace Pricing cards, metrics, and publication status |
+
+Phase 4D must:
+
+1. Add responsibility-focused typed helper and renderer modules and append the
+   exact ordered 13-name API above to the existing Costing namespace. The
+   Costing domain grows from exactly 24 to exactly 37 names; existing names
+   and their order stay unchanged.
+2. Register the added Costing descriptors at the original runtime position:
+   after classic `publication.js` and before classic `render-modals.js` and
+   `render-pos.js`. Costing-domain values remain writable; every matching
+   browser-root property remains accessor-backed, with bidirectional live
+   reassignment.
+3. Keep the compatibility contract at version 1 with exactly 175 protected
+   names. `renderIngredients` and `renderProducts` remain its only protected
+   names from this slice; the other 11 bindings do not join that list.
+4. Remove only `render-costing.js` from the active classic manifest, reducing
+   the exact active runtime from 10 scripts to 9. Retain the classic file
+   unchanged in `assets/js` and in the exact 18-script cached/pre-module
+   transition. Its frozen fallback Git blob is
+   `2ac06eb5e370e4026393ff3623b0dd59ed39117d`; the SHA-256 of those exact
+   Git-blob bytes is
+   `FA9B4020D890BCD0AE5D9C4249213A182C2B3563D23C40BCD0B33440DBE2E04E`.
+5. Preserve every dependency lookup and expression order at call time. Live
+   root dependencies include `state`, `ingredientUi`, `document`, `String`,
+   `isFinite`, `UNIT_TYPE`, `TYPE_UNITS`, `getById`, `num`, `peso`, `pct`,
+   `ceilTo`, all relevant Costing functions, every sibling in the 13-name API,
+   and the later-defined `posPublicationHtml`.
+
+The helper contract must preserve the current coercion and selection rules:
+
+- `escapeHtml` converts only nullish values to an empty string, calls the live
+  `String`, escapes only `&`, `<`, `>`, and `"`, and leaves apostrophes alone.
+- `optionList` uses string equality for selection, while category and
+  ingredient branches retain their current strict-identity comparisons.
+  Object-mode labels retain the exact `label || '(unnamed)'` fallback.
+- `ingredientOptions` retains `list || state.ingredients`, purchased-before-
+  mixture grouping, exact optgroup labels, and the direct live `isMixture`
+  callback behavior.
+- Category and search matching retains its exact special-folder rules,
+  trimming and lower-casing, category-name search, component-name search, and
+  missing-source behavior.
+
+The renderer contract must preserve exact HTML, text, attributes, classes,
+inline styles, ARIA labels, Unicode, row order, calculations, and exceptions:
+
+- `renderCategoryBar` resets a missing selected category to `all` before its
+  optional `#categoryBar` early return. No other application-state mutation is
+  authorized.
+- `renderIngredients` treats search and status nodes as optional but still
+  requires `#ingTable`; its unfiltered count retains the current leading
+  space. Purchased fallbacks retain `!= null`, preserving zero before legacy
+  `qty` fallback.
+- Packaging, Recipes, and Pricing roots remain required and keep their current
+  natural missing-node errors. Empty and populated wording and all
+  `data-entity`, `data-id`, `data-idx`, `data-line-id`, `data-field`, and
+  `data-act` surfaces remain exact.
+- Mixture validity, missing ingredients/recipes/packaging, blank and non-finite
+  values, negative profit, percentage and suggested-price branches, repeated
+  helper evaluation, and publication-status rendering remain unchanged.
+- Some inherited recipe, product, and packaging IDs currently enter HTML
+  without additional escaping. This parity migration must not silently change
+  identifier semantics; any hardening requires a separately reviewed slice.
+- Rendering must not call save, history, storage, fetch, Supabase, RPC, auth,
+  cloud synchronization, or any business-data mutation. Apart from the invalid
+  category reset above, state and persistence snapshots remain unchanged.
+
+Phase 4D adds exactly three desktop-only parity tests plus one costing-view
+mobile test that runs in all three projects. The complete matrix becomes
+exactly 51 runs: 41 desktop Chromium, 5 Pixel Chrome, and 5 iPhone WebKit.
+They must prove:
+
+1. Exact API order/descriptors, 24-to-37 Costing-domain growth, root/domain
+   reassignment, original registration slot, exact 9-script active path,
+   exact 18-script cached path, unchanged fallback, and HTTP 200 delivery.
+2. Typed-versus-classic helper fingerprints for primitive, object, nullish,
+   unnamed, escaped, grouped, selected, filtered, coercive, and mutable-unit
+   cases, including exact dependency lookup and failure order.
+3. Typed-versus-classic DOM fingerprints for empty, populated, filtered, and
+   invalid-category fixtures across category controls, search status,
+   Ingredients, Packaging, Recipes, recipe breakdown, Pricing metrics, and
+   publication HTML, including exact return and missing-node behavior.
+4. At desktop and 390-pixel-class widths, all four costing tabs remain
+   reachable without document overflow; wide tables remain contained in their
+   scroll regions, key controls retain nonzero reachable rectangles, and the
+   browser reports no page errors, console errors, or failed requests.
+
+The exact 182-test legacy and 175-name compatibility baselines remain
+unchanged. The guarded signed-in production smoke may open and inspect all
+four costing tabs, but must not submit a field, invoke an action, or permit any
+business-data write.
 
 ## Universal executable-slice gates
 
