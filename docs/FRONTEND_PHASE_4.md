@@ -17,9 +17,9 @@ that schema, its RPCs, or production data; see
 - **4A — architecture contract and inventory (released):** merged at
   `0546a5d97fe7e01a465cbc01c2838b7ebd4ba636`; documentation only, with no
   executable source or business behavior changes. Release evidence is below.
-- **4B — typed runtime factories (in progress):** the first executable slice,
-  defined below. Its implementation remains unreleased until every gate below
-  passes and release evidence is recorded.
+- **4B — typed runtime factories (released):** the first executable slice,
+  merged at `e353f0078e86029b19f6b02d8e0701b5a7b96f53`. Every applicable gate
+  passed and the release evidence is recorded below.
 - Later slices remain bounded by the migration waves below. Each requires its
   own exact API/parity contract before implementation.
 
@@ -330,5 +330,69 @@ Every Phase 4A gate above passed before the phase was marked released.
   allowed no business-data write to escape and retained no credentials,
   screenshots, traces, videos, or business-data artifacts.
 
-No Phase 4B release is claimed until its applicable gates have recorded
-evidence.
+## Phase 4B exit gates (complete)
+
+- Typed interfaces and exact implementations for all four runtime factories
+  are registered synchronously before `state.js`.
+- Exact key order, primitive defaults, `null` values, fresh-object identity,
+  and every-array isolation match the retained classic implementation.
+- Root/domain reassignment remains live during startup and later POS/Stocks
+  calls; the compatibility contract remains version 1 with exactly 175 names.
+- The active classic runtime is exactly 11 scripts and does not request
+  `runtime-factories.js`. The exact cached/pre-module transition remains 18
+  scripts and still serves the unchanged fallback with HTTP 200.
+- The exact 182-test legacy baseline, 175-name compatibility baseline, and
+  41-run cross-browser matrix pass locally and in Ubuntu/Windows CI.
+- The tested `main` artifact is live, matches GitHub Pages, passes 390-pixel
+  browser verification, and passes the guarded signed-in production smoke.
+- Independent parity, scope, and test audits found no blocker. No UI, auth,
+  Supabase, RPC, storage, schema, or business-data behavior changed.
+
+Every Phase 4B gate above passed before the phase was marked released.
+
+## Phase 4B release record
+
+- Pull request: [#21](https://github.com/Lowkiiii/Scoopies/pull/21)
+- Implementation commit: `de80a0a86de930b78d7a20417dea9931497cfe96`
+- Merge commit: `e353f0078e86029b19f6b02d8e0701b5a7b96f53`
+- PR CI:
+  [41443094933](https://github.com/Lowkiiii/Scoopies/actions/runs/41443094933)
+- Main CI and Pages deployment:
+  [41443354676](https://github.com/Lowkiiii/Scoopies/actions/runs/41443354676)
+- Signed-in production smoke:
+  [41443817387](https://github.com/Lowkiiii/Scoopies/actions/runs/41443817387)
+- Local verification: Node `24.22.2`; clean `npm ci`; zero audit
+  vulnerabilities; strict type-check and 51-module production build passed;
+  all 41 Playwright runs passed (33 desktop Chromium, 4 Pixel Chrome, and 4
+  iPhone WebKit), including the exact 182-test legacy and 175-name
+  compatibility baselines.
+- Runtime verification: the exact ordered Runtime API contains
+  `freshPosOpsModal`, `freshPosSalesHistory`, `freshStockState`, and
+  `freshStockModal`; typed domain sizes are Core 15, Runtime 4, Costing 24,
+  Stocks 63, and Events 1. Exact typed/classic fingerprints, repeated-call and
+  every-array isolation, startup replacement, bidirectional live reassignment,
+  and real later POS/Stocks callers passed.
+- Cross-platform evidence: the complete PR and post-merge matrices passed on
+  both Ubuntu and Windows. Pages packaged only the verified Ubuntu `dist/`
+  after both operating-system jobs passed.
+- Production artifact verification: all 22 files in the downloaded tested CI
+  artifact returned HTTP 200 from GitHub Pages and matched live content after
+  line-ending normalization. Pages served `index-C-zaYPZI.js` and
+  `index-B0B7i9SZ.css`; the exact 11-script active runtime did not request the
+  classic factory file, while the exact 18-script cached transition and
+  unchanged `runtime-factories.js` fallback matched the tested artifact.
+- Production browser verification: a fresh 390-pixel Chromium session loaded
+  the exact active order, finalized the version-1 175-name contract, exposed
+  typed domain sizes 15/4/24/63/1, displayed at 390/390 width, and reported
+  zero page errors, console errors, or failed requests.
+- Signed-in verification: the protected main-only smoke loaded the real POS,
+  Stocks, Ingredients, Recipes, and Pricing views. Client and network guards
+  allowed no business-data write to escape and retained no credentials,
+  screenshots, traces, videos, or business-data artifacts.
+- Review evidence: independent parity, scope, and test audits found no blocker.
+  The implementation changed only the typed runtime boundary, its
+  compatibility registration, manifest entry, tests, and documentation; the
+  retained classic fallback remained byte-identical.
+
+No later Phase 4 executable slice is released until its exact API and parity
+contract is frozen and all applicable gates have recorded evidence.
