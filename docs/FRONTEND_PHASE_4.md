@@ -43,6 +43,10 @@ that schema, its RPCs, or production data; see
   its bounded implementation merged at
   `06260c0a80c75e614e92998791725beed192a835`. Every applicable gate passed and
   the release evidence is recorded below.
+- **4H — typed POS catalog workflows (contract only):** the exact catalog,
+  cart, cache, pending-sale recovery, catalog-drift, drink-media, image-editor,
+  and media-recovery boundary is frozen below. No executable implementation or
+  runtime change is part of the contract slice.
 - Later slices remain bounded by the migration waves below. Each requires its
   own exact API/parity contract before implementation.
 
@@ -1100,6 +1104,336 @@ ingredient, draft, mixture-save, delete, or other business-data mutations.
 - Clean local gates, Ubuntu and Windows pull-request and post-merge CI, Pages
   artifact verification, a fresh 390-pixel production audit, and the guarded
   signed-in production smoke all passed. The exact evidence is recorded below.
+
+## Phase 4H contract — typed POS catalog workflows
+
+`pos-catalog.js` is the next executable boundary. Its 81 browser functions
+span checkout state, cart calculations, menu caching, pending-sale recovery,
+catalog drift, and drink-image management. They cannot be activated safely one
+island at a time: the classic file installs all root declarations together,
+shares mutable checkout/media state across every island, and is consumed by
+later Stocks, Publication, POS-view, workspace-sync, and POS-operations code.
+A partial overlay would create split classic/typed ownership or require a new
+temporary replacement mechanism. Phase 4H therefore moves the exact complete
+file boundary atomically while splitting its implementation into small typed
+responsibilities.
+
+The exact ordered API is:
+
+1. `freshPosCheckout`
+2. `clearPosReportData`
+3. `setPosReportsLoading`
+4. `syncOpenPosReportModal`
+5. `stockCanManage`
+6. `resetStocks`
+7. `resetPosCheckout`
+8. `posUuid`
+9. `posCartLines`
+10. `posCatalogMatchaOptions`
+11. `posVariantKey`
+12. `posProductCartLines`
+13. `posProductCartQuantity`
+14. `posCartTotalCentavos`
+15. `posCartUnits`
+16. `strictPesoCentavos`
+17. `posLoadRequestStillCurrent`
+18. `posCatalogRequestStillCurrent`
+19. `posCatalogCacheScope`
+20. `posHydrateCatalogCache`
+21. `posRememberCatalogCache`
+22. `posClearCatalogCache`
+23. `posDrinkGroupKey`
+24. `normalizePosCategory`
+25. `posSubmitRequestStillCurrent`
+26. `posPendingScope`
+27. `posPendingRecords`
+28. `posSavePending`
+29. `posClearPending`
+30. `posStoredPending`
+31. `posRestorePending`
+32. `posLatestCatalogProduct`
+33. `posLatestMatchaOption`
+34. `markPosCartAgainstCatalog`
+35. `acceptPosCatalogChanges`
+36. `addPosProduct`
+37. `addPosProductVariant`
+38. `confirmPosProductOption`
+39. `changePosQuantity`
+40. `removePosLine`
+41. `clearPosCart`
+42. `confirmPosCartAction`
+43. `resetPosContext`
+44. `posCanPublish`
+45. `posFriendlyError`
+46. `rpcRows`
+47. `posCanManageMedia`
+48. `posPublicImageUrl`
+49. `posDrinkImageHtml`
+50. `posMediaRequestCurrent`
+51. `posMediaRow`
+52. `posPatchProductImage`
+53. `openManageDrinksModal`
+54. `posLoadImageElement`
+55. `posValidateDrinkImageFile`
+56. `posCloseDrinkImageSource`
+57. `posDecodeDrinkImageFile`
+58. `posDrinkImageCropGeometry`
+59. `posDrawDrinkImageCrop`
+60. `posEncodeDrinkImageCanvas`
+61. `posPrepareDrinkImage`
+62. `disposePosDrinkImageEditor`
+63. `openPosDrinkImageEditor`
+64. `posCurrentDrinkImageEditor`
+65. `posClampDrinkImageEditor`
+66. `drawPosDrinkImageEditor`
+67. `setPosDrinkImageZoom`
+68. `adjustPosDrinkImageZoom`
+69. `nudgePosDrinkImageEditor`
+70. `resetPosDrinkImageEditor`
+71. `cancelPosDrinkImageEditor`
+72. `posExportDrinkImage`
+73. `savePosDrinkImageEditor`
+74. `beginPosDrinkImageDrag`
+75. `movePosDrinkImageDrag`
+76. `endPosDrinkImageDrag`
+77. `posReloadMediaRows`
+78. `uploadPosDrinkImage`
+79. `requestRemovePosDrinkImage`
+80. `cancelRemovePosDrinkImage`
+81. `confirmRemovePosDrinkImage`
+
+The implementation must keep that public order while splitting ownership into
+at least these internal responsibilities:
+
+| Typed responsibility | Exact public bindings |
+| --- | --- |
+| Checkout/report/Stocks lifecycle, context, error, and RPC helpers | 1–8 and 43–46 |
+| Cart math, category, catalog lookup/drift, and cart actions | 9–16, 23–24, and 32–42 |
+| Request currency and scoped catalog cache | 17–22 |
+| Pending-sale persistence and restoration | 25–31 |
+| Media catalog, permission, RPC, upload/remove, and recovery | 47–53 and 77–81 |
+| Image validation, decode/crop/encode, and editor interaction | 54–76 |
+
+None of the 81 names overlaps the existing 19-function typed POS presentation
+API. Catalog therefore remains a separate responsibility domain instead of
+changing the meaning or registration position of the released `pos` domain.
+
+Phase 4H must:
+
+1. Publish the exact ordered API above as a new `catalog` compatibility domain.
+   Its bindings and matching browser-root globals remain writable,
+   accessor-backed, and bidirectionally live.
+2. Register the typed Catalog domain at the original runtime position: after
+   typed Costing and before typed Stocks. Domain order becomes Core, Runtime,
+   Costing, Catalog, Stocks, Publication, Modals, POS, Support, Events, Legacy.
+3. Keep compatibility contract version 1 with exactly 175 protected names.
+   The 32 protected names owned by this slice remain
+   `setPosReportsLoading`, `resetPosCheckout`, `posCartLines`,
+   `posProductCartQuantity`, `posCartTotalCentavos`, `posCartUnits`,
+   `strictPesoCentavos`, `posHydrateCatalogCache`, `posRememberCatalogCache`,
+   `posClearCatalogCache`, `posDrinkGroupKey`, `posPendingScope`,
+   `posPendingRecords`, `posSavePending`, `posClearPending`,
+   `posStoredPending`, `posRestorePending`, `acceptPosCatalogChanges`,
+   `addPosProduct`, `addPosProductVariant`, `resetPosContext`, `posCanPublish`,
+   `openManageDrinksModal`, `posDecodeDrinkImageFile`,
+   `posDrinkImageCropGeometry`, `posEncodeDrinkImageCanvas`,
+   `posPrepareDrinkImage`, `openPosDrinkImageEditor`,
+   `cancelPosDrinkImageEditor`, `posExportDrinkImage`,
+   `savePosDrinkImageEditor`, and `uploadPosDrinkImage`.
+4. Remove only `pos-catalog.js` from the active classic manifest, reducing the
+   exact active path from six scripts to five: `state.js`,
+   `workspace-sync.js`, `pos-operations.js`, `boot.js`, and `start.js`. Retain
+   the unchanged file in `assets/js` and in the exact 18-script cached/pre-
+   module transition. Its frozen Git blob is
+   `34e2b5bfb1fd53637cb65fee9fd07358ff751230`; its canonical LF SHA-256 is
+   `35DE3699B50201D64F4F574C45E8D296917C63A8EE70E1C95103D25BE08B8DFC`.
+5. Resolve mutable state, sibling functions, later-defined consumers, and
+   browser natives at call time. This includes every checkout, context,
+   generation, report, modal, history, media-editor, session, cloud, and Stocks
+   global; every sibling in the 81-name API; Runtime, Core, Stocks,
+   Publication, POS-view, workspace-sync, and POS-operations consumers;
+   `window`, `document`, `localStorage`, `sessionStorage`, `URL`, `Image`,
+   `createImageBitmap`, `window.crypto`, `Uint8Array`, `Error`, `Date`, `JSON`,
+   `Object`, `Array`, `Math`, `Number`, `String`, `Promise`, canvas methods,
+   and pointer events. Root or domain reassignment must affect the next call.
+6. Preserve exact return values and Promise timing; object/property and option
+   order; coercion and validation order; text and HTML; DOM, class, modal, ARIA,
+   focus, and pointer behavior; generation increments; storage keys and record
+   shapes; RPC and object-storage argument order; mutation order; caught versus
+   propagated exceptions; cleanup; retry/recovery; and partial async effects.
+
+The checkout, report, context, and cart contract remains exact:
+
+- `freshPosCheckout` retains every field, field order, primitive default, and
+  fresh object/array identity. Report clearing/loading and open-report syncing
+  retain exact state, body-class, modal-render, notice/error, and return rules.
+- Stocks and checkout reset retain every generation increment, promise/time
+  reset, editor disposal, fresh-state replacement, training-class removal,
+  modal hide/close, body-class refresh, render, and optional error assignment
+  in the same order. Context reset retains its preserve-checkout branch and
+  downstream generation behavior.
+- UUID generation retains native `randomUUID` preference and the exact random-
+  byte fallback, version/variant bit masks, hexadecimal formatting, and native
+  error behavior.
+- Cart line ordering, upgrade-option parsing/filter/sort, variant keys, product
+  filters, quantity/total reductions, and strict peso parsing retain exact
+  string, numeric, safety-limit, decimal, and null rules.
+- Matcha-versus-Hojicha grouping remains binary and category normalization
+  retains the same no-op and reset behavior.
+
+The cache, pending-sale, catalog-drift, and cart-action contract remains exact:
+
+- Request-current helpers keep their exact generation, signed-in session,
+  user, business, and modal checks. Catalog cache scope remains cloud URL,
+  user, and business specific. Cache hydration retains schema version 2,
+  maximum age, malformed/expired/cross-scope rejection, snapshotting, category
+  normalization, pending restoration, stale-cart reconciliation, and caught
+  sessionStorage failures. Remember and clear retain exact storage records and
+  boolean/no-throw behavior.
+- Pending-sale persistence remains keyed per user and business. Legacy single-
+  record migration, parse-error/null/non-object fallback, save/clear behavior,
+  empty-map removal, v2 product-key versus v3 variant-key restoration, cart-
+  line shape, payment and training restoration, retry notice, stale-catalog
+  marking, and every caught localStorage failure remain unchanged.
+- Catalog lookup and stale marking retain exact product, version, base price,
+  name, size, option revision, surcharge, `latest`, `stale`, `catalogChanged`,
+  and confirming effects. Accepting changes retains removal/update counts,
+  line rebuilding and merging, the 10,000-unit cap, exact notice grammar,
+  rendering, and blocked/no-op paths.
+- Add, upgrade selection, confirm, quantity change, remove, clear, and modal-
+  confirmed cart actions retain all pending/submitting/confirming/modal gates,
+  state and line property order, notice/error clearing, focus targets, close/
+  render sequence, stale-version handling, and boolean returns.
+- Publish/media permissions, friendly error extraction, and RPC row coercion
+  keep their current role, session, data, array, message, and fallback rules.
+
+The drink-media and image-editor contract remains exact:
+
+- Public image URLs and image HTML retain current storage access, escaping,
+  placeholder behavior, classes, and public-URL lookup failure fallback to an
+  empty URL/placeholder. Media rows, catalog patches, permissions, modal
+  opening, generation checks, read-only media RPC, success/error rendering,
+  and focus scheduling retain exact behavior.
+- File validation continues to accept only positive-size JPEG, PNG, and WebP
+  files no larger than 5 MB.
+  Decode retains `createImageBitmap` with image-orientation preference, image-
+  element fallback, object-URL revocation, dimension checks, optional downscale
+  to a 3,600-pixel maximum dimension, source cleanup, and rejection behavior.
+- Crop geometry remains a centered cover crop with caller-supplied target
+  dimensions preserved, target width defaulting to 1,200 pixels, and target
+  height defaulting to 900 pixels, with zoom clamped from 1 through 4 and pan
+  clamped to computed bounds. Canvas transforms, `#fff4f7` fill, smoothing,
+  drawing, and returned geometry remain exact. WebP encoding retains up to
+  five attempts beginning at quality 0.86,
+  decrementing by 0.11, with a 2 MB maximum and current error messages.
+- Editor open/decode/stale-result cleanup, token and generation checks, current-
+  editor lookup, clamp/draw, zoom, keyboard nudge, reset, cancel, export, save,
+  pointer capture/drag/release, rerender, focus, and source disposal retain exact
+  ordering, guards, return values, Promise behavior, and resource cleanup.
+
+The mutation and recovery contract remains exact:
+
+- Upload prepares or exports the image, chooses the same immutable object path,
+  uploads with the same content type/cache control/upsert options, attaches it
+  through the same RPC with expected-old-path compare-and-set semantics, patches
+  both media and catalog rows, and then best-effort removes the previous object.
+- A lost attach response retains authoritative media re-read and exact recovery
+  behavior. A newly uploaded object is removed only after successful
+  verification proves that a different authoritative path won. When that
+  verification itself fails, the browser must leave the immutable object in
+  place rather than risk deleting a committed image.
+- Remove request/cancel/confirm retains current modal state and focus. Confirm
+  clears the database path before object cleanup, reports cleanup warnings,
+  verifies ambiguous failures, recovers an already-cleared authoritative row,
+  and preserves exact stale-generation and error effects.
+- Tests may exercise every mutation/recovery branch only through deterministic
+  RPC and storage stubs. They may not write Supabase, production storage, or
+  business data.
+
+Phase 4H does not authorize a UI redesign, wording change, new validation,
+schema or storage-format change, Supabase migration, RLS/auth change, new RPC or
+network surface, retry policy, cache lifetime, image format/dimensions, cloud
+behavior, business-data repair, or production-data mutation.
+
+The Phase 4H implementation must add exactly 12 desktop-only parity/safety
+tests plus two catalog mobile tests that run in all three projects. The
+complete matrix must become exactly 96 runs: 74 desktop Chromium, 11 Pixel
+Chrome, and 11 iPhone WebKit. They must prove:
+
+1. Exact API order/descriptors, 81-name Catalog domain, registration slot,
+   bidirectional live reassignment, 32 protected-name invariants, exact five-
+   script active and 18-script cached paths, unchanged fallback hashes, and
+   HTTP 200 fallback delivery.
+2. Checkout/report/Stocks reset, generation, modal, training, request-current,
+   context-reset, permission, error, RPC-row, UUID native/fallback, exception,
+   and repeated-call parity with call-time dependencies.
+3. Cart lines, matcha option parsing/filter/sort, variant keys, per-product
+   lines/quantity, totals, units, strict peso parsing, category grouping, and
+   normalization parity across boundary and coercion cases.
+4. Catalog cache scope, hydration, snapshot identity, expiry, corruption,
+   schema, cross-user/business/cloud rejection, category/pending/stale-cart
+   effects, remember/clear, quota/storage failures, and no-throw parity.
+5. Pending-record migration, scope, save, clear, empty-map removal, malformed
+   data, v2/v3 restore, product/variant keys, payment/training restoration,
+   retry notice, stale marking, storage failure, and mutation-order parity.
+6. Catalog lookup, option lookup, stale drift, mixed changed/removed items,
+   accept/rebuild/merge, quantity cap, grammar, blocked paths, render, and exact
+   state/line property-order parity.
+7. Product add, option modal, variant add/confirm, quantity change, remove,
+   clear, confirm cancel/success, stale version, focus, modal, render, and all
+   pending/submitting/confirming gates.
+8. Media permission, public URL/HTML, row lookup/patch, manage-modal load,
+   generation/session drift, RPC success/failure, render, and focus parity.
+9. Image validation, object URL, bitmap and image fallback, orientation,
+   downscale, cleanup, crop geometry/draw, encode attempts, prepare/export,
+   Promise/rejection, and partial-effect parity.
+10. Editor open/stale decode, current/clamp/draw, zoom/nudge/reset/cancel/save,
+    token checks, pointer capture/drag/release, focus, source disposal, and
+    repeated-call parity.
+11. Upload success, replace cleanup warning/failure, attach failure before and
+    after object upload, authoritative recovery, verified loser cleanup,
+    unverifiable ambiguity, stale generation/session, rendering, and exact RPC/
+    storage/mutation sequence.
+12. Remove request/cancel, missing path, success, cleanup warning, lost-response
+    recovery, authoritative still-present failure, refresh failure, stale
+    generation/session, focus, render, and partial-effect parity.
+13. At desktop, Pixel, and iPhone widths, local catalog filtering, matcha option
+    selection, cart quantity/remove/clear confirmation, dismissal, focus, and
+    overflow remain exact with zero fetch or RPC/query calls and zero browser/
+    object-storage, persistence, or business-data writes.
+14. At all three widths, deterministically stubbed manage-drinks rows with null
+    image paths and local image-editor open, crop controls, pointer/keyboard
+    adjustment, cancel/dismissal, focus, containment, and errors remain usable
+    with zero real network, zero mutation RPC/object-storage call, and unchanged
+    business state.
+
+Both mobile tests must install and assert guards for `window.fetch`, Storage
+`setItem`/`removeItem`/`clear`, `cloud.client.rpc`, `cloud.client.from`,
+`cloud.client.storage.from`, checkout submission, save/history hooks, and all
+business-data mutation paths. A deterministic read stub may supply media rows
+with null image paths only when the `pos_get_product_media` call and arguments
+are asserted separately. `cloud.client.storage.from` must retain a zero count;
+no absent client or missing hook may satisfy a zero-call check.
+
+The exact 182-test legacy and 175-name compatibility baselines remain
+unchanged. The guarded signed-in production smoke may verify the Catalog domain
+and normal POS/catalog rendering, but must not alter a cart, submit checkout,
+open an image file, upload/remove media, write storage, or invoke another
+business-data mutation.
+
+### Phase 4H implementation status (contract only)
+
+- The currently released runtime still has exactly six active classic scripts
+  and no `catalog` compatibility domain. This contract changes neither fact.
+- The currently released browser matrix remains exactly 78 runs: 60 desktop
+  Chromium, 9 Pixel Chrome, and 9 iPhone WebKit. This contract adds no tests.
+- The exact 81-function Catalog domain, five-script active runtime, and 96-run
+  browser matrix above are mandatory future implementation gates, not claims
+  about the contract-only branch.
+- Executable source, the classic manifest and fallback, browser behavior,
+  backend/schema/auth/storage, UI, persistence, and business data remain
+  unchanged until a separate bounded implementation passes every universal
+  release gate.
 
 ## Universal executable-slice gates
 
