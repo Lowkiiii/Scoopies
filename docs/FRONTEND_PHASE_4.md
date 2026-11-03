@@ -49,10 +49,12 @@ that schema, its RPCs, or production data; see
   `6ff7ac937f9e024e18b21c7c5639d4f2305c3ffb`; its bounded implementation merged
   at `20fe020d14476434d0815f74f1ef7cee0a55d5fe`. Every applicable gate passed
   and the release evidence is recorded below.
-- **4I — typed workspace sync (contract only):** the exact workspace request,
-  context, checkout loading, refresh coordination, validation, pending-sale,
-  submission, and recovery boundary is frozen below. No executable source,
-  runtime, backend, or business-data change is part of this contract slice.
+- **4I — typed workspace sync (implementation candidate):** the exact workspace
+  request, context, checkout loading, refresh coordination, validation,
+  pending-sale, submission, and recovery contract merged at
+  `eab6a3768381ded845827db51f9b63b4766283ea`. This bounded candidate
+  implements that contract without a UI, backend, schema, RPC, auth, storage,
+  business-rule, or production-data change.
 - Later slices remain bounded by the migration waves below. Each requires its
   own exact API/parity contract before implementation.
 
@@ -1798,20 +1800,29 @@ from asynchronous register/refresh behavior. Tests must prove:
     but must not mutate a cart, review/submit a sale, save pending state, invoke
     a write RPC, or alter business data.
 
-### Phase 4I implementation status (contract only)
+### Phase 4I implementation status (candidate)
 
-- The currently released runtime still has exactly five active classic
-  scripts, includes `workspace-sync.js`, and has no `workspace` compatibility
-  domain. This contract changes none of those facts.
-- The currently released browser matrix remains exactly 96 runs: 74 desktop
-  Chromium, 11 Pixel Chrome, and 11 iPhone WebKit. This contract adds no tests.
-- The exact 18-function Workspace domain, four-script active runtime, and
-  111-run browser matrix above are mandatory future implementation gates, not
-  claims about this contract-only branch.
-- Executable source, manifest and fallback, browser behavior, backend/schema/
-  auth/storage, RPCs, UI, persistence, business rules, and production data
-  remain unchanged until a separate bounded implementation passes every
-  universal release gate.
+- Four typed responsibility modules under `src/workspace` implement the exact
+  ordered 18-function `workspace` compatibility domain. It registers after
+  typed Stocks and before classic POS operations while compatibility contract
+  version 1 retains exactly 175 protected names, including the exact 11
+  bindings owned by this slice.
+- The active classic runtime is reduced from five scripts to exactly four:
+  `state.js`, `pos-operations.js`, `boot.js`, and `start.js`. The exact
+  18-script cached/pre-module transition remains available.
+- The retained `workspace-sync.js` fallback is unchanged at Git blob
+  `714fa588cb0c483414ee236afd2e7f2815f25eee` and canonical LF SHA-256
+  `7FEA61163419D78F1B3CD1C11B8BC6FE4E3E4FCB97B030566D6CF28BE23FAFA8`.
+- Nine desktop Workspace parity/safety tests and two cross-project mobile
+  Workspace tests define the exact 111-run matrix: 85 desktop Chromium, 13
+  Pixel Chrome, and 13 iPhone WebKit. Local clean dependency installation,
+  zero-vulnerability audit, strict type-check, 101-module production build,
+  focused 15-run Workspace slice, and the complete 111-run matrix pass.
+- This candidate changes no UI, backend schema, RPC, RLS/auth, storage or
+  persistence format, business rule, or production data. It is not released
+  until every universal gate, cross-platform PR and post-merge CI run, tested-
+  artifact Pages deployment, live verification, and guarded production smoke
+  pass.
 
 ## Universal executable-slice gates
 

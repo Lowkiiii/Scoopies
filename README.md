@@ -21,15 +21,15 @@ preserving its established browser contract:
   Runtime factories, Costing, Costing presentation (`render-costing.js`),
   POS catalog (`pos-catalog.js`), POS presentation (`render-pos.js`),
   Publication (`publication.js`), Stocks domain, Stocks view, Support
-  (`support.js`), Events (`events.js`), and compatibility files are retained
-  as unreferenced fallbacks for browsers holding an older module entry or
-  pre-3B0 HTML.
+  (`support.js`), Events (`events.js`), Workspace synchronization
+  (`workspace-sync.js`), and compatibility files are retained as unreferenced
+  fallbacks for browsers holding an older module entry or pre-3B0 HTML.
 - [`src/main.ts`](src/main.ts) is the Vite module entry. It installs the typed
   compatibility facade, registers typed Core, Runtime factories, Costing,
-  Catalog, Costing presentation, Stocks domain, Publication, POS presentation,
-  Stocks view/controller, Support, and Events modules at their established
-  runtime positions, with Catalog after Costing and before Stocks, and loads
-  the remaining classic runtime in order.
+  Catalog, Costing presentation, Stocks domain, Workspace synchronization,
+  Publication, POS presentation, Stocks view/controller, Support, and Events
+  modules at their established runtime positions, with Workspace after Stocks
+  and before POS operations, and loads the remaining classic runtime in order.
 - [`src/core`](src/core) contains the typed unit, money, identity, and stable
   serialization helpers introduced by Phase 3B1.
 - [`src/runtime`](src/runtime) contains the typed fresh-state factories
@@ -40,6 +40,9 @@ preserving its established browser contract:
 - [`src/catalog`](src/catalog) contains the typed POS checkout/report lifecycle,
   cart math and actions, scoped catalog cache, pending-sale recovery, catalog
   drift, drink-media workflows, and image editor introduced by Phase 4H.
+- [`src/workspace`](src/workspace) contains the typed request-currency,
+  POS-workspace loading, checkout refresh, validation, pending-sale, and
+  submission/recovery boundary introduced by Phase 4I.
 - [`src/stocks`](src/stocks) contains typed inventory source lifecycle,
   persistence, recovery, mutation, loading, rendering, and modal/controller
   logic introduced by Phases 3C1 and 3C2.
@@ -70,7 +73,7 @@ preserving its established browser contract:
   release gates, rollback, and typed Runtime-factory, Support,
   Costing-presentation, POS-presentation, Publication, and Modal-workflow
   released slices plus the released Phase 4H POS-catalog boundary and the
-  Phase 4I workspace-sync contract.
+  Phase 4I Workspace implementation candidate.
 
 The remaining JavaScript runtime files are intentionally loaded as ordered
 classic scripts by the module bootstrap. Do not independently add `async`,
@@ -106,9 +109,9 @@ implements the frozen atomic 81-function POS catalog, cart, pending-sale
 recovery, drink-media, and image-editor boundary through the typed `catalog`
 domain. Its exact classic parity, recovery, mobile-safety, cross-platform,
 Pages, and guarded signed-in production gates all passed.
-Phase 4I freezes the next atomic 18-function workspace read, refresh, checkout
-validation, pending-sale, and sale-recovery boundary before its executable
-implementation begins.
+Phase 4I implements the frozen atomic 18-function Workspace read, refresh,
+checkout-validation, pending-sale, and sale-recovery boundary as a typed
+domain while retaining the unchanged classic fallback for cached clients.
 Use the Node version recorded in
 [`.nvmrc`](.nvmrc), then run:
 
@@ -120,8 +123,9 @@ npm test
 ```
 
 `npm test` first creates a fresh `dist/`, then previews and exercises that
-artifact. It runs the protected 182-test legacy browser suite inside an exact
-96-run matrix: 74 desktop Chromium, 11 Pixel Chrome, and 11 iPhone WebKit runs.
+artifact. The Phase 4I candidate runs the protected 182-test legacy browser
+suite inside an exact 111-run matrix: 85 desktop Chromium, 13 Pixel Chrome,
+and 13 iPhone WebKit runs.
 Pull requests and pushes to `main` run the same type-check, build, and browser
 checks on both Ubuntu and Windows through
 [`.github/workflows/ci.yml`](.github/workflows/ci.yml). A passing `main` run

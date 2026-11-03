@@ -120,6 +120,26 @@ test('signed-in production reads the POS Stocks and Costing workspaces without m
     };
   }, Array.from(READ_ONLY_RPC_NAMES));
 
+  const workspaceBoundary = await page.evaluate(() => {
+    const root = window as typeof window & Record<string, any>;
+    return {
+      names: Object.keys(root.MatchaLunaApp.domains.workspace || {}),
+      runtime: Array.from(
+        document.querySelectorAll<HTMLScriptElement>(
+          'script[data-matcha-luna-runtime]',
+        ),
+        (script) => script.dataset.matchaLunaRuntime,
+      ),
+    };
+  });
+  expect(workspaceBoundary.names).toHaveLength(18);
+  expect(workspaceBoundary.runtime).toEqual([
+    'state.js',
+    'pos-operations.js',
+    'boot.js',
+    'start.js',
+  ]);
+
   await page.locator('#authEmail').fill(email);
   await page.locator('#authPass').fill(password);
   await page.locator('[data-act="doLogin"]').click();

@@ -21,7 +21,6 @@ const costingViewNames = [
 
 const activeRuntimeFiles = [
   'state.js',
-  'workspace-sync.js',
   'pos-operations.js',
   'boot.js',
   'start.js',
@@ -776,6 +775,7 @@ test('typed Costing view exposes the exact API and retained fallback', async ({
     'costing',
     'catalog',
     'stocks',
+    'workspace',
     'publication',
     'modals',
     'pos',
