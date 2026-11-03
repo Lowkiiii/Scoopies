@@ -73,7 +73,8 @@ preserving its established browser contract:
   release gates, rollback, and typed Runtime-factory, Support,
   Costing-presentation, POS-presentation, Publication, and Modal-workflow
   released slices plus the released Phase 4H POS-catalog boundary and the
-  released Phase 4I Workspace boundary.
+  released Phase 4I Workspace boundary, plus the frozen Phase 4J POS-
+  operations contract.
 
 The remaining JavaScript runtime files are intentionally loaded as ordered
 classic scripts by the module bootstrap. Do not independently add `async`,
@@ -115,6 +116,9 @@ domain while retaining the unchanged classic fallback for cached clients. Its
 exact classic parity, stale-request and recovery behavior, mobile safety,
 cross-platform CI, Pages artifact, live-browser, and guarded signed-in
 production gates all passed.
+Phase 4J freezes the next atomic 60-function POS permissions, operations-modal,
+sales-history, tally, reporting, shift, and void boundary before its executable
+implementation begins.
 Use the Node version recorded in
 [`.nvmrc`](.nvmrc), then run:
 
