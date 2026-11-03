@@ -49,6 +49,10 @@ that schema, its RPCs, or production data; see
   `6ff7ac937f9e024e18b21c7c5639d4f2305c3ffb`; its bounded implementation merged
   at `20fe020d14476434d0815f74f1ef7cee0a55d5fe`. Every applicable gate passed
   and the release evidence is recorded below.
+- **4I — typed workspace sync (contract only):** the exact workspace request,
+  context, checkout loading, refresh coordination, validation, pending-sale,
+  submission, and recovery boundary is frozen below. No executable source,
+  runtime, backend, or business-data change is part of this contract slice.
 - Later slices remain bounded by the migration waves below. Each requires its
   own exact API/parity contract before implementation.
 
@@ -1445,6 +1449,369 @@ business-data mutation.
 - Pull-request and post-merge Ubuntu/Windows CI, Pages artifact verification,
   fresh 390-pixel production verification, and the guarded signed-in read-only
   production smoke all pass. Exact evidence is recorded below.
+
+## Phase 4I contract — typed workspace sync
+
+`workspace-sync.js` is the next executable boundary. Its 18 browser functions
+own request currency, POS workspace and publication reads, cold and background
+checkout loading, refresh single-flight coordination, checkout validation,
+pending-sale construction, and sale submission/recovery. Earlier classic
+`state.js`, later classic `pos-operations.js`, and the typed Publication,
+Events, Stocks, and POS presentation domains consume this API through browser-
+root bindings. The file also shares load, catalog, and submit generations plus
+the pending-sale retry record across every responsibility.
+
+The classic file installs all 18 root declarations together. Activating only
+some typed functions would create split classic/typed ownership of generation
+and retry state; removing the classic file after a partial implementation
+would break later consumers. Phase 4I therefore moves the exact complete file
+boundary atomically while splitting its internal implementation by
+responsibility.
+
+The exact ordered API is:
+
+1. `posRequestIsCurrent` — synchronous boolean
+2. `costingRequestIsCurrent` — synchronous boolean
+3. `loadPosPublicationStatus` — asynchronous `Promise<boolean>`
+4. `loadPosContext` — asynchronous `Promise<boolean>`
+5. `posRpcErrorText` — synchronous string
+6. `posHandleAccessDenied` — synchronous boolean
+7. `loadPosCheckoutData` — asynchronous `Promise<boolean>`
+8. `refreshPosSilently` — synchronous declaration, Promise-returning
+9. `refreshPosAfterMutation` — synchronous declaration, Promise-returning
+10. `refreshPosCatalogOnly` — asynchronous `Promise<boolean>`
+11. `openPosRegister` — asynchronous `Promise<boolean>`
+12. `posCheckoutValidation` — synchronous validation object
+13. `buildPosPendingSale` — synchronous pending record
+14. `posDeterministicError` — synchronous boolean
+15. `posCheckoutErrorText` — synchronous string
+16. `reviewPosSale` — synchronous declaration; boolean normally and the exact
+    `submitPosSale` Promise for a pending retry
+17. `cancelPosConfirmation` — synchronous boolean
+18. `submitPosSale` — asynchronous `Promise<boolean>`
+
+The implementation must keep that public order while splitting ownership into
+at least these internal responsibilities:
+
+| Typed responsibility | Exact public bindings |
+| --- | --- |
+| Request currency, workspace/publication context, and access errors | 1–6 |
+| Cold/background loading, silent refresh, mutation refresh, catalog refresh, and register opening | 7–11 |
+| Checkout validation, pending construction, review, and cancel | 12–13 and 16–17 |
+| Deterministic classification, checkout errors, submission, and recovery | 14–15 and 18 |
+
+Phase 4I must:
+
+1. Publish the exact ordered API above as a new `workspace` compatibility
+   domain. Its bindings and matching browser-root globals remain writable,
+   accessor-backed, and bidirectionally live.
+2. Register typed Workspace immediately after typed Stocks and before classic
+   `pos-operations.js`, typed Publication, and the typed Costing view. Domain
+   order becomes Core, Runtime, Costing, Catalog, Stocks, Workspace,
+   Publication, Modals, POS, Support, Events, Legacy.
+3. Keep compatibility contract version 1 with exactly 175 protected names.
+   The exact 11 protected names owned by this slice remain
+   `loadPosPublicationStatus`, `loadPosContext`, `loadPosCheckoutData`,
+   `refreshPosSilently`, `refreshPosCatalogOnly`, `posCheckoutValidation`,
+   `buildPosPendingSale`, `posDeterministicError`, `posCheckoutErrorText`,
+   `reviewPosSale`, and `submitPosSale`.
+4. Remove only `workspace-sync.js` from the active classic manifest, reducing
+   the exact active path from five scripts to four: `state.js`,
+   `pos-operations.js`, `boot.js`, and `start.js`. Retain the unchanged file in
+   `assets/js` and in the exact 18-script cached/pre-module transition. Its
+   frozen Git blob is `714fa588cb0c483414ee236afd2e7f2815f25eee`; its
+   canonical LF SHA-256 is
+   `7FEA61163419D78F1B3CD1C11B8BC6FE4E3E4FCB97B030566D6CF28BE23FAFA8`.
+5. Resolve every mutable state value, sibling function, later-defined
+   operation, typed helper, client method, and browser native at call time.
+   Root or domain reassignment must affect the next call.
+6. Preserve exact declaration kind, return type, Promise identity and timing,
+   property and option order, coercion and validation order, RPC concurrency
+   and arguments, state and DOM mutation order, render and modal order, body
+   classes, storage effects, caught versus propagated exceptions, partial
+   effects, stale-result behavior, and retry/recovery behavior.
+
+The required live call-time state and constants include `session`, `cloud`,
+`posContext`, `posCheckout`, `posOpsModal`, `posLoadGeneration`,
+`costingLoadGeneration`, `posStatusGeneration`,
+`posCheckoutLoadGeneration`, `posCatalogGeneration`,
+`posCheckoutSubmitGeneration`, `posLastSilentRefreshAttemptAt`,
+`posSilentRefreshPromise`, `APP_BRAND_NAME`, and
+`POS_SILENT_REFRESH_MIN_AGE_MS`.
+
+The required Catalog and shared helpers include `rpcRows`, `resetPosContext`,
+`posFriendlyError`, `setPosReportsLoading`, `syncOpenPosReportModal`,
+`posClearCatalogCache`, `posHydrateCatalogCache`,
+`posLoadRequestStillCurrent`, `posCatalogRequestStillCurrent`,
+`posSubmitRequestStillCurrent`, `normalizePosCategory`,
+`markPosCartAgainstCatalog`, `posRestorePending`,
+`posRememberCatalogCache`, `clearPosReportData`, `posCartLines`,
+`posCartTotalCentavos`, `strictPesoCentavos`, `posUuid`, `posSavePending`, and
+`posClearPending`. Later Operations helpers `posModeFromPending` and
+`posStatusCanManage`, presentation helpers `renderProducts`, `renderPos`, and
+`renderPosPreservingInteraction`, and every sibling in the 18-name Workspace
+API also remain live.
+
+Browser/native lookup remains live for `document`, `Promise`, `Date`,
+`String`, `Number`, `Error`, the cloud client and its `rpc` method, and body/
+class-list behavior. Direct imported sibling calls or captured mutable globals
+are not equivalent to this contract.
+
+The request and workspace-context contract remains exact:
+
+- `posRequestIsCurrent` checks strict POS generation, signed-in session/user,
+  stringified user ID, then optional stringified business ID in the current
+  short-circuit order. A nullish expected business skips only that comparison.
+  `costingRequestIsCurrent` performs the matching costing-generation and user
+  checks. Generation, logout, user, or business drift invalidates late work.
+- `loadPosPublicationStatus` guards client/session/business, chooses the
+  supplied POS generation unless nullish, increments status generation with
+  JavaScript `++` coercion, and calls `pos_get_publication_status` with
+  `{p_business_id}`. RPC/row-coercion failures propagate. A current result
+  creates a fresh publication map keyed by truthy source product ID; duplicate
+  IDs retain the last row. Status, POS, user, or business drift returns false
+  without mutation.
+- `loadPosContext` keeps the signed-out reset-and-render path and concurrent-
+  loading guard. It increments POS and status generations, sets loading/error,
+  and renders before `pos_get_my_businesses`. Zero and multiple workspace rows
+  retain their exact current messages. Exactly one row stringifies business,
+  brand fallback, and role; owner/manager awaits publication loading while
+  other roles receive a fresh empty publication map. Success, caught failure,
+  stale partial assignments, and generation-owned `finally` rendering remain
+  ordered exactly. Setup/render or `finally` exceptions outside the caught
+  load path may still reject.
+- `posRpcErrorText` maps only code `42501` to the access-revoked text and every
+  other input to the current generic connection text. Access-denied handling
+  acts only on `42501` and retains exact order: stop report loading, clear the
+  scoped catalog cache, reset context with the mapped error, render Products,
+  render POS, return true. Other errors return false without effects.
+
+The checkout-loading contract remains exact:
+
+- `loadPosCheckoutData` keeps the signed-out/missing-business render-and-false
+  path and both submission guards. It records the refresh attempt time before
+  cache hydration; successful hydration or explicit background mode selects a
+  warm/background refresh. Checkout-load and catalog generations use exact
+  `++` coercion. Loading/refresh flags, report loading, error clearing, normal
+  versus interaction-preserving rendering, and open-report synchronization
+  stay in their current order.
+- Its local request wrapper converts synchronous RPC throws, asynchronous
+  rejections, and `rpcRows` failures into `{rows: [], error}` results. Catalog
+  and shift reads start concurrently and in this order:
+  `pos_get_catalog_v2({p_business_id})`, then
+  `pos_get_shift_status({p_business_id})`.
+- A stale result after the initial reads returns false without cleanup. Any
+  catalog/shift `42501` invokes the access-denied reset. A current catalog
+  success applies rows and then performs category normalization, cache-preview
+  clearing, verified-generation assignment, stale-cart marking, pending
+  restoration, and cache remembering in the existing order. Foreground
+  catalog failure sets its error; background failure preserves warm cards.
+- Shift failure or no rows retains the separate warm and cold paths. A warm
+  failure preserves the current screen, unlocks refresh, requires verification,
+  sets exact refresh/report errors, renders while preserving interaction, and
+  syncs the report modal. A cold failure clears shift/status/reports, marks the
+  checkout unloaded and refresh-required, removes `body.pos-training`, sets
+  exact shift/report errors, renders normally, and syncs the modal.
+- A valid shift row remains both authoritative status and, only with an open
+  shift ID, the active shift. Receipt clearing, pending-retry exceptions,
+  report-mode derivation, cashier permission behavior, training-class toggle,
+  and mode/date-triggered report clearing stay exact.
+- Summary and recent-sales reads start concurrently with exact arguments:
+  `pos_get_end_of_day_summary({p_business_id,p_business_date,p_is_training})`
+  and `pos_get_recent_sales_v2({p_business_id,p_is_training,p_limit:20})`.
+  A stale post-report result again returns without cleanup. Access denial,
+  foreground clearing, background retention, summary/daily-report aliasing,
+  loaded mode/date, recent rows, catalog-current calculation, refresh lock,
+  refresh errors, timestamp, render choice, modal sync, and final boolean all
+  retain their current partial-success behavior. Report-only failure may still
+  return true. For the checkout load's own still-current catalog generation,
+  catalog currency is `!catalogResult.error`; when a newer catalog generation
+  has independently completed, currency instead requires
+  `posCheckout.catalogVerifiedGeneration === posCatalogGeneration`. The load
+  returns false only while the authoritative current catalog generation remains
+  unverified, even when shift/report reads succeed.
+
+Refresh coordination and register opening remain exact:
+
+- `refreshPosSilently` remains non-`async`. Guard and throttle paths return
+  resolved booleans. An existing `posSilentRefreshPromise` is returned verbatim
+  before force/throttle logic. Warm state remains loaded, cache-preview, or
+  nonempty catalog. The function stores the original checkout-load task but
+  returns `task.finally(...)` to the first caller, clears the stored task only
+  on identity match, and preserves fulfillment or rejection.
+- `refreshPosAfterMutation` captures active refresh plus stringified user and
+  business. Missing/stale identity resolves false. Without an active refresh
+  it delegates to forced silent refresh. With one, it swallows that refresh's
+  rejection, rechecks identity, clears only the same captured promise, and
+  delegates to forced refresh; replacement promises retain their current
+  single-flight behavior.
+- `refreshPosCatalogOnly` has no checkout/operations submission guard. It
+  increments catalog generation, conditionally shows loading only for an empty
+  catalog, clears error, and renders. Success performs normalize, stale mark,
+  pending restore, cache remember, and render in order. Stale success/failure
+  returns without cleanup. Its broad catch retains access-denied handling,
+  empty-versus-warm error rules, checkout refresh locking, and helper/render
+  exception behavior.
+- `openPosRegister` blocks only checkout submission. It loads context when no
+  business exists, uses forced silent refresh for refresh-plus-warm state,
+  uses full loading for refresh/cold/error state, and otherwise renders and
+  resolves true.
+
+Checkout validation and pending construction remain exact:
+
+- Validation precedence remains: pending retry bypass; refreshing; refresh
+  required; shift loading; missing shift; shift/status mismatch; cart-line and
+  total calculation; empty cart; catalog/stale-line drift; positive safe total
+  not exceeding `100000000000`; trimmed reference no longer than 120 UTF-16
+  code units; cash syntax and sufficient tender; exact lowercase `gcash` or
+  `gotyme`; payment-method error. Every current error string remains unchanged.
+  Invalid branches retain the exact `{valid,error}` shape; pending-retry and
+  valid branches retain the exact `{valid,error,cashCentavos}` shape. Each
+  branch's existing property order remains unchanged.
+- `buildPosPendingSale` reads cart lines twice, once for RPC items and once for
+  the snapshot. It retains schema version 3, RPC name
+  `pos_complete_shift_sale_v3`, stringified user/business/shift, training flag,
+  one live UUID, one live ISO date, exact item and record property order,
+  upgrade nullability, cash-only tender, trimmed/null reference, null note,
+  and the exact snapshot fields/order while excluding stale/latest fields.
+
+Review, submission, and recovery remain exact:
+
+- Deterministic codes remain `40001`, `42501`, `22003`, `22023`, `23514`,
+  `23505`, `55000`, and case-sensitive `PGRST` prefixes. Every existing mapped
+  checkout error and the generic fallback remain byte-for-byte unchanged.
+- `reviewPosSale` delegates a pending retry directly to `submitPosSale` before
+  checking the submitting flag; that branch returns the exact Promise. Other
+  submitting, invalid, and valid branches retain their booleans, confirming/
+  error mutations, render behavior, and order. Cancel remains blocked without
+  rendering for submitting/pending state; otherwise it clears confirming,
+  renders, and returns true even when already clear.
+- `submitPosSale` guards submitting/session/user/business but intentionally
+  does not preflight `cloud.client`. It validates before mutation. A new record
+  is built and persisted before generation capture, submit locking, or RPC;
+  a retry reuses the exact captured pending record and payload. Submit
+  generation, identity capture, confirming/error clearing, submitting lock,
+  and rendering remain ordered before
+  `record.rpcName || 'pos_complete_sale'` is invoked.
+- Stale success or failure returns false without cleanup. A valid receipt
+  requires truthy sale ID and receipt number. Success retains exact order:
+  unlock submit, clear pending, replace cart, clear catalog drift, reset
+  payment/cash/reference/confirmation/error/notice, assign receipt, render,
+  start a non-awaited refresh whose rejection is swallowed, return true.
+- Code `40001` clears pending, retains cart, marks catalog changed, applies the
+  mapped error, renders, and starts the non-awaited refresh. Other deterministic
+  errors clear pending but retain cart/payment and render the mapped error.
+  Nondeterministic failures, including rejected transport, missing receipt, or
+  absent client, retain the pending retry and exact current uncertainty notice.
+  Synchronous exceptions after partial success mutations remain classified by
+  the same catch, preserving those partial effects. Existing notice-clearing
+  asymmetry remains unchanged.
+
+Storage and mutation surfaces remain bounded. Catalog cache hydration,
+remembering, and clearing continue through their existing scoped session-
+storage helpers. Pending save/clear continue through existing local-storage
+helpers. Body classes remain `pos-training` and `pos-reports-loading`.
+Rendering remains normal POS, interaction-preserving POS, Products, and report
+modal rendering. The only business mutation is the stored sale-completion RPC,
+normally `pos_complete_shift_sale_v3`; no focus call is introduced.
+
+Phase 4I does not authorize a UI redesign, wording change, new validation,
+cache or pending-record format change, backend/schema/storage change, new or
+changed RPC, RLS/auth change, retry policy, checkout/business-rule change,
+production-data mutation, or modification of the retained classic asset.
+
+The Phase 4I implementation must add exactly nine desktop-only parity/safety
+tests plus two Workspace mobile tests that run in all three projects. The
+complete matrix must become exactly 111 runs: 85 desktop Chromium, 13 Pixel
+Chrome, and 13 iPhone WebKit. Nine desktop cases map to nine independently
+failing behavior islands; the two mobile cases separate checkout interaction
+from asynchronous register/refresh behavior. Tests must prove:
+
+1. Exact API order/declaration timing, 18-name Workspace domain, registration
+   slot, descriptors, bidirectional live reassignment, 11 protected-name
+   invariants, exact four-script active and 18-script cached paths, unchanged
+   fallback hashes, and HTTP 200 fallback delivery.
+2. Both request-current helpers across generation, logout, user, business,
+   coercion, short-circuit, exception, and repeated-call cases.
+3. Publication and business-context loading across guards, duplicate rows,
+   owner/manager versus other roles, zero/one/multiple businesses, brand
+   fallback, RPC/helper/render errors, stale generations/identity, partial
+   assignments, and `finally` ownership; the exact `posRpcErrorText` mapping;
+   and direct `posHandleAccessDenied` calls proving non-`42501` inputs have zero
+   effects while `42501` preserves the exact report-loading, cache-clear,
+   context-reset, Products-render, and POS-render mutation order.
+4. Cold checkout loading with exact concurrent RPC order/arguments, catalog
+   and shift success/failure, access denial, receipt clearing, report modes,
+   date transitions, training class, report results, render/modal order, and
+   foreground partial effects, including missing client/session/user/business
+   guards and checkout-submitting or operations-submitting no-op gates.
+5. Cache/background checkout loading with hydration, warm-screen retention,
+   synchronous and asynchronous RPC errors, overlapping catalog generations,
+   access denial at all four read surfaces, report retention/clearing, stale
+   points before and after reports, helper exceptions, verification locks, and
+   interaction-preserving rendering.
+6. Silent refresh deduplication, Promise identity, throttle boundaries, force,
+   rejection cleanup, concurrent replacement, post-mutation sequencing and
+   identity drift, catalog-only success/error/stale/access-denied/helper-error
+   paths, proof that successful `refreshPosCatalogOnly` cannot clear an existing
+   `checkoutRefreshRequired`/shift-verification lock, and the complete register-
+   opening dispatch matrix.
+7. Exhaustive validation precedence and numeric/reference/cash/payment
+   boundaries plus exact schema-3 pending record/property/item order, two cart
+   reads, UUID/Date live bindings, cash/noncash payloads, upgrade fields, and
+   snapshot identity.
+8. Complete deterministic-code and error-text tables plus review/cancel
+   boolean-versus-Promise behavior, confirming/error/render order, thrown
+   getters/coercions, and every blocked/no-op path.
+9. Submission success, new versus pending retry, persistence-before-RPC,
+   duplicate-click locking, exact RPC selection/arguments, synchronous throw,
+   rejection/resolved error, missing receipt, stale generation/user/business,
+   success mutation order, `40001`, every deterministic family, PGRST,
+   uncertain lost response, refresh rejection, synchronous post-receipt
+   partial failures, and pending retention/clearing. Tests must distinguish
+   pre-`try` failures from `buildPosPendingSale`, `posSavePending`, or the pre-RPC
+   render—which reject after their exact partial effects—from failures inside
+   the `try` during RPC, success cleanup, or error cleanup, which follow the
+   existing catch/recovery classification and partial-state behavior.
+10. At desktop, Pixel, and iPhone widths, local review/confirmation/cancel and
+    pending-retry UI, automatic focus restoration, keyboard/dismissal,
+    containment, and errors remain usable with zero real network or writes.
+11. At all three widths, deterministic read-only cold/background/failure
+    register and refresh states preserve interaction and containment, assert
+    exact allowed RPC names/arguments/counts, and perform zero persistence or
+    business mutation.
+12. Mobile guards are non-vacuous for `window.fetch`, Storage
+    `setItem`/`removeItem`/`clear`, `cloud.client.rpc`, `cloud.client.from`,
+    `cloud.client.storage.from`, checkout submission, pending/cache persistence,
+    save/history hooks, inventory mutations, and every business-data write
+    path. Required hooks and clients must exist; absence may not satisfy a
+    zero-call assertion.
+13. Desktop mutation/recovery branches use deterministic RPC/storage stubs
+    only. No test may call Supabase, production object storage, or business
+    data. Read stubs may allow only the exact six Workspace read RPCs and must
+    assert their invocation separately.
+14. The exact 182-test legacy and 175-name compatibility baselines remain
+    unchanged, with all pre-existing Catalog, Publication, Stocks, POS,
+    Events, cached-client, recovery, and mobile behavior green.
+15. The guarded signed-in production smoke may verify the Workspace domain and
+    normal read-only POS, Stocks, Ingredients, Recipes, and Pricing loading,
+    but must not mutate a cart, review/submit a sale, save pending state, invoke
+    a write RPC, or alter business data.
+
+### Phase 4I implementation status (contract only)
+
+- The currently released runtime still has exactly five active classic
+  scripts, includes `workspace-sync.js`, and has no `workspace` compatibility
+  domain. This contract changes none of those facts.
+- The currently released browser matrix remains exactly 96 runs: 74 desktop
+  Chromium, 11 Pixel Chrome, and 11 iPhone WebKit. This contract adds no tests.
+- The exact 18-function Workspace domain, four-script active runtime, and
+  111-run browser matrix above are mandatory future implementation gates, not
+  claims about this contract-only branch.
+- Executable source, manifest and fallback, browser behavior, backend/schema/
+  auth/storage, RPCs, UI, persistence, business rules, and production data
+  remain unchanged until a separate bounded implementation passes every
+  universal release gate.
 
 ## Universal executable-slice gates
 
