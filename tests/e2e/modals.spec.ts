@@ -30,7 +30,7 @@ const protectedModalNames = [
 ] as const;
 
 const activeRuntimeFiles = [
-  'state.js', 'pos-catalog.js', 'workspace-sync.js',
+  'state.js', 'workspace-sync.js',
   'pos-operations.js', 'boot.js', 'start.js',
 ] as const;
 
@@ -270,11 +270,11 @@ test('typed Modals boundary preserves API, registration, live descriptors, runti
     version: 1,
     contractLength: 175,
     domainOrder: [
-      'core', 'runtime', 'costing', 'stocks', 'publication', 'modals',
+      'core', 'runtime', 'costing', 'catalog', 'stocks', 'publication', 'modals',
       'pos', 'support', 'events', 'legacy',
     ],
     domainSizes: {
-      core: 15, runtime: 4, costing: 37, stocks: 63, publication: 10,
+      core: 15, runtime: 4, costing: 37, catalog: 81, stocks: 63, publication: 10,
       modals: 46, pos: 19, support: 3, events: 1,
     },
     modalOrder: modalNames,

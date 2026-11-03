@@ -25,7 +25,6 @@ const protectedPublicationNames = [
 
 const activeRuntimeFiles = [
   'state.js',
-  'pos-catalog.js',
   'workspace-sync.js',
   'pos-operations.js',
   'boot.js',
@@ -1381,11 +1380,11 @@ test('typed Publication keeps its registration boundary, slot, runtime, and fall
     version: 1,
     contractLength: 175,
     domainOrder: [
-      'core', 'runtime', 'costing', 'stocks', 'publication',
+      'core', 'runtime', 'costing', 'catalog', 'stocks', 'publication',
       'modals', 'pos', 'support', 'events', 'legacy',
     ],
     domainSizes: {
-      core: 15, runtime: 4, costing: 37, stocks: 63,
+      core: 15, runtime: 4, costing: 37, catalog: 81, stocks: 63,
       publication: 10, modals: 46, pos: 19, support: 3, events: 1,
     },
     publicationOrder: publicationNames,
@@ -1414,7 +1413,7 @@ test('typed Publication keeps its registration boundary, slot, runtime, and fall
   expect(contract.before).toEqual({
     domain: false,
     root: publicationNames.map(() => 'undefined'),
-    scripts: ['state.js', 'pos-catalog.js', 'workspace-sync.js', 'pos-operations.js'],
+    scripts: ['state.js', 'workspace-sync.js', 'pos-operations.js'],
   });
   expect(classicRuntime).toEqual({
     modules: 0,

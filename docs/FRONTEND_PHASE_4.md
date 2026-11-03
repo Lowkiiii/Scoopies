@@ -43,10 +43,11 @@ that schema, its RPCs, or production data; see
   its bounded implementation merged at
   `06260c0a80c75e614e92998791725beed192a835`. Every applicable gate passed and
   the release evidence is recorded below.
-- **4H — typed POS catalog workflows (contract only):** the exact catalog,
-  cart, cache, pending-sale recovery, catalog-drift, drink-media, image-editor,
-  and media-recovery boundary is frozen below. No executable implementation or
-  runtime change is part of the contract slice.
+- **4H — typed POS catalog workflows (implementation candidate):** the exact
+  catalog, cart, cache, pending-sale recovery, catalog-drift, drink-media,
+  image-editor, and media-recovery contract merged at
+  `6ff7ac937f9e024e18b21c7c5639d4f2305c3ffb`; its bounded typed implementation
+  now satisfies the local candidate gates below but is not released yet.
 - Later slices remain bounded by the migration waves below. Each requires its
   own exact API/parity contract before implementation.
 
@@ -1421,19 +1422,28 @@ and normal POS/catalog rendering, but must not alter a cart, submit checkout,
 open an image file, upload/remove media, write storage, or invoke another
 business-data mutation.
 
-### Phase 4H implementation status (contract only)
+### Phase 4H implementation status (candidate)
 
-- The currently released runtime still has exactly six active classic scripts
-  and no `catalog` compatibility domain. This contract changes neither fact.
-- The currently released browser matrix remains exactly 78 runs: 60 desktop
-  Chromium, 9 Pixel Chrome, and 9 iPhone WebKit. This contract adds no tests.
-- The exact 81-function Catalog domain, five-script active runtime, and 96-run
-  browser matrix above are mandatory future implementation gates, not claims
-  about the contract-only branch.
-- Executable source, the classic manifest and fallback, browser behavior,
-  backend/schema/auth/storage, UI, persistence, and business data remain
-  unchanged until a separate bounded implementation passes every universal
-  release gate.
+- Six typed responsibility modules under `src/catalog` implement the exact
+  81-function `catalog` compatibility domain. It registers after Costing and
+  before Stocks while compatibility contract version 1 retains exactly 175
+  protected names, including the exact 32 bindings owned by this slice.
+- The active classic runtime is reduced from six scripts to exactly five:
+  `state.js`, `workspace-sync.js`, `pos-operations.js`, `boot.js`, and
+  `start.js`. The cached/pre-module transition remains exactly 18 scripts.
+- The retained `pos-catalog.js` fallback is unchanged: Git blob
+  `34e2b5bfb1fd53637cb65fee9fd07358ff751230` and canonical LF SHA-256
+  `35DE3699B50201D64F4F574C45E8D296917C63A8EE70E1C95103D25BE08B8DFC`.
+- Twelve desktop Catalog parity/safety tests and two cross-project mobile
+  Catalog tests implement the exact 96-run matrix: 74 desktop Chromium, 11
+  Pixel Chrome, and 11 iPhone WebKit. Local dependency audit, type-check,
+  production build, focused Catalog tests, and the complete matrix pass.
+- Independent source-parity, integration, and strict test-strength reviews
+  pass. This candidate changes no backend schema, RLS/auth, storage format,
+  persistence format, UI wording/design, business rule, or production data.
+- Phase 4H is not released until pull-request and post-merge Ubuntu/Windows CI,
+  Pages artifact verification, fresh 390-pixel production verification, and
+  the guarded signed-in read-only production smoke all pass.
 
 ## Universal executable-slice gates
 

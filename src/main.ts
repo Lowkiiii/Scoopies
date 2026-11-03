@@ -1,4 +1,5 @@
 import { installCompatibilityFacade } from './compatibility/facade';
+import { registerCatalogModule } from './compatibility/register-catalog';
 import { registerCostingModule } from './compatibility/register-costing';
 import {
   registerCostingViewModule,
@@ -31,6 +32,7 @@ registerRuntimeModule(facade);
 const ready = (async () => {
   await loadClassicScripts(BEFORE_COSTING);
   registerCostingModule(facade, window);
+  registerCatalogModule(facade, window);
   await loadClassicScripts(AFTER_COSTING_BEFORE_STOCKS);
   registerStocksModule(facade, window);
   await loadClassicScripts(AFTER_STOCKS_BEFORE_COSTING_VIEW);
