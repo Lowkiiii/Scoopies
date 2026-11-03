@@ -37,10 +37,12 @@ that schema, its RPCs, or production data; see
   at `4b88c5b34113180e7d32d81c3fd90e9f30b3cddd`; its bounded implementation
   merged at `02e7465c2ac91bbe8d8fd3c6e2fc0016a774438c`. Every applicable gate
   passed and the release evidence is recorded below.
-- **4G — typed modal workflows (implementation candidate):** the exact shared
-  modal, category, purchased-input, mixture-session, draft, editor, validation,
-  and mixture-commit boundary is frozen below and implemented in focused typed
-  modules. Release still requires every executable-slice gate below.
+- **4G — typed modal workflows (released):** the exact shared modal, category,
+  purchased-input, mixture-session, draft, editor, validation, and mixture-
+  commit contract merged at `de93f927a3764c04ba35b5a9479e4cd8f3df4e3f`;
+  its bounded implementation merged at
+  `06260c0a80c75e614e92998791725beed192a835`. Every applicable gate passed and
+  the release evidence is recorded below.
 - Later slices remain bounded by the migration waves below. Each requires its
   own exact API/parity contract before implementation.
 
@@ -1082,7 +1084,7 @@ unchanged. The guarded signed-in production smoke may verify the Modals domain
 and normal application rendering, but must not invoke category, purchased-
 ingredient, draft, mixture-save, delete, or other business-data mutations.
 
-### Phase 4G implementation status (candidate)
+### Phase 4G implementation status (released)
 
 - The exact 46-function atomic boundary, internal module responsibilities,
   runtime transition, safety invariants, and frozen 78-run matrix are defined.
@@ -1095,9 +1097,9 @@ ingredient, draft, mixture-save, delete, or other business-data mutations.
   tests implement the frozen 78-run matrix. No backend schema, RLS/auth,
   persistence format, business rule, UI wording, or production-data mutation
   is authorized by this slice.
-- This remains an implementation candidate until clean local gates, Ubuntu and
-  Windows pull-request and post-merge CI, Pages artifact verification, and the
-  guarded signed-in production smoke all pass.
+- Clean local gates, Ubuntu and Windows pull-request and post-merge CI, Pages
+  artifact verification, a fresh 390-pixel production audit, and the guarded
+  signed-in production smoke all passed. The exact evidence is recorded below.
 
 ## Universal executable-slice gates
 
@@ -1598,6 +1600,88 @@ Every Phase 4F gate above passed before the phase was marked released.
   boundary, its compatibility registration and manifest slot, exact tests,
   matrix configuration, and documentation; the retained classic fallback
   remained byte-identical.
+
+## Phase 4G exit gates (complete)
+
+- The exact ordered 46-binding Modals API is registered after Publication and
+  the typed Costing view, before the typed POS and Stocks views. Typed domain
+  order is Core, Runtime, Costing, Stocks, Publication, Modals, POS, Support,
+  Events, Legacy, while compatibility remains version 1 with exactly 175
+  protected names.
+- Typed-versus-classic fingerprints preserve exact lifecycle, focus, pending-
+  remote reconciliation, category and purchased-input workflows, mixture
+  sessions, conflicts, drafts, editor HTML, validation, Promise behavior,
+  partial exceptions, mutation order, and live call-time dependencies.
+- The active classic runtime is exactly six scripts and no longer requests
+  `render-modals.js`. The cached/pre-module transition remains exactly 18
+  scripts; the retained fallback is unchanged at Git blob
+  `86175e501cbaaaa4136b01f7e9c0ec1483ab9b2d` and canonical SHA-256
+  `881269390352390F1C77F78B3D9230403E2A7E41498C11B0DA3B33914299819C`.
+- The exact 182-test legacy baseline, 175-name compatibility baseline, and
+  78-run cross-browser matrix pass locally and in Ubuntu/Windows CI.
+- The tested `main` artifact is live, matches all 22 GitHub Pages files byte-
+  for-byte, passes fresh 390-pixel browser verification, and passes the guarded
+  signed-in production smoke.
+- Independent source-parity, test-strength, focus/accessibility, final-diff,
+  and release-readiness audits found no blocker. No auth, Supabase, RPC,
+  storage, persistence, checkout, shift, void, stock, schema, cloud, UI copy,
+  or business-data behavior changed.
+
+Every Phase 4G gate above passed before the phase was marked released.
+
+## Phase 4G release record
+
+- Contract pull request: [#35](https://github.com/Lowkiiii/Scoopies/pull/35)
+- Contract commit: `f6591e93fe327b34cd06b2485f874b1c69e5c754`
+- Contract merge commit: `de93f927a3764c04ba35b5a9479e4cd8f3df4e3f`
+- Contract PR CI:
+  [41525932927](https://github.com/Lowkiiii/Scoopies/actions/runs/41525932927)
+- Contract main CI and Pages deployment:
+  [41526295935](https://github.com/Lowkiiii/Scoopies/actions/runs/41526295935)
+- Implementation pull request:
+  [#36](https://github.com/Lowkiiii/Scoopies/pull/36)
+- Implementation commit: `07dcc8d707634114c53ee4dfd82c67be5b6fb490`
+- Implementation merge commit:
+  `06260c0a80c75e614e92998791725beed192a835`
+- Implementation PR CI:
+  [41597956243](https://github.com/Lowkiiii/Scoopies/actions/runs/41597956243)
+- Main CI and Pages deployment:
+  [41598233697](https://github.com/Lowkiiii/Scoopies/actions/runs/41598233697)
+- Signed-in production smoke:
+  [41598945883](https://github.com/Lowkiiii/Scoopies/actions/runs/41598945883)
+- Local verification: Node `24.22.2`; clean `npm ci`; zero audit
+  vulnerabilities; strict type-check and 83-module production build passed;
+  all 78 Playwright runs passed (60 desktop Chromium, 9 Pixel Chrome, and 9
+  iPhone WebKit), including the exact 182-test legacy and 175-name
+  compatibility baselines.
+- Runtime verification: the exact ordered Modals API contains 46 functions,
+  its five protected root bindings remain live, and typed domain sizes are
+  Core 15, Runtime 4, Costing 37, Stocks 63, Publication 10, Modals 46, POS 19,
+  Support 3, and Events 1.
+- Cross-platform evidence: the complete implementation PR and post-merge
+  matrices passed on both Ubuntu and Windows. Pages packaged only the verified
+  Ubuntu `dist/` after both operating-system jobs passed.
+- Production artifact verification: all 22 files in the downloaded tested CI
+  artifact returned HTTP 200 from GitHub Pages and matched live SHA-256 bytes
+  exactly. Pages served `index-DqqI7Hp8.js` and `index-B0B7i9SZ.css`; the exact
+  six-script active runtime did not request the classic Modal asset, while the
+  exact 18-script cached transition and unchanged `render-modals.js` fallback
+  matched the tested artifact.
+- Production browser verification: a fresh 390-pixel Chromium session loaded
+  the exact active order, finalized the version-1 175-name contract, exposed
+  typed domain sizes 15/4/37/63/10/46/19/3/1 in the exact Core/Runtime/
+  Costing/Stocks/Publication/Modals/POS/Support/Events order, displayed at
+  390/390 width, and reported zero page errors, console errors, failed
+  requests, server errors, or classic Modal requests.
+- Signed-in verification: the protected main-only smoke loaded the real POS,
+  Stocks, Ingredients, Recipes, and Pricing views. Client and network guards
+  allowed no business-data write to escape and retained no credentials,
+  screenshots, traces, videos, or business-data artifacts.
+- Review evidence: independent source-parity, test-strength, focus/
+  accessibility, final-diff, and release-readiness audits found no blocker. The
+  24-file implementation changed only the typed Modals boundary, compatibility
+  registration and manifest slot, exact tests, matrix configuration, and
+  documentation; the retained classic fallback remained byte-identical.
 
 No later Phase 4 executable slice is released until its exact API and parity
 contract is frozen and all applicable gates have recorded evidence.
