@@ -63,7 +63,8 @@ preserving its established browser contract:
 - [`docs/FRONTEND_PHASE_4.md`](docs/FRONTEND_PHASE_4.md) inventories the
   remaining classic runtime and defines the bounded migration waves, universal
   release gates, rollback, and typed Runtime-factory, Support,
-  Costing-presentation, POS-presentation, and Publication slices.
+  Costing-presentation, POS-presentation, Publication, and Modal-workflow
+  released slices plus the Phase 4H POS-catalog contract.
 
 The remaining JavaScript runtime files are intentionally loaded as ordered
 classic scripts by the module bootstrap. Do not independently add `async`,
@@ -94,7 +95,9 @@ next atomic 46-function modal-workflow boundary and its internally separated
 typed responsibilities, and now owns that boundary through the typed `modals`
 domain with exact classic parity, Promise/error-path coverage, and write-free
 mobile dialog checks. The unchanged classic file remains available for
-cached/pre-module fallback, and every Phase 4G release gate passed.
+cached/pre-module fallback, and every Phase 4G release gate passed. Phase 4H
+freezes the next atomic 81-function POS catalog, cart, pending-sale recovery,
+and drink-media boundary before its executable implementation begins.
 Use the Node version recorded in
 [`.nvmrc`](.nvmrc), then run:
 
