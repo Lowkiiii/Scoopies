@@ -4,7 +4,6 @@ import { resolve } from 'node:path';
 
 const expectedRuntimeFiles = [
   'state.js',
-  'workspace-sync.js',
   'pos-operations.js',
   'boot.js',
   'start.js',
@@ -98,6 +97,7 @@ test('the module bootstrap loads the classic runtime without changing the app co
   expect(assetResponses.has('/Scoopies/assets/js/runtime-factories.js')).toBe(false);
   expect(assetResponses.has('/Scoopies/assets/js/costing.js')).toBe(false);
   expect(assetResponses.has('/Scoopies/assets/js/stocks.js')).toBe(false);
+  expect(assetResponses.has('/Scoopies/assets/js/workspace-sync.js')).toBe(false);
   expect(assetResponses.has('/Scoopies/assets/js/render-stocks.js')).toBe(false);
   expect(assetResponses.has('/Scoopies/assets/js/render-costing.js')).toBe(false);
   expect(assetResponses.has('/Scoopies/assets/js/support.js')).toBe(false);

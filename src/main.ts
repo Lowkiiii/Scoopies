@@ -13,6 +13,7 @@ import { registerRuntimeModule } from './compatibility/register-runtime';
 import { registerStocksModule } from './compatibility/register-stocks';
 import { registerStocksViewModule } from './compatibility/register-stocks-view';
 import { registerSupportModule } from './compatibility/register-support';
+import { registerWorkspaceModule } from './compatibility/register-workspace';
 import { installEventHandlers } from './events';
 import { loadClassicScripts } from './legacy/load-classic-scripts';
 import {
@@ -35,6 +36,7 @@ const ready = (async () => {
   registerCatalogModule(facade, window);
   await loadClassicScripts(AFTER_COSTING_BEFORE_STOCKS);
   registerStocksModule(facade, window);
+  registerWorkspaceModule(facade, window);
   await loadClassicScripts(AFTER_STOCKS_BEFORE_COSTING_VIEW);
   registerPublicationModule(facade, window);
   registerCostingViewModule(facade, window);

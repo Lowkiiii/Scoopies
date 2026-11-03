@@ -11,7 +11,6 @@ const runtimeFactoryNames = [
 
 const activeRuntimeFiles = [
   'state.js',
-  'workspace-sync.js',
   'pos-operations.js',
   'boot.js',
   'start.js',
