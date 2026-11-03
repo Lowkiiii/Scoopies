@@ -60,6 +60,11 @@ that schema, its RPCs, or production data; see
   `6e73cb2ed543db70fe1aa06737b7c6a7defe2b9b`; its bounded implementation merged
   at `fe4a77b27b02e5d6812e645991d45d66e8a99e76`. Every applicable gate passed
   and the release evidence is recorded below.
+- **4K — typed State hub (contract frozen; implementation not started):** this
+  documentation-only boundary freezes the complete 87-value and 54-function
+  State surface, its exact registration slot, live-binding and initialization
+  rules, active/fallback runtime transition, and 151-run implementation matrix.
+  It changes no executable source or production behavior.
 - Later slices remain bounded by the migration waves below. Each requires its
   own exact API/parity contract before implementation.
 
@@ -2177,6 +2182,388 @@ Tests must prove:
   all pass.
 - This released slice changes no UI, backend schema, RPC, RLS/auth, storage or
   persistence format, business rule, or production data.
+
+## Phase 4K contract — typed State hub
+
+`state.js` is the final business-state authority in the active classic
+runtime. It creates the shared costing, modal, publication, POS, and Stocks
+cells; normalizes and reconciles costing data; owns local/cloud persistence,
+realtime updates, activity history, and authentication; and supplies the
+mutable browser bindings used by every later typed domain and by classic
+bootstrap.
+
+This slice replaces only `state.js`. Bootstrap and invocation remain separate
+because they occupy different historical runtime slots and have different
+failure semantics:
+
+1. **Phase 4K — State:** replace `state.js`; active classic runtime becomes
+   exactly `boot.js`, then `start.js`.
+2. **Phase 4L — Bootstrap:** after a separate exact contract, replace only
+   `boot.js`; active classic runtime becomes exactly `start.js`.
+3. **Phase 4M — Start:** after a separate exact contract, replace only
+   `start.js`; active classic runtime becomes empty.
+
+Combining those three files would remove the real classic bootstrap oracle and
+could accidentally make facade readiness await or catch `boot()`. Partial
+activation inside `state.js` is also forbidden: the classic file installs its
+87 initialized values and 54 functions together, so executing any retained
+part beside typed State would duplicate initialization and compete for shared
+mutable bindings. Phase 4K therefore moves one classic file atomically while
+keeping its typed internals responsibility-focused.
+
+### Exact State surface
+
+The new `state` compatibility domain contains exactly 141 bindings: the exact
+87-value inventory followed by the exact 54-function API below. Registration
+descriptors are installed before initialization, then the 87 values are
+initialized exactly once in their listed classic order. This preserves classic
+function hoisting while making every initializer-visible binding available.
+
+The exact ordered value inventory is the concatenation of these groups:
+
+1. Identity, mode, and storage configuration:
+
+   `APP_BRAND_NAME`, `APP_BRAND_SLUG`, `TEST_MODE`, `KEY`, `DIRTY_KEY`,
+   `SYNCED_KEY`, `CFG_KEY`, `DEFAULT_URL`, `DEFAULT_KEY`
+
+2. Costing state and synchronization cells:
+
+   `state`, `cloud`, `session`, `currentUserId`, `offlineMode`, `authMode`,
+   `costingCloudReady`, `costingLoadGeneration`, `costingCloudLoading`,
+   `pendingSave`, `saveTimer`, `pendingRemote`, `saveVersion`, `retryingDirty`,
+   `costingSourceCommitInFlight`, `localDirty`, `syncedState`, `lastState`,
+   `NAMES`
+
+3. Ingredients and modal-session cells:
+
+   `ingredientUi`, `categoryModalOpen`, `categoryEditId`, `modalReturnFocus`,
+   `purchasedIngredientModalOpen`, `purchasedIngredientReturnFocus`,
+   `mixtureModalOpen`, `mixtureDraft`, `mixtureReadOnly`, `mixtureSaving`,
+   `quickIngredientDraft`, `mixtureOriginalExisting`, `draftsModalOpen`,
+   `activeMixtureDraftId`, `mixtureInitialSnapshot`, `mixtureSourceId`,
+   `mixtureSourceSnapshot`, `openedMixtureDraftUpdatedAt`,
+   `openedMixtureDraftFingerprint`, `mixtureDraftNotice`
+
+4. POS, publication, checkout, media, and operations cells:
+
+   `posContext`, `posLoadGeneration`, `posStatusGeneration`,
+   `publishModalOpen`, `publishProductId`, `publishSnapshot`,
+   `publishSubmitting`, `publishError`, `publishNotice`, `POS_PENDING_KEY`,
+   `STOCK_PENDING_KEY`, `STOCK_SOURCE_DELETE_KEY`, `POS_CATALOG_CACHE_KEY`,
+   `POS_IMAGE_BUCKET`, `POS_CATALOG_CACHE_MAX_AGE_MS`,
+   `POS_SILENT_REFRESH_MIN_AGE_MS`, `POS_HISTORY_PAGE_SIZE`,
+   `POS_SHIFT_HISTORY_PAGE_SIZE`, `posCheckoutLoadGeneration`,
+   `posCheckoutSubmitGeneration`, `posCatalogGeneration`,
+   `posSilentRefreshPromise`, `posLastSilentRefreshAttemptAt`,
+   `posOpsGeneration`, `posHistoryGeneration`, `posMediaGeneration`,
+   `posMediaSelectionGeneration`, `posOpsModalReturnFocus`, `posOpsModal`,
+   `posSalesHistory`, `posCheckout`
+
+5. Stocks cells:
+
+   `stockLoadGeneration`, `stockMutationGeneration`, `stockModalReturnFocus`,
+   `stockSourceMutations`, `stockState`, `stockModal`
+
+6. Internal merge and cloud-serialization cells:
+
+   `MERGE_MISSING`, `cloudSaveChain`
+
+The exact ordered 54-function API is:
+
+1. `brandDisplayName`
+2. `blank`
+3. `normalizeState`
+4. `loadLocalDirty`
+5. `loadSyncedLocal`
+6. `markLocalDirty`
+7. `rememberSynced`
+8. `sameMergeValue`
+9. `cloneMergeValue`
+10. `mergeNode`
+11. `mergeEntityList`
+12. `mergeStates`
+13. `mergeWholeEntityList`
+14. `draftConflictKey`
+15. `stableDraftHash`
+16. `remapDraftOwnedIds`
+17. `makeMergedDraftConflictCopy`
+18. `loadLocal`
+19. `setStatus`
+20. `save`
+21. `loadCfg`
+22. `saveCfg`
+23. `activeUrl`
+24. `activeKey`
+25. `initClient`
+26. `cloudLoad`
+27. `cloudSave`
+28. `hasData`
+29. `appIsEditing`
+30. `maybeApplyRemote`
+31. `retryDirtySave`
+32. `subscribeRealtime`
+33. `actorName`
+34. `snapshot`
+35. `fmtv`
+36. `categoryNameIn`
+37. `diffStates`
+38. `logChanges`
+39. `logCoarse`
+40. `fmtTime`
+41. `fmtDay`
+42. `dayKey`
+43. `loadHistory`
+44. `showGate`
+45. `authMsg`
+46. `renderGate`
+47. `handleAuth`
+48. `doLogin`
+49. `toggleAuthMode`
+50. `openLogin`
+51. `goOffline`
+52. `doLogout`
+53. `doReconnect`
+54. `renderAccount`
+
+`cloudLoad`, `retryDirtySave`, `loadHistory`, `handleAuth`, `doLogin`,
+`doLogout`, and `doReconnect` remain declared `async`. `cloudSave` remains a
+synchronous function that returns the serialized Promise chain. Every other
+declaration remains synchronous, including its existing returned value,
+partial effects, thrown error, and Promise-versus-non-Promise boundary.
+
+All 141 domain descriptors and their browser-root accessors must remain
+enumerable, configurable, writable or setter-backed, and bidirectionally live.
+Reassigning either the State-domain property or its root property must affect
+the other surface and every later call. Typed State functions must resolve
+mutable sibling functions, shared cells, and later-domain dependencies at call
+time; they must not close over captured replacements.
+
+### Initialization and responsibility boundaries
+
+Typed implementation belongs under `src/state/` and is internally separated
+into these responsibilities without changing the one atomic registration:
+
+- binding/store installation and exact one-time initialization;
+- brand, blank-state shape, normalization, and local/config persistence;
+- three-way reconciliation and whole-draft conflict copies;
+- save/debounce coordination and remote-application guards;
+- Supabase client, cloud serialization, retry, and realtime subscription;
+- activity diffing, logging, querying, formatting, and history rendering; and
+- login gate, authentication lifecycle, offline mode, and account rendering.
+
+`registerStateModule` executes inside the `ready` orchestration at the former
+`BEFORE_COSTING` State slot, synchronously after Core and Runtime and before
+Costing. It must not be hoisted outside that orchestration or moved before
+Runtime registration. The implementation must install all descriptors first,
+initialize the 87 values in the frozen order, and expose the exact State
+surface before any later domain registers. The resulting compatibility-domain
+key order is exactly:
+
+`core, runtime, state, costing, catalog, stocks, workspace, pos, publication, modals, support, events, legacy`
+
+Initialization must preserve all current values and identities, including:
+
+- `APP_BRAND_NAME === 'Matcha Luna'` and `APP_BRAND_SLUG === 'matcha-luna'`;
+- the query-derived `TEST_MODE` and every existing `scoopies_*` browser-storage
+  key, including its existing local-versus-session storage placement, which
+  remains unchanged for stored-data compatibility despite rebranding;
+- the public Supabase project URL and publishable-key client model without
+  treating the publishable key as a secret;
+- `state = loadLocal()` before dirty/synced baselines are established;
+- distinct initial state, cloud, UI, POS, and Stocks object/array identities;
+- runtime-factory lookups for `posOpsModal`, `posSalesHistory`, `stockState`,
+  and `stockModal`, including replacements installed before State registration;
+- the private merge sentinel identity and one initial resolved cloud-save
+  Promise; and
+- classic error behavior when parsing, normalization, or storage access fails.
+
+Earlier Core and Runtime dependencies such as `uid`, `getById`, `UNIT_FACTOR`,
+`sameDataValue`, `stableSerialize`, and the four fresh-state factories remain
+live. Browser and native dependencies also remain live through the root,
+including `window`, `document`, `location`, `localStorage`, `Promise`, `Date`,
+`JSON`, `Object`, `Array`, `String`, `Math`, `setTimeout`, `clearTimeout`, and
+`alert`, including required receiver binding for browser and Supabase methods.
+Later Costing, Catalog, Stocks, Workspace, POS, Publication, Modals, views, and
+Events dependencies do not exist at the State registration slot and must be
+resolved only when called. This includes
+`stockScopedSourceDeletes`, `stockRecoverSourceDeletes`,
+`reconcileCostingInventoryLifecycle`, `consumePendingRemoteForCommit`,
+`closePublishProductModal`, `costingRequestIsCurrent`, `resetPosContext`,
+`loadPosContext`, `loadPosCheckoutData`, `posClearCatalogCache`, `renderAll`,
+`renderPos`, `activateAppTab`, and `escapeHtml`.
+
+### Persistence, cloud, history, and authentication parity
+
+Phase 4K must preserve, without cleanup or redesign:
+
+- schema version 3 normalization, generated IDs, list order, unit defaults,
+  mixture/draft ownership, and the exact input-mutation, cloning, and retained-
+  reference behavior;
+- three-way merge precedence, deletion behavior, same-field local wins,
+  deterministic whole-draft conflict copies, hashes, and owned-ID remapping;
+- local-first saves, dirty/synced markers, the exact 600-millisecond debounce,
+  version checks, pending-remote consumption, recursive rescheduling, inventory
+  source-delete guard, status text/classes, and retry eligibility;
+- exact config reads/writes and their existing caught versus uncaught storage
+  failures;
+- Supabase client options and auth-listener registration, the
+  `scoopies_state` row with ID `main`, payload and timestamp shapes, serialized
+  `cloudSaveChain`, and resolved/rejected Promise behavior;
+- remote echo/edit/dirty guards, local cache writes, realtime channel removal,
+  channel name `scoopies-rt`, both table subscriptions, and conditional History
+  refresh;
+- activity actor names, exact change summaries, coarse logs, the
+  `scoopies_activity` inserts/query/filter/500-row limit, locale formatting,
+  escaping, empty/loading/error DOM, and failure swallowing boundaries;
+- gate copy/classes, signup/login selection, sign-in and sign-out calls,
+  reconnect persistence/reload, offline behavior, and account/config DOM; and
+- `handleAuth` same-user refresh, first-user POS navigation, request
+  generations, concurrent POS context load, authoritative cloud read,
+  dirty three-way reconciliation, empty-cloud upload, lifecycle blocking,
+  stale-result rejection, render/status order, realtime start, logout cleanup,
+  modal cleanup, catalog-cache cleanup, and alert timing.
+
+No storage key, table, channel, row ID, payload, debounce, user-visible copy,
+class name, locale, async suspension point, catch boundary, or effect order may
+change merely to simplify the typed code.
+
+### Protected compatibility and runtime transition
+
+Compatibility remains version 1 with exactly 175 protected names. Phase 4K
+owns exactly these 50 protected bindings, in existing contract order:
+
+`activeUrl`, `authMode`, `blank`, `categoryModalOpen`, `cloud`, `cloudLoad`,
+`cloudSave`, `costingCloudReady`, `currentUserId`, `diffStates`,
+`draftsModalOpen`, `handleAuth`, `ingredientUi`, `KEY`, `localDirty`,
+`maybeApplyRemote`, `mergeStates`, `mixtureDraft`, `mixtureModalOpen`,
+`normalizeState`, `pendingRemote`, `pendingSave`, `POS_CATALOG_CACHE_KEY`,
+`POS_CATALOG_CACHE_MAX_AGE_MS`, `POS_PENDING_KEY`, `posCatalogGeneration`,
+`posCheckout`, `posContext`, `posOpsModal`, `posSalesHistory`,
+`posSilentRefreshPromise`, `publishError`, `publishModalOpen`, `publishNotice`,
+`publishProductId`, `publishSnapshot`, `publishSubmitting`,
+`purchasedIngredientModalOpen`, `renderGate`, `save`, `saveTimer`, `session`,
+`snapshot`, `state`, `STOCK_PENDING_KEY`, `STOCK_SOURCE_DELETE_KEY`,
+`stockModal`, `stockState`, `syncedState`, `TEST_MODE`
+
+The remaining 91 State bindings stay operational browser globals but do not
+expand the protected contract. The implementation must prove both protected
+and operational root/domain live reassignment.
+
+Phase 4K removes only `state.js` from the active manifest. The exact fresh
+active classic runtime becomes:
+
+1. `boot.js`
+2. `start.js`
+
+Classic `boot.js` must consume typed State through the same live root names,
+and classic `start.js` must continue invoking `boot()` without being changed.
+Their existing placement and timing remain exact: classic Bootstrap is defined
+after Events and handler installation but before legacy binding/finalization;
+classic Start runs only after facade finalization, resolves root `boot`, and
+invokes it exactly once without awaiting or catching its Promise.
+`MatchaLunaApp.ready` therefore does not wait for connected authentication or
+Bootstrap completion. Test/offline Bootstrap effects finish synchronously
+before readiness, while connected Bootstrap may remain pending. Bootstrap
+writes `offlineMode` and `lastState` through typed State accessors and resolves
+every State dependency live, including `handleAuth` after a deferred session
+request settles.
+
+The exact 18-script cached/pre-module transition remains unchanged. Fresh entry
+must request exactly `boot.js`, then `start.js`, and never `state.js`.
+`dist/assets/js/state.js` must match the frozen blob and canonical hash below;
+both its unversioned pre-module URL and prior-version query-string URL must
+return identical bytes. Exact 18-script pre-module execution must still reach
+Test mode with the 175 protected bindings, and a cached Phase 4J-style module-
+loader fixture must load versioned `state.js`, then Bootstrap/Start, without
+duplicate initialization, page errors, or console errors.
+
+The retained State fallback is frozen at Git blob
+`c62c1b4754296e68e4817d4ecaa2089cc45e894d` and canonical LF SHA-256
+`0FBB22C6437EC9B19CAC4C00AA4A58D51A6ABE63089825CE0875E2B77DCA36E0`.
+It must remain byte-identical. For the following slices, the retained
+`boot.js` fallback is blob `79ece45aad9b175fe026296bf8d6552dc9900c05`
+and canonical LF SHA-256
+`D3028ABA1939978497DD74235914AB44978A8838D75A4B01C41545A40DD6D95E`;
+the retained `start.js` fallback is blob
+`2ec5d4cd26b3cbeb5e10d8f0a5cd8eb129acbace` and canonical LF SHA-256
+`5CF0A8DE9986B051060B4E29DB69511AE962A9B8FCAD9F8F1AD233DAC3C680C3`.
+
+### Exact Phase 4K implementation coverage
+
+The implementation must add exactly 16 desktop-only State parity/safety tests
+and two State mobile tests selected by all three projects. From the released
+129-run baseline, the complete matrix becomes exactly 151 runs: 117 desktop
+Chromium, 17 Pixel Chrome, and 17 iPhone WebKit. The focused State slice is
+exactly 22 runs.
+
+The 16 desktop tests separately cover:
+
+1. exact 141-binding membership/order, State registration slot, descriptors,
+   50 protected names, active runtime, and fallback provenance;
+2. exact initial values, identity, effect order, one-time initialization, and
+   Runtime-factory replacement before State;
+3. `brandDisplayName`, `blank`, `normalizeState`, `hasData`, and `snapshot`
+   parity, including exhaustive normalization edges;
+4. local/config storage, malformed data, storage exceptions, test isolation,
+   and exact keys;
+5. primitive, object, entity-list, deletion, conflict, and order merge parity;
+6. whole-draft conflict hashes, owned-ID remapping, collision copies, and
+   input isolation;
+7. local save, dirty state, debounce, versions, timer replacement, recursive
+   rescheduling, and inventory-source guard;
+8. client creation, config, exact options, receiver binding, auth-listener
+   installation, and controlled classic-Bootstrap/typed-State integration for
+   Test mode and deferred session lookup, including finalization-before-Start,
+   exactly-once invocation, accessor writes, late `handleAuth`, and non-awaited
+   readiness;
+9. cloud load/save payloads, timestamps, Promise-chain serialization, order,
+   and failures;
+10. remote echo, `appIsEditing`, active editing, dirty/pending state, cache,
+    render, and status;
+11. dirty retry, source-delete recovery, merge, error, and cleanup ordering;
+12. realtime channel removal, subscription filters, both callbacks, and
+    swallowed setup failures;
+13. `actorName`, `fmtv`, `categoryNameIn`, `fmtTime`, `fmtDay`, `dayKey`, and
+    history diff/log/query/render parity, including escaping, locale,
+    filtering, limits, empty states, and errors;
+14. gate, login/signup, reconnect, logout, offline, status, and account DOM;
+15. same-user, first-user, clean/dirty/empty-cloud successful `handleAuth`
+    paths, POS coordination, and realtime; and
+16. stale, logout, cloud/access failure, partial-effect, Promise, alert, and
+    rendering-order authentication paths.
+
+The two cross-project tests cover mobile-safe State/auth UI and deterministic
+production-write-free startup/auth flows using local in-page fakes. Expected
+fake config, auth, and cloud calls are asserted, while all unstubbed network and
+business-data writes are blocked. Non-vacuous guards for fetch, storage
+mutation, Supabase client/auth, queries, RPC/object storage, and business-write
+hooks must be installed before navigation with init scripts and request
+routing, so they also cover State initialization and classic Bootstrap.
+
+Every Phase 4K desktop and mobile test that touches client creation, cloud,
+realtime, history, or authentication must route the Supabase client before
+navigation, block the real project host and every unexpected request, isolate
+browser storage, and use only deterministic in-page fakes. No test receives
+production credentials. Any escaped business-data request or write fails the
+test, and credentials, session tokens/values, `NAMES`, and business State must
+never be serialized into reports, traces, screenshots, videos, or fixtures.
+
+The implementation must also preserve the exact 182-test legacy baseline,
+175-name compatibility contract, Ubuntu/Windows CI, tested-artifact Pages
+deployment, fresh 390-pixel live verification, and guarded signed-in production
+smoke. The smoke must prove from network/performance entries that fresh startup
+never requests `state.js`; runtime script elements are exactly `boot.js`, then
+`start.js`; and the State domain has exactly the 141 frozen keys without
+reading or serializing their values. Its pre-navigation network-write blocker
+must remain armed through Bootstrap, login, and workspace reads, allow no
+business-data write to escape, and retain no credentials, session values,
+screenshots, traces, videos, or business data. Phase 4K changes no UI, backend
+schema, RLS/auth policy, RPC, table, storage format, business rule, or
+production data.
+
+No Phase 4K implementation may begin until this documentation-only contract
+passes independent source-inventory, architecture, test-strength, security,
+cached-client, and final-diff review plus all current release gates.
 
 ## Universal executable-slice gates
 

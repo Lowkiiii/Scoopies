@@ -78,7 +78,8 @@ preserving its established browser contract:
   Costing-presentation, POS-presentation, Publication, and Modal-workflow
   released slices plus the released Phase 4H POS-catalog boundary and the
   released Phase 4I Workspace boundary and the released Phase 4J POS-
-  operations boundary.
+  operations boundary. It also freezes the documentation-only Phase 4K State-
+  hub contract; that executable migration has not started.
 
 The remaining JavaScript runtime files are intentionally loaded as ordered
 classic scripts by the module bootstrap. Do not independently add `async`,
@@ -126,6 +127,13 @@ existing typed POS domain while retaining the unchanged classic fallback for
 cached clients. Its exact classic parity, recovery, mobile safety, cross-
 platform CI, Pages artifact, live-browser, and guarded signed-in production
 gates all passed.
+
+Phase 4K currently changes documentation only. It freezes the complete
+87-value and 54-function State surface, its one-time initialization and live-
+binding rules, its two-script active-runtime target, and the exact 151-run
+implementation matrix. Bootstrap and start remain separately reversible future
+Phases 4L and 4M.
+
 Use the Node version recorded in
 [`.nvmrc`](.nvmrc), then run:
 
