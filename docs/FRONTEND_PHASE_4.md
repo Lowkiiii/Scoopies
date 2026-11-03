@@ -43,11 +43,12 @@ that schema, its RPCs, or production data; see
   its bounded implementation merged at
   `06260c0a80c75e614e92998791725beed192a835`. Every applicable gate passed and
   the release evidence is recorded below.
-- **4H — typed POS catalog workflows (implementation candidate):** the exact
-  catalog, cart, cache, pending-sale recovery, catalog-drift, drink-media,
-  image-editor, and media-recovery contract merged at
-  `6ff7ac937f9e024e18b21c7c5639d4f2305c3ffb`; its bounded typed implementation
-  now satisfies the local candidate gates below but is not released yet.
+- **4H — typed POS catalog workflows (released):** the exact catalog, cart,
+  cache, pending-sale recovery, catalog-drift, drink-media, image-editor, and
+  media-recovery contract merged at
+  `6ff7ac937f9e024e18b21c7c5639d4f2305c3ffb`; its bounded implementation merged
+  at `20fe020d14476434d0815f74f1ef7cee0a55d5fe`. Every applicable gate passed
+  and the release evidence is recorded below.
 - Later slices remain bounded by the migration waves below. Each requires its
   own exact API/parity contract before implementation.
 
@@ -1422,7 +1423,7 @@ and normal POS/catalog rendering, but must not alter a cart, submit checkout,
 open an image file, upload/remove media, write storage, or invoke another
 business-data mutation.
 
-### Phase 4H implementation status (candidate)
+### Phase 4H implementation status (released)
 
 - Six typed responsibility modules under `src/catalog` implement the exact
   81-function `catalog` compatibility domain. It registers after Costing and
@@ -1439,11 +1440,11 @@ business-data mutation.
   Pixel Chrome, and 11 iPhone WebKit. Local dependency audit, type-check,
   production build, focused Catalog tests, and the complete matrix pass.
 - Independent source-parity, integration, and strict test-strength reviews
-  pass. This candidate changes no backend schema, RLS/auth, storage format,
+  pass. This release changes no backend schema, RLS/auth, storage format,
   persistence format, UI wording/design, business rule, or production data.
-- Phase 4H is not released until pull-request and post-merge Ubuntu/Windows CI,
-  Pages artifact verification, fresh 390-pixel production verification, and
-  the guarded signed-in read-only production smoke all pass.
+- Pull-request and post-merge Ubuntu/Windows CI, Pages artifact verification,
+  fresh 390-pixel production verification, and the guarded signed-in read-only
+  production smoke all pass. Exact evidence is recorded below.
 
 ## Universal executable-slice gates
 
@@ -2026,6 +2027,90 @@ Every Phase 4G gate above passed before the phase was marked released.
   24-file implementation changed only the typed Modals boundary, compatibility
   registration and manifest slot, exact tests, matrix configuration, and
   documentation; the retained classic fallback remained byte-identical.
+
+## Phase 4H exit gates (complete)
+
+- The exact ordered 81-binding Catalog API is registered after Costing and
+  before Stocks. Typed domain order is Core, Runtime, Costing, Catalog, Stocks,
+  Publication, Modals, POS, Support, Events, Legacy; compatibility remains
+  version 1 with exactly 175 protected names, including the exact 32 bindings
+  owned by this slice.
+- Typed-versus-classic fingerprints preserve checkout/report and Stocks
+  lifecycle, cart math/actions, scoped caching, pending-sale migration and
+  recovery, catalog drift, drink media, image decoding/cropping, editor input,
+  upload/remove recovery, stale-request safety, mutation order, cleanup,
+  Promise/error behavior, and live call-time dependencies.
+- The active classic runtime is exactly five scripts and no longer requests
+  `pos-catalog.js`. The cached/pre-module transition remains exactly 18
+  scripts; the retained fallback is unchanged at Git blob
+  `34e2b5bfb1fd53637cb65fee9fd07358ff751230` and canonical SHA-256
+  `35DE3699B50201D64F4F574C45E8D296917C63A8EE70E1C95103D25BE08B8DFC`.
+- The exact 182-test legacy baseline, 175-name compatibility baseline, and
+  96-run cross-browser matrix pass locally and in Ubuntu/Windows CI.
+- The tested `main` artifact is live, matches all 22 GitHub Pages files byte-
+  for-byte, passes fresh 390-pixel browser verification, and passes the guarded
+  signed-in production smoke.
+- Independent source-parity, integration, strict test-strength, mobile-safety,
+  final-diff, and release-readiness audits found no blocker. No auth, Supabase,
+  RPC, schema, storage format, persistence, checkout, shift, void, stock, cloud,
+  UI copy/design, business rule, or production-data behavior changed.
+
+Every Phase 4H gate above passed before the phase was marked released.
+
+## Phase 4H release record
+
+- Contract pull request: [#38](https://github.com/Lowkiiii/Scoopies/pull/38)
+- Contract commit: `06fe21a8c3c3b9f59d40ac41a22fa288fd93c8ed`
+- Contract merge commit: `6ff7ac937f9e024e18b21c7c5639d4f2305c3ffb`
+- Contract PR CI:
+  [41602014935](https://github.com/Lowkiiii/Scoopies/actions/runs/41602014935)
+- Contract main CI and Pages deployment:
+  [41602370277](https://github.com/Lowkiiii/Scoopies/actions/runs/41602370277)
+- Implementation pull request:
+  [#39](https://github.com/Lowkiiii/Scoopies/pull/39)
+- Implementation commit: `a70c6963cb5a8882be1c0b9de84067e0b041c5e0`
+- Implementation merge commit:
+  `20fe020d14476434d0815f74f1ef7cee0a55d5fe`
+- Implementation PR CI:
+  [41609001012](https://github.com/Lowkiiii/Scoopies/actions/runs/41609001012)
+- Main CI and Pages deployment:
+  [41609318120](https://github.com/Lowkiiii/Scoopies/actions/runs/41609318120)
+- Signed-in production smoke:
+  [41610161506](https://github.com/Lowkiiii/Scoopies/actions/runs/41610161506)
+- Local verification: Node `24.22.2`; clean `npm ci`; zero audit
+  vulnerabilities; strict type-check and 93-module production build passed;
+  all 96 Playwright runs passed (74 desktop Chromium, 11 Pixel Chrome, and 11
+  iPhone WebKit), including the exact 182-test legacy and 175-name
+  compatibility baselines.
+- Runtime verification: the exact ordered Catalog API contains 81 functions,
+  its 32 protected root bindings remain live, and typed domain sizes are Core
+  15, Runtime 4, Costing 37, Catalog 81, Stocks 63, Publication 10, Modals 46,
+  POS 19, Support 3, and Events 1.
+- Cross-platform evidence: the complete implementation PR and post-merge
+  matrices passed on both Ubuntu and Windows. Pages packaged only the verified
+  Ubuntu `dist/` after both operating-system jobs passed.
+- Production artifact verification: all 22 files in the downloaded tested CI
+  artifact returned HTTP 200 from GitHub Pages and matched live SHA-256 bytes
+  exactly. Pages served `index-CXMXeHu7.js` and `index-B0B7i9SZ.css`; the exact
+  five-script active runtime did not request the classic Catalog asset, while
+  the exact 18-script cached transition and unchanged `pos-catalog.js` fallback
+  matched the tested artifact.
+- Production browser verification: a fresh 390-pixel Chromium session loaded
+  the exact active order, finalized the version-1 175-name contract, exposed
+  typed domain sizes 15/4/37/81/63/10/46/19/3/1 in the exact Core/Runtime/
+  Costing/Catalog/Stocks/Publication/Modals/POS/Support/Events order, displayed
+  at 390/390 width, and reported zero page errors, console errors, failed
+  requests, server errors, or classic Catalog requests.
+- Signed-in verification: the protected main-only smoke loaded the real POS,
+  Stocks, Ingredients, Recipes, and Pricing views. Client and network guards
+  allowed no business-data write to escape and retained no credentials,
+  screenshots, traces, videos, or business-data artifacts.
+- Review evidence: independent source-parity, integration, strict test-
+  strength, mobile-safety, final-diff, and release-readiness audits found no
+  blocker. The 25-file implementation changed only the typed Catalog boundary,
+  compatibility registration and manifest slot, exact tests, matrix
+  configuration, and candidate documentation; the retained classic fallback
+  remained byte-identical.
 
 No later Phase 4 executable slice is released until its exact API and parity
 contract is frozen and all applicable gates have recorded evidence.
