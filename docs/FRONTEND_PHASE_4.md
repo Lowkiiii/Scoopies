@@ -55,6 +55,10 @@ that schema, its RPCs, or production data; see
   `eab6a3768381ded845827db51f9b63b4766283ea`; its bounded implementation merged
   at `eef8b83d9149346ad3a8d115e55ff789df9dc3b3`. Every applicable gate passed
   and the release evidence is recorded below.
+- **4J — typed POS operations (contract only):** the exact permissions,
+  operations-modal, sales-history, tally, report, shift, and void boundary is
+  frozen below. No executable source, runtime, backend, or business-data
+  change is part of this contract slice.
 - Later slices remain bounded by the migration waves below. Each requires its
   own exact API/parity contract before implementation.
 
@@ -1826,6 +1830,343 @@ from asynchronous register/refresh behavior. Tests must prove:
   deployment, byte-for-byte live verification, fresh 390-pixel production
   verification, and the guarded signed-in read-only production smoke all pass.
   Exact evidence is recorded below.
+
+## Phase 4J contract — typed POS operations
+
+`pos-operations.js` is the next executable boundary. Its 60 browser functions
+own POS permissions and role labels, the shared operations-modal lifecycle,
+sales-history and drink-tally reads, closed-shift reconciliation, daily-report
+rendering and export, and the open-shift, close-shift, and void mutations.
+Earlier classic `state.js` supplies its mutable state, already-typed Core,
+Runtime, Costing, Catalog, and Workspace domains supply its upstream helpers,
+and the later typed Publication, Modals, POS presentation, Stocks view, and
+Events domains consume or complete its behavior through browser-root bindings.
+
+The classic file installs all 60 declarations together and shares operations,
+history, media, and request generations across its responsibility groups.
+Activating only part of the typed implementation would allow classic root
+declarations to compete with typed bindings and would split modal, history,
+and retry ownership. Phase 4J therefore moves the complete unchanged file
+boundary atomically while keeping its typed internals responsibility-focused.
+
+The exact ordered API is:
+
+1. `posStatusCanManage` — synchronous boolean
+2. `posCanManageOperations` — synchronous boolean
+3. `posRoleLabel` — synchronous string
+4. `posModeName` — synchronous string
+5. `posModeFromPending` — synchronous string
+6. `posOpsRequestStillCurrent` — synchronous boolean
+7. `posOperationErrorText` — synchronous string
+8. `posOperationDeterministic` — synchronous boolean
+9. `posCloseOpsModal` — synchronous boolean
+10. `posOpenOpsModal` — synchronous boolean
+11. `openPosShiftModal` — synchronous boolean
+12. `setPosOpenMode` — synchronous boolean
+13. `openPosCloseModal` — synchronous boolean
+14. `openPosVoidModal` — synchronous boolean
+15. `posOpsActionBlocked` — synchronous boolean
+16. `requirePosOpsVerification` — synchronous boolean
+17. `openPosReportModal` — synchronous boolean
+18. `posHistoryRequestStillCurrent` — synchronous boolean
+19. `posSalesHistoryBusy` — synchronous boolean
+20. `renderPosHistoryPreservingScroll` — synchronous void
+21. `posHistoryErrorText` — synchronous string
+22. `openPosSalesHistory` — asynchronous `Promise<boolean>`
+23. `reloadPosSalesHistory` — asynchronous `Promise<boolean>`
+24. `setPosSalesHistoryMode` — asynchronous `Promise<boolean>`
+25. `setPosSalesHistoryView` — asynchronous `Promise<boolean>`
+26. `validPosBusinessDate` — synchronous boolean
+27. `applyPosHistoryDateFilter` — asynchronous `Promise<boolean>`
+28. `clearPosHistoryDateFilter` — asynchronous `Promise<boolean>`
+29. `setPosHistoryShiftFilter` — asynchronous `Promise<boolean>`
+30. `viewPosShiftTally` — asynchronous `Promise<boolean>`
+31. `requestPosHistoryRpc` — synchronous declaration, Promise-returning
+32. `applyPosClosedShiftRows` — synchronous boolean
+33. `loadPosSalesProductTally` — asynchronous `Promise<boolean>`
+34. `loadPosClosedShiftsPage` — asynchronous `Promise<boolean>`
+35. `loadPosSalesHistoryPage` — asynchronous `Promise<boolean>`
+36. `posVarianceHtml` — synchronous HTML string
+37. `posCloseResultHtml` — synchronous HTML string
+38. `posReportHtml` — synchronous HTML string
+39. `posHistoryDateLabel` — synchronous string
+40. `posSalesHistorySummaryHtml` — synchronous HTML string
+41. `posSalesProductTallyHtml` — synchronous HTML string
+42. `posHistoryFilterLabel` — synchronous string
+43. `posHistoryShiftOptionLabel` — synchronous string
+44. `posHistoryFilterHtml` — synchronous HTML string
+45. `posShiftReconcileHtml` — synchronous HTML string
+46. `posClosedShiftHistoryHtml` — synchronous HTML string
+47. `posCsvCell` — synchronous CSV string
+48. `posBuildReportCsv` — synchronous string
+49. `downloadPosReport` — synchronous boolean
+50. `printPosReport` — synchronous boolean
+51. `setPosReportMode` — asynchronous `Promise<boolean>`
+52. `renderPosOpsModal` — synchronous void
+53. `submitPosOpenShift` — asynchronous `Promise<boolean>`
+54. `posCloseValidation` — synchronous validation object
+55. `reviewPosCloseShift` — synchronous boolean
+56. `backPosCloseShift` — synchronous boolean
+57. `submitPosCloseShift` — asynchronous `Promise<boolean>`
+58. `reviewPosVoidSale` — synchronous boolean
+59. `backPosVoidSale` — synchronous boolean
+60. `submitPosVoidSale` — asynchronous `Promise<boolean>`
+
+The implementation must preserve that public order while splitting ownership
+into at least these internal responsibilities:
+
+| Typed responsibility | Exact public bindings |
+| --- | --- |
+| Authority, roles, mode, request currency, and operation errors | 1–8 |
+| Modal lifecycle, operation entry points, blocking, and focus | 9–21 |
+| History modes, filters, RPC wrappers, pagination, tally, and receipts | 22–35 |
+| Report/history renderers, CSV/browser actions, report mode, and modal rendering | 36–52 |
+| Open, close, and void validation, mutation, retry, and recovery | 53–60 |
+
+Phase 4J must:
+
+1. Append the exact ordered API above to the existing `pos` compatibility
+   domain before the 19-function POS presentation API. The final POS namespace
+   is exactly 79 functions in source-registration order: 60 Operations
+   functions followed by 19 presentation functions. All namespace values and
+   matching browser-root globals remain writable, configurable, enumerable,
+   accessor-backed at the root, and bidirectionally live.
+2. Register typed Operations at the original classic slot immediately after
+   Workspace and before Publication and Costing view. The POS namespace is
+   created there and the later POS-view registration appends to it. Final
+   domain order becomes Core, Runtime, Costing, Catalog, Stocks, Workspace,
+   POS, Publication, Modals, Support, Events, Legacy.
+3. Keep compatibility contract version 1 with exactly 175 protected names.
+   The exact 25 protected names owned by this boundary remain
+   `posCanManageOperations`, `posOperationErrorText`,
+   `posOperationDeterministic`, `posCloseOpsModal`, `openPosShiftModal`,
+   `setPosOpenMode`, `openPosCloseModal`, `openPosVoidModal`,
+   `openPosReportModal`, `openPosSalesHistory`, `setPosSalesHistoryMode`,
+   `setPosSalesHistoryView`, `applyPosHistoryDateFilter`,
+   `setPosHistoryShiftFilter`, `loadPosSalesProductTally`,
+   `loadPosClosedShiftsPage`, `loadPosSalesHistoryPage`, `posCsvCell`,
+   `posBuildReportCsv`, `setPosReportMode`, `submitPosOpenShift`,
+   `reviewPosCloseShift`, `submitPosCloseShift`, `reviewPosVoidSale`, and
+   `submitPosVoidSale`.
+4. Remove only `pos-operations.js` from the active classic manifest, reducing
+   the exact active path from four scripts to three: `state.js`, `boot.js`,
+   and `start.js`. Retain the unchanged file in `assets/js` and in the exact
+   18-script cached/pre-module transition. Its frozen Git blob is
+   `137e50dded3843060c10c9484dcef05da9bcd596`; its canonical LF SHA-256 is
+   `E173658E29CCA6E127BA703D4A274BD2C91E464E6A9D8482567D922F01FCD088`.
+5. Resolve every mutable state value, sibling function, earlier typed helper,
+   later renderer/controller, client method, and browser native at call time.
+   Root or POS-domain reassignment must affect the next call. Later Modals,
+   POS-view, Stocks-view, and Events dependencies may not be captured eagerly
+   or introduced as circular static imports.
+6. Preserve exact declaration kind, return type, Promise identity and timing,
+   short-circuit and validation order, property and RPC-argument order,
+   JavaScript coercion, generation increments, concurrent request start order,
+   state and DOM mutation order, render/focus/scroll order, body classes,
+   caught versus propagated exceptions, partial effects, stale-result exits,
+   frozen retry payloads, and authoritative uncertain-result recovery.
+
+The required live state and constants include `session`, `cloud`, `posContext`,
+`posCheckout`, `posOpsModal`, `posSalesHistory`, `posOpsGeneration`,
+`posHistoryGeneration`, `posMediaGeneration`, `posOpsModalReturnFocus`,
+`POS_HISTORY_PAGE_SIZE`, `POS_SHIFT_HISTORY_PAGE_SIZE`, `APP_BRAND_NAME`, and
+`APP_BRAND_SLUG`.
+
+The required earlier typed helpers include Runtime `freshPosOpsModal` and
+`freshPosSalesHistory`; Core `peso`; Catalog
+`clearPosReportData`, `posCartLines`, `posCatalogMatchaOptions`,
+`strictPesoCentavos`, `posLatestCatalogProduct`, `posLatestMatchaOption`,
+`rpcRows`, `posDrinkImageHtml`, `posMediaRow`,
+`disposePosDrinkImageEditor`, `posCurrentDrinkImageEditor`, and
+`drawPosDrinkImageEditor`; and Workspace `loadPosCheckoutData`,
+`posHandleAccessDenied`, and `refreshPosAfterMutation`.
+
+Later dependencies remain live through the browser root: Costing view
+`escapeHtml`; Modals `refreshModalBodyClass` and `focusSoon`; POS presentation
+`posPaymentLabel` and `posSalesRowsHtml`; Stocks-view/application rendering
+`renderPos`; every sibling in this 60-name API; and all consumer action/form/
+keyboard handlers. Browser/native lookup remains live for `document`,
+`window`, `Promise`, `Date`, `String`, `Number`, `Math`, `Object`, `Error`,
+`isNaN`, `Blob`, `URL`, the cloud client and its `rpc` method, DOM focus,
+scroll, class-list, link, and print behavior.
+
+The permission, mode, and modal contract remains exact:
+
+- Management authority first uses loaded authoritative shift status. Without
+  it, only workspace `owner` or `manager` roles manage operations. Role labels,
+  Live/Training names, pending-sale mode, and shift-status capability fallbacks
+  keep their current short-circuit and coercion behavior.
+- Operations currency requires strict generation equality, a current session
+  and user, stringified user identity, and stringified business identity in
+  that order. Deterministic codes remain `P0002`, `42501`, `55000`, `23505`,
+  `22003`, `22023`, `23514`, and case-sensitive `PGRST` prefixes. Every exact
+  current action-specific error string remains unchanged.
+- Closing a busy or uncertain modal remains blocked unless forced. Sales-
+  history close increments its generation and replaces its state; Manage-
+  drinks close increments the media generation and disposes its editor. Modal
+  reset, DOM hiding, body-class refresh, valid return-focus restoration, and
+  focus-reference clearing stay in the current order.
+- Opening disposes any current media editor, captures the active element,
+  installs fresh modal state, applies details, refreshes the body class, and
+  renders in order. Open-shift, mode selection, close-shift, void, report, and
+  verification gates retain their exact status, cart, pending, refresh,
+  submission, permission, focus, and no-effect branches.
+
+The sales-history contract remains exact:
+
+- History currency checks strict generation, open Sales-history modal,
+  session/user/business identity, mode, and optional view. Busy state is the
+  exact OR of receipt, tally, and shift loading. Rerendering preserves panel
+  scroll and the selected Receipts/Tally/Shifts tab focus, including the
+  `preventScroll` fallback sequence.
+- Opening, reloading, mode changes, view changes, valid UTC business-date
+  validation, date clearing, shift selection, and shift-to-tally navigation
+  retain every guard, generation increment, state reset, selected-row
+  preservation, render, and dispatch order.
+- Read RPC wrappers convert synchronous throws, rejected Promises, and
+  `rpcRows` failures into the existing `{rows: [], error}` result shape. Tally
+  and optional shift-list reads start concurrently in their current order.
+  Receipt page and initial all-time-summary reads likewise start concurrently.
+- Direct read RPCs and argument shapes remain exactly:
+  `pos_get_sales_product_tally_v2({p_business_id,p_is_training,p_date_from,
+  p_date_to,p_shift_id})`,
+  `pos_get_closed_shifts_page({p_business_id,p_is_training,p_date_from,
+  p_date_to,p_before_closed_at,p_before_shift_id,p_limit})`,
+  `pos_get_sales_history_page({p_business_id,p_is_training,
+  p_before_completed_at,p_before_sale_id,p_limit})`, and
+  `pos_get_sales_history_summary({p_business_id,p_is_training})`.
+- Page-size slicing, `has_more`, cursor completeness, sale/shift-ID
+  deduplication, selected-shift insertion, partial summary or shift-list
+  failure, access-denied delegation, stale-response no-cleanup exits, loaded
+  flags, exact messages, scroll-preserving renders, and final booleans remain
+  unchanged.
+
+The rendering, report, and browser-action contract remains exact:
+
+- All variance, close-result, daily-report, date, all-time-summary, product-
+  tally, filter, shift-option, reconciliation, and closed-shift HTML preserves
+  exact copy, markup, classes, ARIA, escaping, peso formatting, `en-PH`
+  locale/time-zone behavior, numeric coercion, empty/error/loading branches,
+  and repeated helper calls.
+- CSV cells continue to quote every value, double embedded quotes, and prefix
+  optional whitespace followed by `=`, `+`, `-`, or `@` with an apostrophe.
+  Report CSV retains exact row/order, owner-only cost rows, two-decimal values,
+  comma cells, and CRLF line endings.
+- Download retains the UTF-8 BOM, MIME type, brand/date/mode filename,
+  Blob/object-URL creation, temporary link append/click/remove, and URL
+  revocation order. Print calls `window.print()` only with an available daily
+  report. Report-mode guards, clearing, notice text, checkout reload,
+  post-await modal check, result assignment, and final boolean remain exact.
+- `renderPosOpsModal` preserves every Product-options, Manage-drinks media
+  list/editor/removal, Cart-confirmation, Open-shift, Close-shift, Void,
+  Sales-history, and Report branch. Panel sizing/description, disabled and
+  frozen controls, action names/data, escaped content, focus targets, and live
+  calls to Catalog, Workspace, POS-view, and modal helpers remain unchanged.
+
+The operation-mutation contract remains exact:
+
+- Open shift calls `pos_open_shift` with
+  `{p_business_id,p_is_training,p_opening_cash_centavos}`. Training cash is
+  zero; Live cash retains strict peso validation. The exact RPC arguments are
+  stored once and reused after an uncertain result. Success requires a shift
+  ID, applies shift/report/receipt/body-class state, force-closes the modal,
+  awaits mutation refresh, and returns true in the current order.
+- Close validation retains cart/checkout/pending precedence, Training null
+  amounts, strict Cash/GCash/GoTyme peso parsing, 500-character note limit,
+  and exact object property order. Close calls `pos_close_shift` with
+  `{p_business_id,p_shift_id,p_counted_cash_centavos,
+  p_verified_gcash_centavos,p_verified_gotyme_centavos,p_close_notes}`.
+  Review/back/result state, shift clearing, report mode, training class,
+  render, and non-awaited refresh behavior remain unchanged.
+- Void validation keeps permission, sale eligibility, current-shift, reason
+  trimming, and 3-to-500-character rules. Void calls `pos_void_sale` with
+  `{p_business_id,p_sale_id,p_reason}`. Review/back/result state, receipt
+  result assignment, render, and non-awaited refresh behavior remain unchanged.
+- Each mutation increments the operations generation with JavaScript `++`,
+  captures user/business identity, freezes `rpcArgs`, locks and renders before
+  RPC, and rejects stale results without cleanup. Missing result identifiers
+  remain uncertain failures.
+- Deterministic failures keep exact per-code payload-reset and edit/confirm
+  behavior. Nondeterministic failures preserve the exact payload, mark the
+  modal uncertain, render, and use `loadPosCheckoutData` to verify authoritative
+  shift or receipt state. Verification failure, recovered success, conflicting
+  current state, and exact-retry paths keep their messages and mutation/render
+  order. Thrown versus caught exceptions and existing partial effects remain
+  unchanged.
+
+Phase 4J does not authorize a UI redesign or wording change, new validation,
+state or persistence-shape change, backend/schema/RLS/auth/storage change,
+new or changed RPC, checkout/shift/void/tally/report/recovery rule change,
+production-data mutation, or modification of the retained classic asset.
+
+The Phase 4J implementation must add exactly 12 desktop-only parity/safety
+tests plus two Operations mobile tests that run in all three projects. The
+complete matrix must become exactly 129 runs: 99 desktop Chromium, 15 Pixel
+Chrome, and 15 iPhone WebKit. The focused Operations slice is exactly 18 runs.
+Tests must prove:
+
+1. Exact 60-name Operations order, 79-name final POS domain, registration
+   slot, descriptors, bidirectional live reassignment, 25 protected-name
+   invariants, exact three-script active and 18-script cached paths, unchanged
+   fallback hashes, HTTP 200 fallback delivery, and no active classic request.
+2. Permissions, roles, modes, strict request currency, deterministic-code and
+   exact error-text tables, coercion, short-circuit, and repeated-call parity.
+3. Modal open/close lifecycle, editor disposal, force/busy/verification gates,
+   body class, render, focus return, and no-effect paths.
+4. History open/reload/mode/view/date/shift controls, UTC date validation,
+   state resets, scroll/tab-focus preservation, and live downstream bindings.
+5. Tally and closed-shift RPC arguments/start order, pagination, deduplication,
+   cursors, selected shifts, concurrent/stale/access/partial-error behavior.
+6. Receipt and summary pagination, start order, deduplication, cursor errors,
+   retries, partial summary failure, stale results, and loaded/error state.
+7. Every report/history/tally/filter/shift HTML helper across escaping, money,
+   locale, time zone, permission, empty/loading/error, and coercion branches.
+8. CSV injection and quote hardening, report construction, BOM/download
+   filename and browser cleanup, print, and report-mode sequencing.
+9. Every `renderPosOpsModal` branch with exact markup/actions/ARIA/disabled
+   state and late-bound Catalog, Workspace, Modals, POS-view, and render calls.
+10. Open-shift success, deterministic errors, frozen payload retry, stale
+    identity/generation, uncertain recovery, conflicts, and partial effects.
+11. Close validation/review/back/success, deterministic and uncertain failure,
+    authoritative recovery, frozen payload, and refresh behavior.
+12. Void review/back/success, deterministic and uncertain failure,
+    authoritative receipt recovery, frozen payload, and refresh behavior.
+13. At desktop, Pixel, and iPhone widths, local Open/Close/Void validation,
+    review/back/dismissal, focus, keyboard, and containment stay usable without
+    submitting a mutation.
+14. At all three widths, deterministically stubbed read-only Report, History,
+    Tally, Shift, filter, retry, and pagination flows preserve scroll, focus,
+    keyboard use, and containment.
+15. Mobile guards are non-vacuous for `window.fetch`, Storage mutation,
+    `cloud.client.rpc`, query and object-storage clients, checkout/persistence/
+    history/inventory hooks, and every business-write path. Required clients
+    and hooks must exist; absence cannot satisfy a zero-call assertion.
+16. Desktop mutation and recovery branches use deterministic local RPC stubs
+    only. No test may contact Supabase, production storage, or business data.
+17. The exact 182-test legacy and 175-name compatibility baselines and all
+    existing Catalog, Workspace, Publication, Stocks, POS, Events, cached-
+    client, recovery, and mobile tests remain green.
+18. The guarded signed-in production smoke may structurally verify the exact
+    Operations/POS API and three-script runtime and may open/close only the
+    already-loaded Daily report. It must not open or close a shift, void,
+    download, print, alter the cart, complete a sale, add read RPCs to the
+    allowlist, invoke `pos_open_shift`, `pos_close_shift`, or `pos_void_sale`,
+    or permit any business-data write.
+
+### Phase 4J implementation status (contract only)
+
+- The released runtime still has exactly four active classic scripts,
+  including `pos-operations.js`; the POS compatibility domain still contains
+  only the 19 presentation bindings. This contract changes none of those facts.
+- The released browser matrix remains exactly 111 runs: 85 desktop Chromium,
+  13 Pixel Chrome, and 13 iPhone WebKit. This contract adds no tests.
+- The 60-function Operations boundary, 79-function POS domain, three-script
+  active runtime, and 129-run matrix above are mandatory implementation gates,
+  not claims about this documentation-only branch.
+- Executable source, manifest and fallback, browser behavior, backend/schema/
+  auth/storage, RPCs, UI, persistence, business rules, and production data
+  remain unchanged until a separate bounded implementation passes every
+  universal release gate.
 
 ## Universal executable-slice gates
 
