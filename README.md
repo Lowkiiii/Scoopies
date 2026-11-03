@@ -73,7 +73,7 @@ preserving its established browser contract:
   release gates, rollback, and typed Runtime-factory, Support,
   Costing-presentation, POS-presentation, Publication, and Modal-workflow
   released slices plus the released Phase 4H POS-catalog boundary and the
-  Phase 4I Workspace implementation candidate.
+  released Phase 4I Workspace boundary.
 
 The remaining JavaScript runtime files are intentionally loaded as ordered
 classic scripts by the module bootstrap. Do not independently add `async`,
@@ -111,7 +111,10 @@ domain. Its exact classic parity, recovery, mobile-safety, cross-platform,
 Pages, and guarded signed-in production gates all passed.
 Phase 4I implements the frozen atomic 18-function Workspace read, refresh,
 checkout-validation, pending-sale, and sale-recovery boundary as a typed
-domain while retaining the unchanged classic fallback for cached clients.
+domain while retaining the unchanged classic fallback for cached clients. Its
+exact classic parity, stale-request and recovery behavior, mobile safety,
+cross-platform CI, Pages artifact, live-browser, and guarded signed-in
+production gates all passed.
 Use the Node version recorded in
 [`.nvmrc`](.nvmrc), then run:
 
@@ -123,9 +126,9 @@ npm test
 ```
 
 `npm test` first creates a fresh `dist/`, then previews and exercises that
-artifact. The Phase 4I candidate runs the protected 182-test legacy browser
-suite inside an exact 111-run matrix: 85 desktop Chromium, 13 Pixel Chrome,
-and 13 iPhone WebKit runs.
+artifact. The released Phase 4I boundary runs the protected 182-test legacy
+browser suite inside an exact 111-run matrix: 85 desktop Chromium, 13 Pixel
+Chrome, and 13 iPhone WebKit runs.
 Pull requests and pushes to `main` run the same type-check, build, and browser
 checks on both Ubuntu and Windows through
 [`.github/workflows/ci.yml`](.github/workflows/ci.yml). A passing `main` run

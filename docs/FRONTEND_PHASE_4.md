@@ -49,12 +49,12 @@ that schema, its RPCs, or production data; see
   `6ff7ac937f9e024e18b21c7c5639d4f2305c3ffb`; its bounded implementation merged
   at `20fe020d14476434d0815f74f1ef7cee0a55d5fe`. Every applicable gate passed
   and the release evidence is recorded below.
-- **4I — typed workspace sync (implementation candidate):** the exact workspace
+- **4I — typed workspace sync (released):** the exact workspace
   request, context, checkout loading, refresh coordination, validation,
   pending-sale, submission, and recovery contract merged at
-  `eab6a3768381ded845827db51f9b63b4766283ea`. This bounded candidate
-  implements that contract without a UI, backend, schema, RPC, auth, storage,
-  business-rule, or production-data change.
+  `eab6a3768381ded845827db51f9b63b4766283ea`; its bounded implementation merged
+  at `eef8b83d9149346ad3a8d115e55ff789df9dc3b3`. Every applicable gate passed
+  and the release evidence is recorded below.
 - Later slices remain bounded by the migration waves below. Each requires its
   own exact API/parity contract before implementation.
 
@@ -1800,7 +1800,7 @@ from asynchronous register/refresh behavior. Tests must prove:
     but must not mutate a cart, review/submit a sale, save pending state, invoke
     a write RPC, or alter business data.
 
-### Phase 4I implementation status (candidate)
+### Phase 4I implementation status (released)
 
 - Four typed responsibility modules under `src/workspace` implement the exact
   ordered 18-function `workspace` compatibility domain. It registers after
@@ -1818,11 +1818,14 @@ from asynchronous register/refresh behavior. Tests must prove:
   Pixel Chrome, and 13 iPhone WebKit. Local clean dependency installation,
   zero-vulnerability audit, strict type-check, 101-module production build,
   focused 15-run Workspace slice, and the complete 111-run matrix pass.
-- This candidate changes no UI, backend schema, RPC, RLS/auth, storage or
-  persistence format, business rule, or production data. It is not released
-  until every universal gate, cross-platform PR and post-merge CI run, tested-
-  artifact Pages deployment, live verification, and guarded production smoke
-  pass.
+- Independent source-parity, integration, strict test-strength, final-diff,
+  and release-readiness reviews pass. This release changes no UI, backend
+  schema, RPC, RLS/auth, storage or persistence format, business rule, or
+  production data.
+- Pull-request and post-merge Ubuntu/Windows CI, tested-artifact Pages
+  deployment, byte-for-byte live verification, fresh 390-pixel production
+  verification, and the guarded signed-in read-only production smoke all pass.
+  Exact evidence is recorded below.
 
 ## Universal executable-slice gates
 
@@ -2489,6 +2492,92 @@ Every Phase 4H gate above passed before the phase was marked released.
   compatibility registration and manifest slot, exact tests, matrix
   configuration, and candidate documentation; the retained classic fallback
   remained byte-identical.
+
+## Phase 4I exit gates (complete)
+
+- The exact ordered 18-binding Workspace API is registered after Stocks and
+  before classic POS operations. Typed domain order is Core, Runtime, Costing,
+  Catalog, Stocks, Workspace, Publication, Modals, POS, Support, Events,
+  Legacy; compatibility remains version 1 with exactly 175 protected names,
+  including the exact 11 bindings owned by this slice.
+- Typed-versus-classic fingerprints preserve request currency, publication and
+  workspace reads, cold/background checkout loading, silent and catalog-only
+  refresh, register dispatch, validation precedence, schema-3 pending sales,
+  error classification, review/cancel behavior, submission recovery,
+  stale-request safety, mutation order, Promise/error behavior, and live
+  call-time dependencies.
+- The active classic runtime is exactly four scripts and no longer requests
+  `workspace-sync.js`. The cached/pre-module transition remains exactly 18
+  scripts; the retained fallback is unchanged at Git blob
+  `714fa588cb0c483414ee236afd2e7f2815f25eee` and canonical SHA-256
+  `7FEA61163419D78F1B3CD1C11B8BC6FE4E3E4FCB97B030566D6CF28BE23FAFA8`.
+- The exact 182-test legacy baseline, 175-name compatibility baseline, and
+  111-run cross-browser matrix pass locally and in Ubuntu/Windows CI.
+- The tested `main` artifact is live, matches all 22 GitHub Pages files byte-
+  for-byte, passes fresh 390-pixel browser verification, and passes the guarded
+  signed-in production smoke.
+- Independent source-parity, integration, strict test-strength, mobile-safety,
+  final-diff, and release-readiness audits found no blocker. No auth, Supabase,
+  RPC, schema, storage format, persistence, checkout, shift, void, stock,
+  cloud, UI copy/design, business rule, or production-data behavior changed.
+
+Every Phase 4I gate above passed before the phase was marked released.
+
+## Phase 4I release record
+
+- Contract pull request: [#41](https://github.com/Lowkiiii/Scoopies/pull/41)
+- Contract commit: `03d391391df26335efec6b4c2a7f25be908760b2`
+- Contract merge commit: `eab6a3768381ded845827db51f9b63b4766283ea`
+- Contract PR CI:
+  [41613794779](https://github.com/Lowkiiii/Scoopies/actions/runs/41613794779)
+- Contract main CI and Pages deployment:
+  [41614238003](https://github.com/Lowkiiii/Scoopies/actions/runs/41614238003)
+- Implementation pull request:
+  [#42](https://github.com/Lowkiiii/Scoopies/pull/42)
+- Implementation commit: `4ff5b25f569c5e5e23c3a0b97cc4fd2b257626ac`
+- Implementation merge commit:
+  `eef8b83d9149346ad3a8d115e55ff789df9dc3b3`
+- Implementation PR CI:
+  [41677678986](https://github.com/Lowkiiii/Scoopies/actions/runs/41677678986)
+- Main CI and Pages deployment:
+  [41678171990](https://github.com/Lowkiiii/Scoopies/actions/runs/41678171990)
+- Signed-in production smoke:
+  [41679391363](https://github.com/Lowkiiii/Scoopies/actions/runs/41679391363)
+- Local verification: Node `24.22.2`; clean `npm ci`; zero audit
+  vulnerabilities; strict type-check and 101-module production build passed;
+  the focused Workspace slice passed all 15 runs and the complete matrix passed
+  all 111 runs (85 desktop Chromium, 13 Pixel Chrome, and 13 iPhone WebKit),
+  including the exact 182-test legacy and 175-name compatibility baselines.
+- Runtime verification: the exact ordered Workspace API contains 18 functions,
+  its 11 protected root bindings remain live, and typed domain sizes are Core
+  15, Runtime 4, Costing 37, Catalog 81, Stocks 63, Workspace 18, Publication
+  10, Modals 46, POS 19, Support 3, and Events 1.
+- Cross-platform evidence: implementation PR CI passed on Ubuntu in 2m07s and
+  Windows in 2m29s. Post-merge CI passed on Ubuntu in 2m56s and Windows in
+  2m44s; Pages packaging took 7s and deployment took 46s. Pages packaged only
+  the verified Ubuntu `dist/` after both operating-system jobs passed.
+- Production artifact verification: all 22 files in downloaded artifact
+  `verified-pages-dist-eef8b83d9149346ad3a8d115e55ff789df9dc3b3` returned
+  HTTP 200 from GitHub Pages and matched live SHA-256 bytes exactly. Pages
+  served `index-B33W08XR.js` and `index-B0B7i9SZ.css`; the exact four-script
+  active runtime did not request the classic Workspace asset, while the exact
+  18-script cached transition and unchanged `workspace-sync.js` fallback
+  matched the tested artifact.
+- Production browser verification: a fresh 390-pixel Chromium session loaded
+  the exact active order, finalized the version-1 175-name contract, exposed
+  the 18-function Workspace domain in the exact domain order, displayed at
+  390/390 width, and reported zero page errors, console errors, failed
+  requests, server errors, or classic Workspace requests.
+- Signed-in verification: the protected main-only smoke passed in 54s while
+  loading the real POS, Stocks, Ingredients, Recipes, and Pricing views. Client
+  and network guards allowed no business-data write to escape and retained no
+  credentials, screenshots, traces, videos, or business-data artifacts.
+- Review evidence: independent source-parity, integration, strict test-
+  strength, mobile-safety, final-diff, and release-readiness audits found no
+  blocker. The 25-file implementation changed only the typed Workspace
+  boundary, compatibility registration and manifest slot, exact tests, matrix
+  configuration, implementation documentation, and guarded read-only smoke; the
+  retained classic fallback remained byte-identical.
 
 No later Phase 4 executable slice is released until its exact API and parity
 contract is frozen and all applicable gates have recorded evidence.
