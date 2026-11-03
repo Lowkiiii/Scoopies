@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { posOperationsNames } from './operations-contract';
 
 const browserNativeNames = new Set([
   'alert',
@@ -172,6 +173,7 @@ const expectedStocksNames = Object.freeze([
 ]);
 
 const expectedPosNames = Object.freeze([
+  ...posOperationsNames,
   'posPaymentLabel',
   'posSummaryHtml',
   'posReceiptHtml',
@@ -583,9 +585,9 @@ test('the compatibility facade exactly protects the legacy browser contract', as
     'catalog',
     'stocks',
     'workspace',
+    'pos',
     'publication',
     'modals',
-    'pos',
     'support',
     'events',
     'legacy',

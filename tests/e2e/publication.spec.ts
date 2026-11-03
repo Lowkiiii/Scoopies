@@ -25,7 +25,6 @@ const protectedPublicationNames = [
 
 const activeRuntimeFiles = [
   'state.js',
-  'pos-operations.js',
   'boot.js',
   'start.js',
 ] as const;
@@ -1269,7 +1268,7 @@ test('typed Publication keeps its registration boundary, slot, runtime, and fall
   context,
 }) => {
   await stubSupabase(page);
-  await page.route(/\/assets\/js\/pos-operations\.js(?:\?|$)/, async (route) => {
+  await page.route(/\/assets\/js\/state\.js(?:\?|$)/, async (route) => {
     const response = await route.fetch();
     const source = await response.text();
     const probe = `\nwindow.__publicationBoundaryBefore={domain:Object.prototype.hasOwnProperty.call(window.MatchaLunaApp.domains,'publication'),root:${JSON.stringify(publicationNames)}.map(function(name){return typeof window[name];}),scripts:Array.from(document.querySelectorAll('script[data-matcha-luna-runtime]')).map(function(script){return script.dataset.matchaLunaRuntime;})};\n`;
@@ -1368,6 +1367,9 @@ test('typed Publication keeps its registration boundary, slot, runtime, and fall
   const dependencySlot = mainSource.indexOf(
     'loadClassicScripts(AFTER_STOCKS_BEFORE_COSTING_VIEW)', readyIndex,
   );
+  const operationsSlot = mainSource.indexOf(
+    'registerPosOperationsModule(facade, window)', readyIndex,
+  );
   const publicationSlot = mainSource.indexOf(
     'registerPublicationModule(facade, window)', readyIndex,
   );
@@ -1379,12 +1381,12 @@ test('typed Publication keeps its registration boundary, slot, runtime, and fall
     version: 1,
     contractLength: 175,
     domainOrder: [
-      'core', 'runtime', 'costing', 'catalog', 'stocks', 'workspace', 'publication',
-      'modals', 'pos', 'support', 'events', 'legacy',
+      'core', 'runtime', 'costing', 'catalog', 'stocks', 'workspace', 'pos',
+      'publication', 'modals', 'support', 'events', 'legacy',
     ],
     domainSizes: {
       core: 15, runtime: 4, costing: 37, catalog: 81, stocks: 63, workspace: 18,
-      publication: 10, modals: 46, pos: 19, support: 3, events: 1,
+      publication: 10, modals: 46, pos: 79, support: 3, events: 1,
     },
     publicationOrder: publicationNames,
     protectedNames: protectedPublicationNames,
@@ -1412,7 +1414,7 @@ test('typed Publication keeps its registration boundary, slot, runtime, and fall
   expect(contract.before).toEqual({
     domain: false,
     root: publicationNames.map(() => 'undefined'),
-    scripts: ['state.js', 'pos-operations.js'],
+    scripts: ['state.js'],
   });
   expect(classicRuntime).toEqual({
     modules: 0,
@@ -1424,7 +1426,8 @@ test('typed Publication keeps its registration boundary, slot, runtime, and fall
   expect(gitBlob).toBe('49d4ec24d9fecf986ce7d4f373acd339ac483ca7');
   expect(sha256).toBe('78BD373602F683259C1E5CF166B21084F21D2E19E83687CAF7C4C0307AFFE1B5');
   expect(dependencySlot).toBeGreaterThan(readyIndex);
-  expect(publicationSlot).toBeGreaterThan(dependencySlot);
+  expect(operationsSlot).toBeGreaterThan(dependencySlot);
+  expect(publicationSlot).toBeGreaterThan(operationsSlot);
   expect(costingViewSlot).toBeGreaterThan(publicationSlot);
 });
 

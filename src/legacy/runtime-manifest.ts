@@ -6,7 +6,6 @@ export const AFTER_COSTING_BEFORE_STOCKS = Object.freeze([
 ] as const);
 
 export const AFTER_STOCKS_BEFORE_COSTING_VIEW = Object.freeze([
-  'pos-operations.js',
 ] as const);
 
 export const AFTER_COSTING_VIEW_BEFORE_STOCKS_VIEW = Object.freeze([] as const);

@@ -1,4 +1,5 @@
 import { expect, test, type Request } from '@playwright/test';
+import { posOperationsNames } from '../e2e/operations-contract';
 
 const READ_ONLY_RPC_NAMES = new Set([
   'pos_get_catalog_v2',
@@ -124,6 +125,7 @@ test('signed-in production reads the POS Stocks and Costing workspaces without m
     const root = window as typeof window & Record<string, any>;
     return {
       names: Object.keys(root.MatchaLunaApp.domains.workspace || {}),
+      posNames: Object.keys(root.MatchaLunaApp.domains.pos || {}),
       runtime: Array.from(
         document.querySelectorAll<HTMLScriptElement>(
           'script[data-matcha-luna-runtime]',
@@ -133,9 +135,12 @@ test('signed-in production reads the POS Stocks and Costing workspaces without m
     };
   });
   expect(workspaceBoundary.names).toHaveLength(18);
+  expect(workspaceBoundary.posNames).toHaveLength(79);
+  expect(workspaceBoundary.posNames.slice(0, posOperationsNames.length)).toEqual(
+    posOperationsNames,
+  );
   expect(workspaceBoundary.runtime).toEqual([
     'state.js',
-    'pos-operations.js',
     'boot.js',
     'start.js',
   ]);

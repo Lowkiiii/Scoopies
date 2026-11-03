@@ -20,16 +20,18 @@ preserving its established browser contract:
   rendering, events, support tools, and startup. The former classic Core,
   Runtime factories, Costing, Costing presentation (`render-costing.js`),
   POS catalog (`pos-catalog.js`), POS presentation (`render-pos.js`),
-  Publication (`publication.js`), Stocks domain, Stocks view, Support
+  POS operations (`pos-operations.js`), Publication (`publication.js`),
+  Stocks domain, Stocks view, Support
   (`support.js`), Events (`events.js`), Workspace synchronization
   (`workspace-sync.js`), and compatibility files are retained as unreferenced
   fallbacks for browsers holding an older module entry or pre-3B0 HTML.
 - [`src/main.ts`](src/main.ts) is the Vite module entry. It installs the typed
   compatibility facade, registers typed Core, Runtime factories, Costing,
   Catalog, Costing presentation, Stocks domain, Workspace synchronization,
-  Publication, POS presentation, Stocks view/controller, Support, and Events
-  modules at their established runtime positions, with Workspace after Stocks
-  and before POS operations, and loads the remaining classic runtime in order.
+  POS operations, Publication, POS presentation, Stocks view/controller,
+  Support, and Events modules at their established runtime positions, with
+  Workspace after Stocks and before POS operations, and loads the remaining
+  classic runtime in order.
 - [`src/core`](src/core) contains the typed unit, money, identity, and stable
   serialization helpers introduced by Phase 3B1.
 - [`src/runtime`](src/runtime) contains the typed fresh-state factories
@@ -48,7 +50,9 @@ preserving its established browser contract:
   logic introduced by Phases 3C1 and 3C2.
 - [`src/pos`](src/pos) contains the typed POS presentation boundary for catalog
   cards, cart and receipt rendering, register status, payment preview, and
-  interaction preservation introduced by Phase 4E.
+  interaction preservation introduced by Phase 4E, plus the permissions,
+  operations-modal, sales-history, tally, reporting, shift, and void boundary
+  introduced by Phase 4J.
 - [`src/publication`](src/publication) contains the typed publication status,
   review modal, versioned POS publish operation, safe costing-product deletion,
   and mixture-dependency boundary introduced by Phase 4F.
@@ -73,8 +77,8 @@ preserving its established browser contract:
   release gates, rollback, and typed Runtime-factory, Support,
   Costing-presentation, POS-presentation, Publication, and Modal-workflow
   released slices plus the released Phase 4H POS-catalog boundary and the
-  released Phase 4I Workspace boundary, plus the frozen Phase 4J POS-
-  operations contract.
+  released Phase 4I Workspace boundary, plus the Phase 4J POS-operations
+  implementation candidate.
 
 The remaining JavaScript runtime files are intentionally loaded as ordered
 classic scripts by the module bootstrap. Do not independently add `async`,
@@ -116,9 +120,10 @@ domain while retaining the unchanged classic fallback for cached clients. Its
 exact classic parity, stale-request and recovery behavior, mobile safety,
 cross-platform CI, Pages artifact, live-browser, and guarded signed-in
 production gates all passed.
-Phase 4J freezes the next atomic 60-function POS permissions, operations-modal,
-sales-history, tally, reporting, shift, and void boundary before its executable
-implementation begins.
+Phase 4J implements the frozen atomic 60-function POS permissions, operations-
+modal, sales-history, tally, reporting, shift, and void boundary inside the
+existing typed POS domain while retaining the unchanged classic fallback for
+cached clients.
 Use the Node version recorded in
 [`.nvmrc`](.nvmrc), then run:
 
@@ -130,9 +135,9 @@ npm test
 ```
 
 `npm test` first creates a fresh `dist/`, then previews and exercises that
-artifact. The released Phase 4I boundary runs the protected 182-test legacy
-browser suite inside an exact 111-run matrix: 85 desktop Chromium, 13 Pixel
-Chrome, and 13 iPhone WebKit runs.
+artifact. The Phase 4J candidate runs the protected 182-test legacy browser
+suite inside an exact 129-run matrix: 99 desktop Chromium, 15 Pixel Chrome,
+and 15 iPhone WebKit runs.
 Pull requests and pushes to `main` run the same type-check, build, and browser
 checks on both Ubuntu and Windows through
 [`.github/workflows/ci.yml`](.github/workflows/ci.yml). A passing `main` run
