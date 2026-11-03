@@ -69,7 +69,7 @@ preserving its established browser contract:
   remaining classic runtime and defines the bounded migration waves, universal
   release gates, rollback, and typed Runtime-factory, Support,
   Costing-presentation, POS-presentation, Publication, and Modal-workflow
-  released slices plus the Phase 4H POS-catalog implementation candidate.
+  released slices plus the released Phase 4H POS-catalog boundary.
 
 The remaining JavaScript runtime files are intentionally loaded as ordered
 classic scripts by the module bootstrap. Do not independently add `async`,
@@ -102,8 +102,9 @@ domain with exact classic parity, Promise/error-path coverage, and write-free
 mobile dialog checks. The unchanged classic file remains available for
 cached/pre-module fallback, and every Phase 4G release gate passed. Phase 4H
 implements the frozen atomic 81-function POS catalog, cart, pending-sale
-recovery, drink-media, and image-editor boundary as a release candidate with
-exact classic parity and write-free mobile coverage.
+recovery, drink-media, and image-editor boundary through the typed `catalog`
+domain. Its exact classic parity, recovery, mobile-safety, cross-platform,
+Pages, and guarded signed-in production gates all passed.
 Use the Node version recorded in
 [`.nvmrc`](.nvmrc), then run:
 
