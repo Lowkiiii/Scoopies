@@ -19,15 +19,17 @@ preserving its established browser contract:
   state and persistence, POS catalog and operations, stocks, publication,
   rendering, events, support tools, and startup. The former classic Core,
   Runtime factories, Costing, Costing presentation (`render-costing.js`),
-  POS presentation (`render-pos.js`), Publication (`publication.js`), Stocks
-  domain, Stocks view, Support (`support.js`), Events (`events.js`), and
-  compatibility files are retained as unreferenced fallbacks for browsers
-  holding an older module entry or pre-3B0 HTML.
+  POS catalog (`pos-catalog.js`), POS presentation (`render-pos.js`),
+  Publication (`publication.js`), Stocks domain, Stocks view, Support
+  (`support.js`), Events (`events.js`), and compatibility files are retained
+  as unreferenced fallbacks for browsers holding an older module entry or
+  pre-3B0 HTML.
 - [`src/main.ts`](src/main.ts) is the Vite module entry. It installs the typed
   compatibility facade, registers typed Core, Runtime factories, Costing,
-  Costing presentation, Stocks domain, Publication, POS presentation, Stocks
-  view/controller, Support, and Events modules at their established runtime
-  positions, and loads the remaining classic runtime in order.
+  Catalog, Costing presentation, Stocks domain, Publication, POS presentation,
+  Stocks view/controller, Support, and Events modules at their established
+  runtime positions, with Catalog after Costing and before Stocks, and loads
+  the remaining classic runtime in order.
 - [`src/core`](src/core) contains the typed unit, money, identity, and stable
   serialization helpers introduced by Phase 3B1.
 - [`src/runtime`](src/runtime) contains the typed fresh-state factories
@@ -35,12 +37,15 @@ preserving its established browser contract:
 - [`src/costing`](src/costing) contains typed ingredient, mixture, recipe,
   packaging, product, publication snapshot, validation, shared view-helper,
   and costing-page rendering logic introduced by Phases 3B2 and 4D.
+- [`src/catalog`](src/catalog) contains the typed POS checkout/report lifecycle,
+  cart math and actions, scoped catalog cache, pending-sale recovery, catalog
+  drift, drink-media workflows, and image editor introduced by Phase 4H.
 - [`src/stocks`](src/stocks) contains typed inventory source lifecycle,
   persistence, recovery, mutation, loading, rendering, and modal/controller
   logic introduced by Phases 3C1 and 3C2.
-- [`src/pos`](src/pos) contains the typed POS catalog, cart, receipt, register
-  status, payment-preview, and interaction-preservation presentation boundary
-  introduced by Phase 4E.
+- [`src/pos`](src/pos) contains the typed POS presentation boundary for catalog
+  cards, cart and receipt rendering, register status, payment preview, and
+  interaction preservation introduced by Phase 4E.
 - [`src/publication`](src/publication) contains the typed publication status,
   review modal, versioned POS publish operation, safe costing-product deletion,
   and mixture-dependency boundary introduced by Phase 4F.
@@ -64,7 +69,7 @@ preserving its established browser contract:
   remaining classic runtime and defines the bounded migration waves, universal
   release gates, rollback, and typed Runtime-factory, Support,
   Costing-presentation, POS-presentation, Publication, and Modal-workflow
-  released slices plus the Phase 4H POS-catalog contract.
+  released slices plus the Phase 4H POS-catalog implementation candidate.
 
 The remaining JavaScript runtime files are intentionally loaded as ordered
 classic scripts by the module bootstrap. Do not independently add `async`,
@@ -96,8 +101,9 @@ typed responsibilities, and now owns that boundary through the typed `modals`
 domain with exact classic parity, Promise/error-path coverage, and write-free
 mobile dialog checks. The unchanged classic file remains available for
 cached/pre-module fallback, and every Phase 4G release gate passed. Phase 4H
-freezes the next atomic 81-function POS catalog, cart, pending-sale recovery,
-and drink-media boundary before its executable implementation begins.
+implements the frozen atomic 81-function POS catalog, cart, pending-sale
+recovery, drink-media, and image-editor boundary as a release candidate with
+exact classic parity and write-free mobile coverage.
 Use the Node version recorded in
 [`.nvmrc`](.nvmrc), then run:
 
@@ -110,7 +116,7 @@ npm test
 
 `npm test` first creates a fresh `dist/`, then previews and exercises that
 artifact. It runs the protected 182-test legacy browser suite inside an exact
-78-run matrix: 60 desktop Chromium, 9 Pixel Chrome, and 9 iPhone WebKit runs.
+96-run matrix: 74 desktop Chromium, 11 Pixel Chrome, and 11 iPhone WebKit runs.
 Pull requests and pushes to `main` run the same type-check, build, and browser
 checks on both Ubuntu and Windows through
 [`.github/workflows/ci.yml`](.github/workflows/ci.yml). A passing `main` run

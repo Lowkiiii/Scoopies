@@ -3,7 +3,6 @@ export const BEFORE_COSTING = Object.freeze([
 ] as const);
 
 export const AFTER_COSTING_BEFORE_STOCKS = Object.freeze([
-  'pos-catalog.js',
 ] as const);
 
 export const AFTER_STOCKS_BEFORE_COSTING_VIEW = Object.freeze([
