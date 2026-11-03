@@ -24,7 +24,6 @@ const activeRuntimeFiles = [
   'pos-catalog.js',
   'workspace-sync.js',
   'pos-operations.js',
-  'render-modals.js',
   'boot.js',
   'start.js',
 ] as const;
@@ -677,16 +676,10 @@ function collectDomFingerprint() {
   }
 }
 
-test('typed Costing view exposes the exact API at the original runtime boundary', async ({
+test('typed Costing view exposes the exact API and retained fallback', async ({
   page,
 }) => {
   await stubSupabase(page);
-  await page.route(/\/assets\/js\/render-modals\.js(?:\?|$)/, async (route) => {
-    const response = await route.fetch();
-    const source = await response.text();
-    const probe = `window.__costingViewBoundary={costing:Object.keys(window.MatchaLunaApp.domains.costing),root:${JSON.stringify(costingViewNames)}.map(function(name){return typeof window[name];}),scripts:Array.from(document.querySelectorAll('script[data-matcha-luna-runtime]')).map(function(script){return script.dataset.matchaLunaRuntime;})};\n`;
-    await route.fulfill({ response, body: probe + source });
-  });
   await page.goto('index.html?test=1', { waitUntil: 'load' });
   await page.evaluate(() =>
     (
@@ -752,7 +745,6 @@ test('typed Costing view exposes the exact API at the original runtime boundary'
         ),
         (script) => script.dataset.matchaLunaRuntime,
       ),
-      boundary: root.__costingViewBoundary,
     };
   }, [...costingViewNames]);
 
@@ -785,6 +777,7 @@ test('typed Costing view exposes the exact API at the original runtime boundary'
     'costing',
     'stocks',
     'publication',
+    'modals',
     'pos',
     'support',
     'events',
@@ -825,20 +818,6 @@ test('typed Costing view exposes the exact API at the original runtime boundary'
   );
   expect(contract.units).toEqual(['g', 'kg', 'ml', 'l', 'piece']);
   expect(contract.activeRuntime).toEqual(activeRuntimeFiles);
-  expect(contract.boundary.costing.slice(-costingViewNames.length)).toEqual(
-    costingViewNames,
-  );
-  expect(contract.boundary.root).toEqual([
-    'object',
-    ...costingViewNames.slice(1).map(() => 'function'),
-  ]);
-  expect(contract.boundary.scripts).toEqual([
-    'state.js',
-    'pos-catalog.js',
-    'workspace-sync.js',
-    'pos-operations.js',
-    'render-modals.js',
-  ]);
   expect(fallback.status()).toBe(200);
   expect(canonicalFallback).toBe(canonicalClassicSource);
   expect(fallbackSha256).toBe(

@@ -28,7 +28,6 @@ const activeRuntimeFiles = [
   'pos-catalog.js',
   'workspace-sync.js',
   'pos-operations.js',
-  'render-modals.js',
   'boot.js',
   'start.js',
 ] as const;
@@ -1267,7 +1266,7 @@ async function collectDeleteFingerprint(page: Page): Promise<Record<string, any>
   });
 }
 
-test('typed Publication keeps the exact boundary, registration slot, runtime, and fallback', async ({
+test('typed Publication keeps its registration boundary, slot, runtime, and fallback', async ({
   page,
   context,
 }) => {
@@ -1277,12 +1276,6 @@ test('typed Publication keeps the exact boundary, registration slot, runtime, an
     const source = await response.text();
     const probe = `\nwindow.__publicationBoundaryBefore={domain:Object.prototype.hasOwnProperty.call(window.MatchaLunaApp.domains,'publication'),root:${JSON.stringify(publicationNames)}.map(function(name){return typeof window[name];}),scripts:Array.from(document.querySelectorAll('script[data-matcha-luna-runtime]')).map(function(script){return script.dataset.matchaLunaRuntime;})};\n`;
     await route.fulfill({ response, body: source + probe });
-  });
-  await page.route(/\/assets\/js\/render-modals\.js(?:\?|$)/, async (route) => {
-    const response = await route.fetch();
-    const source = await response.text();
-    const probe = `window.__publicationBoundaryAfter={domain:Object.prototype.hasOwnProperty.call(window.MatchaLunaApp.domains,'publication'),root:${JSON.stringify(publicationNames)}.map(function(name){return typeof window[name];}),costingView:typeof window.renderProducts,scripts:Array.from(document.querySelectorAll('script[data-matcha-luna-runtime]')).map(function(script){return script.dataset.matchaLunaRuntime;})};\n`;
-    await route.fulfill({ response, body: probe + source });
   });
   await page.goto('index.html?test=1', { waitUntil: 'load' });
   await page.evaluate(() =>
@@ -1341,7 +1334,6 @@ test('typed Publication keeps the exact boundary, registration slot, runtime, an
         (script) => script.dataset.matchaLunaRuntime,
       ),
       before: root.__publicationBoundaryBefore,
-      after: root.__publicationBoundaryAfter,
     };
   }, [...publicationNames]);
 
@@ -1390,11 +1382,11 @@ test('typed Publication keeps the exact boundary, registration slot, runtime, an
     contractLength: 175,
     domainOrder: [
       'core', 'runtime', 'costing', 'stocks', 'publication',
-      'pos', 'support', 'events', 'legacy',
+      'modals', 'pos', 'support', 'events', 'legacy',
     ],
     domainSizes: {
       core: 15, runtime: 4, costing: 37, stocks: 63,
-      publication: 10, pos: 19, support: 3, events: 1,
+      publication: 10, modals: 46, pos: 19, support: 3, events: 1,
     },
     publicationOrder: publicationNames,
     protectedNames: protectedPublicationNames,
@@ -1423,15 +1415,6 @@ test('typed Publication keeps the exact boundary, registration slot, runtime, an
     domain: false,
     root: publicationNames.map(() => 'undefined'),
     scripts: ['state.js', 'pos-catalog.js', 'workspace-sync.js', 'pos-operations.js'],
-  });
-  expect(contract.after).toEqual({
-    domain: true,
-    root: publicationNames.map(() => 'function'),
-    costingView: 'function',
-    scripts: [
-      'state.js', 'pos-catalog.js', 'workspace-sync.js',
-      'pos-operations.js', 'render-modals.js',
-    ],
   });
   expect(classicRuntime).toEqual({
     modules: 0,

@@ -582,6 +582,7 @@ test('the compatibility facade exactly protects the legacy browser contract', as
     'costing',
     'stocks',
     'publication',
+    'modals',
     'pos',
     'support',
     'events',

@@ -37,10 +37,10 @@ that schema, its RPCs, or production data; see
   at `4b88c5b34113180e7d32d81c3fd90e9f30b3cddd`; its bounded implementation
   merged at `02e7465c2ac91bbe8d8fd3c6e2fc0016a774438c`. Every applicable gate
   passed and the release evidence is recorded below.
-- **4G — typed modal workflows (contract only):** the exact shared modal,
-  category, purchased-input, mixture-session, draft, editor, validation, and
-  mixture-commit boundary is frozen below. No executable implementation or
-  runtime change is part of the contract slice.
+- **4G — typed modal workflows (implementation candidate):** the exact shared
+  modal, category, purchased-input, mixture-session, draft, editor, validation,
+  and mixture-commit boundary is frozen below and implemented in focused typed
+  modules. Release still requires every executable-slice gate below.
 - Later slices remain bounded by the migration waves below. Each requires its
   own exact API/parity contract before implementation.
 
@@ -1082,13 +1082,22 @@ unchanged. The guarded signed-in production smoke may verify the Modals domain
 and normal application rendering, but must not invoke category, purchased-
 ingredient, draft, mixture-save, delete, or other business-data mutations.
 
-### Phase 4G implementation status (contract only)
+### Phase 4G implementation status (candidate)
 
 - The exact 46-function atomic boundary, internal module responsibilities,
   runtime transition, safety invariants, and frozen 78-run matrix are defined.
-- No TypeScript implementation, registration, manifest, test-matrix, backend,
-  UI, persistence, cloud, or production-data change is part of this contract
-  slice.
+- `src/modals` now separates lifecycle, category/purchased-input, mixture
+  session, draft, editor/validation, and final-commit responsibilities while
+  publishing the exact ordered API through the `modals` compatibility domain.
+- The active manifest removes only `render-modals.js`; its unchanged classic
+  asset remains in the exact 18-script cached/pre-module transition.
+- Eight desktop modal parity/safety tests and two cross-project mobile modal
+  tests implement the frozen 78-run matrix. No backend schema, RLS/auth,
+  persistence format, business rule, UI wording, or production-data mutation
+  is authorized by this slice.
+- This remains an implementation candidate until clean local gates, Ubuntu and
+  Windows pull-request and post-merge CI, Pages artifact verification, and the
+  guarded signed-in production smoke all pass.
 
 ## Universal executable-slice gates
 

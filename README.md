@@ -88,7 +88,9 @@ same exact classic, interaction, and mobile parity coverage. Phase 4F adds the
 typed Publication authority boundary with exact RPC, stale-session, deletion,
 dependency, fallback, and write-free mobile coverage. Phase 4G freezes the
 next atomic 46-function modal-workflow boundary and its internally separated
-typed responsibilities; it is contract-only and changes no runtime behavior.
+typed responsibilities. Its implementation candidate now owns that boundary
+through the typed `modals` domain while retaining the unchanged classic file
+for cached/pre-module fallback.
 Use the Node version recorded in
 [`.nvmrc`](.nvmrc), then run:
 
@@ -101,7 +103,7 @@ npm test
 
 `npm test` first creates a fresh `dist/`, then previews and exercises that
 artifact. It runs the protected 182-test legacy browser suite inside an exact
-64-run matrix: 50 desktop Chromium, 7 Pixel Chrome, and 7 iPhone WebKit runs.
+78-run matrix: 60 desktop Chromium, 9 Pixel Chrome, and 9 iPhone WebKit runs.
 Pull requests and pushes to `main` run the same type-check, build, and browser
 checks on both Ubuntu and Windows through
 [`.github/workflows/ci.yml`](.github/workflows/ci.yml). A passing `main` run
