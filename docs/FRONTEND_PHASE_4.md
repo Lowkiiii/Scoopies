@@ -55,11 +55,11 @@ that schema, its RPCs, or production data; see
   `eab6a3768381ded845827db51f9b63b4766283ea`; its bounded implementation merged
   at `eef8b83d9149346ad3a8d115e55ff789df9dc3b3`. Every applicable gate passed
   and the release evidence is recorded below.
-- **4J — typed POS operations (implementation candidate):** the exact
-  permissions, operations-modal, sales-history, tally, report, shift, and void
-  boundary is frozen below and implemented by the bounded candidate described
-  here. It changes no backend or business data and is not released until every
-  gate passes.
+- **4J — typed POS operations (released):** the exact permissions, operations-
+  modal, sales-history, tally, report, shift, and void contract merged at
+  `6e73cb2ed543db70fe1aa06737b7c6a7defe2b9b`; its bounded implementation merged
+  at `fe4a77b27b02e5d6812e645991d45d66e8a99e76`. Every applicable gate passed
+  and the release evidence is recorded below.
 - Later slices remain bounded by the migration waves below. Each requires its
   own exact API/parity contract before implementation.
 
@@ -2154,7 +2154,7 @@ Tests must prove:
     allowlist, invoke `pos_open_shift`, `pos_close_shift`, or `pos_void_sale`,
     or permit any business-data write.
 
-### Phase 4J implementation status (candidate)
+### Phase 4J implementation status (released)
 
 - Six typed responsibility modules under `src/pos/operations` implement the
   exact ordered 60-function Operations API. They register first in the existing
@@ -2170,14 +2170,13 @@ Tests must prove:
   `E173658E29CCA6E127BA703D4A274BD2C91E464E6A9D8482567D922F01FCD088`.
 - Twelve desktop Operations parity/safety tests and two cross-project mobile
   Operations tests define the exact 129-run matrix: 99 desktop Chromium, 15
-  Pixel Chrome, and 15 iPhone WebKit. Strict type-check, the 109-module
-  production build, and focused 18-run Operations slice pass locally; the full
-  matrix and remaining release gates must pass before release.
-- This candidate changes no UI, backend schema, RPC, RLS/auth, storage or
-  persistence format, business rule, or production data. It is not released
-  until every universal gate, cross-platform PR and post-merge CI run, tested-
+  Pixel Chrome, and 15 iPhone WebKit. Clean dependency installation, zero-
+  vulnerability audit, strict type-check, the 109-module production build,
+  focused 18-run Operations slice, complete matrix, cross-platform CI, tested-
   artifact Pages deployment, live verification, and guarded production smoke
-  pass.
+  all pass.
+- This released slice changes no UI, backend schema, RPC, RLS/auth, storage or
+  persistence format, business rule, or production data.
 
 ## Universal executable-slice gates
 
@@ -2930,6 +2929,95 @@ Every Phase 4I gate above passed before the phase was marked released.
   boundary, compatibility registration and manifest slot, exact tests, matrix
   configuration, implementation documentation, and guarded read-only smoke; the
   retained classic fallback remained byte-identical.
+
+## Phase 4J exit gates (complete)
+
+- The exact ordered 60-function Operations API registers after Workspace and
+  before Publication in the existing `pos` domain. The later 19-function POS-
+  view registration extends that same namespace to exactly 79 functions.
+  Typed domain order is Core, Runtime, Costing, Catalog, Stocks, Workspace,
+  POS, Publication, Modals, Support, Events, Legacy; compatibility remains
+  version 1 with exactly 175 protected names, including this slice's exact 25.
+- Typed-versus-classic parity preserves permissions, roles, request currency,
+  modal lifecycle, history pagination and filters, reports, CSV hardening,
+  focus and scroll state, shift open/close and void payloads, deterministic
+  errors, stale responses, frozen retries, uncertain recovery, conflicts,
+  partial effects, Promise behavior, and live call-time dependencies.
+- The active classic runtime is exactly three scripts and no longer requests
+  `pos-operations.js`. The cached/pre-module transition remains exactly 18
+  scripts; the retained fallback is unchanged at Git blob
+  `137e50dded3843060c10c9484dcef05da9bcd596` and canonical SHA-256
+  `E173658E29CCA6E127BA703D4A274BD2C91E464E6A9D8482567D922F01FCD088`.
+- The exact 182-test legacy baseline and 175-name compatibility baseline pass;
+  all 129 matrix cases completed successfully locally before the known Windows
+  runner cleanup hang, and the complete matrix exited cleanly in Ubuntu and
+  Windows CI.
+- The tested `main` artifact is live, matches all 22 GitHub Pages files byte-
+  for-byte, passes fresh 390-pixel browser verification, and passes the guarded
+  signed-in production smoke.
+- Independent source-parity, test-strength, scope/security, final-diff, and
+  release-readiness audits found no blocker. No auth, Supabase, RPC, schema,
+  storage format, persistence, checkout, shift, void, report, cloud, UI copy/
+  design, business rule, or production-data behavior changed.
+
+Every Phase 4J gate above passed before the phase was marked released.
+
+## Phase 4J release record
+
+- Contract pull request: [#44](https://github.com/Lowkiiii/Scoopies/pull/44)
+- Contract commit: `73db6d6c88e975cd15479edf0270b6e5bdfcaa0f`
+- Contract merge commit: `6e73cb2ed543db70fe1aa06737b7c6a7defe2b9b`
+- Contract PR CI:
+  [41689167463](https://github.com/Lowkiiii/Scoopies/actions/runs/41689167463)
+- Contract main CI and Pages deployment:
+  [41689609083](https://github.com/Lowkiiii/Scoopies/actions/runs/41689609083)
+- Implementation pull request:
+  [#45](https://github.com/Lowkiiii/Scoopies/pull/45)
+- Implementation commit: `baeeb21890eeee9f44fbbe89718cefd12a7f4518`
+- Implementation merge commit:
+  `fe4a77b27b02e5d6812e645991d45d66e8a99e76`
+- Implementation PR CI:
+  [41695898529](https://github.com/Lowkiiii/Scoopies/actions/runs/41695898529)
+- Main CI and Pages deployment:
+  [41696420614](https://github.com/Lowkiiii/Scoopies/actions/runs/41696420614)
+- Signed-in production smoke:
+  [41697330653](https://github.com/Lowkiiii/Scoopies/actions/runs/41697330653)
+- Local verification: Node `24.22.2`; clean `npm ci`; zero audit
+  vulnerabilities; strict type-check and 109-module production build passed;
+  the focused Operations slice passed all 18 runs and the complete matrix
+  exercised all 129 runs (99 desktop Chromium, 15 Pixel Chrome, and 15 iPhone
+  WebKit), including the exact 182-test legacy and 175-name compatibility
+  baselines.
+- Runtime verification: the exact ordered Operations API contains 60
+  functions, its 25 protected root bindings remain live, and typed domain sizes
+  are Core 15, Runtime 4, Costing 37, Catalog 81, Stocks 63, Workspace 18, POS
+  79, Publication 10, Modals 46, Support 3, and Events 1.
+- Cross-platform evidence: implementation PR CI passed on Ubuntu in 2m46s and
+  Windows in 2m42s. Post-merge CI passed on Ubuntu in 2m19s and Windows in
+  2m52s; Pages packaging took 7s and deployment took 11s. Pages packaged only
+  the verified Ubuntu `dist/` after both operating-system jobs passed.
+- Production artifact verification: all 22 files in downloaded artifact
+  `verified-pages-dist-fe4a77b27b02e5d6812e645991d45d66e8a99e76` returned
+  HTTP 200 from GitHub Pages and matched live SHA-256 bytes exactly. Pages
+  served `index-BAU-R3c1.js` and `index-B0B7i9SZ.css`; the exact three-script
+  active runtime did not request the classic Operations asset, while the exact
+  18-script cached transition and unchanged `pos-operations.js` fallback
+  matched the tested artifact.
+- Production browser verification: a fresh 390-pixel Chromium session loaded
+  the exact active order, finalized the version-1 175-name contract, exposed
+  the 79-function POS domain in the exact domain order, displayed at 390/390
+  width, and reported zero page errors, console errors, failed requests, server
+  errors, or classic Operations requests.
+- Signed-in verification: the protected main-only smoke passed in 55s while
+  loading the real POS, Stocks, Ingredients, Recipes, and Pricing views. Client
+  and network guards allowed no business-data write to escape and retained no
+  credentials, screenshots, traces, videos, or business-data artifacts.
+- Review evidence: independent source-parity, test-strength, scope/security,
+  final-diff, and release-readiness audits found no blocker. The 28-file
+  implementation changed only the typed Operations boundary, compatibility
+  registration and manifest slot, exact tests, matrix configuration, candidate
+  documentation, and guarded read-only smoke; the retained classic fallback
+  remained byte-identical.
 
 No later Phase 4 executable slice is released until its exact API and parity
 contract is frozen and all applicable gates have recorded evidence.
