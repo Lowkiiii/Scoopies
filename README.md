@@ -44,6 +44,9 @@ preserving its established browser contract:
 - [`src/publication`](src/publication) contains the typed publication status,
   review modal, versioned POS publish operation, safe costing-product deletion,
   and mixture-dependency boundary introduced by Phase 4F.
+- [`src/modals`](src/modals) contains the typed category, purchased-input,
+  mixture-session, draft, editor, validation, and final mixture-commit
+  workflows introduced by Phase 4G.
 - [`src/events`](src/events) contains the typed navigation, delegated form and
   action handling, lifecycle, pointer, modal, and keyboard interactions
   introduced by Phase 3C3.
@@ -88,9 +91,10 @@ same exact classic, interaction, and mobile parity coverage. Phase 4F adds the
 typed Publication authority boundary with exact RPC, stale-session, deletion,
 dependency, fallback, and write-free mobile coverage. Phase 4G freezes the
 next atomic 46-function modal-workflow boundary and its internally separated
-typed responsibilities. Its implementation candidate now owns that boundary
-through the typed `modals` domain while retaining the unchanged classic file
-for cached/pre-module fallback.
+typed responsibilities, and now owns that boundary through the typed `modals`
+domain with exact classic parity, Promise/error-path coverage, and write-free
+mobile dialog checks. The unchanged classic file remains available for
+cached/pre-module fallback, and every Phase 4G release gate passed.
 Use the Node version recorded in
 [`.nvmrc`](.nvmrc), then run:
 
