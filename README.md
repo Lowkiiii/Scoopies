@@ -77,8 +77,8 @@ preserving its established browser contract:
   release gates, rollback, and typed Runtime-factory, Support,
   Costing-presentation, POS-presentation, Publication, and Modal-workflow
   released slices plus the released Phase 4H POS-catalog boundary and the
-  released Phase 4I Workspace boundary, plus the Phase 4J POS-operations
-  implementation candidate.
+  released Phase 4I Workspace boundary and the released Phase 4J POS-
+  operations boundary.
 
 The remaining JavaScript runtime files are intentionally loaded as ordered
 classic scripts by the module bootstrap. Do not independently add `async`,
@@ -123,7 +123,9 @@ production gates all passed.
 Phase 4J implements the frozen atomic 60-function POS permissions, operations-
 modal, sales-history, tally, reporting, shift, and void boundary inside the
 existing typed POS domain while retaining the unchanged classic fallback for
-cached clients.
+cached clients. Its exact classic parity, recovery, mobile safety, cross-
+platform CI, Pages artifact, live-browser, and guarded signed-in production
+gates all passed.
 Use the Node version recorded in
 [`.nvmrc`](.nvmrc), then run:
 
@@ -135,9 +137,9 @@ npm test
 ```
 
 `npm test` first creates a fresh `dist/`, then previews and exercises that
-artifact. The Phase 4J candidate runs the protected 182-test legacy browser
-suite inside an exact 129-run matrix: 99 desktop Chromium, 15 Pixel Chrome,
-and 15 iPhone WebKit runs.
+artifact. The released Phase 4J boundary runs the protected 182-test legacy
+browser suite inside an exact 129-run matrix: 99 desktop Chromium, 15 Pixel
+Chrome, and 15 iPhone WebKit runs.
 Pull requests and pushes to `main` run the same type-check, build, and browser
 checks on both Ubuntu and Windows through
 [`.github/workflows/ci.yml`](.github/workflows/ci.yml). A passing `main` run
