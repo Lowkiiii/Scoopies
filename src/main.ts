@@ -7,6 +7,7 @@ import {
 import { registerCoreModule } from './compatibility/register-core';
 import { registerEventsModule } from './compatibility/register-events';
 import { registerModalsModule } from './compatibility/register-modals';
+import { registerPosOperationsModule } from './compatibility/register-pos-operations';
 import { registerPosViewModule } from './compatibility/register-pos-view';
 import { registerPublicationModule } from './compatibility/register-publication';
 import { registerRuntimeModule } from './compatibility/register-runtime';
@@ -38,6 +39,7 @@ const ready = (async () => {
   registerStocksModule(facade, window);
   registerWorkspaceModule(facade, window);
   await loadClassicScripts(AFTER_STOCKS_BEFORE_COSTING_VIEW);
+  registerPosOperationsModule(facade, window);
   registerPublicationModule(facade, window);
   registerCostingViewModule(facade, window);
   await loadClassicScripts(AFTER_COSTING_VIEW_BEFORE_STOCKS_VIEW);

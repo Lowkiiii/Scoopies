@@ -55,10 +55,11 @@ that schema, its RPCs, or production data; see
   `eab6a3768381ded845827db51f9b63b4766283ea`; its bounded implementation merged
   at `eef8b83d9149346ad3a8d115e55ff789df9dc3b3`. Every applicable gate passed
   and the release evidence is recorded below.
-- **4J — typed POS operations (contract only):** the exact permissions,
-  operations-modal, sales-history, tally, report, shift, and void boundary is
-  frozen below. No executable source, runtime, backend, or business-data
-  change is part of this contract slice.
+- **4J — typed POS operations (implementation candidate):** the exact
+  permissions, operations-modal, sales-history, tally, report, shift, and void
+  boundary is frozen below and implemented by the bounded candidate described
+  here. It changes no backend or business data and is not released until every
+  gate passes.
 - Later slices remain bounded by the migration waves below. Each requires its
   own exact API/parity contract before implementation.
 
@@ -2153,20 +2154,30 @@ Tests must prove:
     allowlist, invoke `pos_open_shift`, `pos_close_shift`, or `pos_void_sale`,
     or permit any business-data write.
 
-### Phase 4J implementation status (contract only)
+### Phase 4J implementation status (candidate)
 
-- The released runtime still has exactly four active classic scripts,
-  including `pos-operations.js`; the POS compatibility domain still contains
-  only the 19 presentation bindings. This contract changes none of those facts.
-- The released browser matrix remains exactly 111 runs: 85 desktop Chromium,
-  13 Pixel Chrome, and 13 iPhone WebKit. This contract adds no tests.
-- The 60-function Operations boundary, 79-function POS domain, three-script
-  active runtime, and 129-run matrix above are mandatory implementation gates,
-  not claims about this documentation-only branch.
-- Executable source, manifest and fallback, browser behavior, backend/schema/
-  auth/storage, RPCs, UI, persistence, business rules, and production data
-  remain unchanged until a separate bounded implementation passes every
-  universal release gate.
+- Six typed responsibility modules under `src/pos/operations` implement the
+  exact ordered 60-function Operations API. They register first in the existing
+  `pos` domain at the classic runtime slot; the later 19-function presentation
+  registration extends the same namespace to exactly 79 functions. Contract
+  version 1 retains exactly 175 protected names, including this slice's exact
+  25 protected bindings.
+- The active classic runtime is reduced from four scripts to exactly three:
+  `state.js`, `boot.js`, and `start.js`. The exact 18-script cached/pre-module
+  transition remains available.
+- The retained `pos-operations.js` fallback is unchanged at Git blob
+  `137e50dded3843060c10c9484dcef05da9bcd596` and canonical LF SHA-256
+  `E173658E29CCA6E127BA703D4A274BD2C91E464E6A9D8482567D922F01FCD088`.
+- Twelve desktop Operations parity/safety tests and two cross-project mobile
+  Operations tests define the exact 129-run matrix: 99 desktop Chromium, 15
+  Pixel Chrome, and 15 iPhone WebKit. Strict type-check, the 109-module
+  production build, and focused 18-run Operations slice pass locally; the full
+  matrix and remaining release gates must pass before release.
+- This candidate changes no UI, backend schema, RPC, RLS/auth, storage or
+  persistence format, business rule, or production data. It is not released
+  until every universal gate, cross-platform PR and post-merge CI run, tested-
+  artifact Pages deployment, live verification, and guarded production smoke
+  pass.
 
 ## Universal executable-slice gates
 

@@ -2,6 +2,7 @@ import { expect, test, type BrowserContext, type Page } from '@playwright/test';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { posOperationsNames } from './operations-contract';
 
 const posViewNames = [
   'posPaymentLabel',
@@ -27,7 +28,6 @@ const posViewNames = [
 
 const activeRuntimeFiles = [
   'state.js',
-  'pos-operations.js',
   'boot.js',
   'start.js',
 ] as const;
@@ -680,9 +680,9 @@ test('typed POS view keeps its registration slot, runtime, and fallback', async 
   expect(contract).toMatchObject({
     version: 1,
     contractLength: 175,
-    domainOrder: ['core', 'runtime', 'costing', 'catalog', 'stocks', 'workspace', 'publication', 'modals', 'pos', 'support', 'events', 'legacy'],
-    domainSizes: { core: 15, runtime: 4, costing: 37, catalog: 81, stocks: 63, workspace: 18, publication: 10, modals: 46, pos: 19, support: 3, events: 1 },
-    posOrder: posViewNames,
+    domainOrder: ['core', 'runtime', 'costing', 'catalog', 'stocks', 'workspace', 'pos', 'publication', 'modals', 'support', 'events', 'legacy'],
+    domainSizes: { core: 15, runtime: 4, costing: 37, catalog: 81, stocks: 63, workspace: 18, publication: 10, modals: 46, pos: 79, support: 3, events: 1 },
+    posOrder: [...posOperationsNames, ...posViewNames],
     protectedNames: [],
     activeRuntime: activeRuntimeFiles,
   });

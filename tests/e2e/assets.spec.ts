@@ -4,7 +4,6 @@ import { resolve } from 'node:path';
 
 const expectedRuntimeFiles = [
   'state.js',
-  'pos-operations.js',
   'boot.js',
   'start.js',
 ];
