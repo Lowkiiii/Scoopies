@@ -69,7 +69,8 @@ preserving its established browser contract:
   remaining classic runtime and defines the bounded migration waves, universal
   release gates, rollback, and typed Runtime-factory, Support,
   Costing-presentation, POS-presentation, Publication, and Modal-workflow
-  released slices plus the released Phase 4H POS-catalog boundary.
+  released slices plus the released Phase 4H POS-catalog boundary and the
+  Phase 4I workspace-sync contract.
 
 The remaining JavaScript runtime files are intentionally loaded as ordered
 classic scripts by the module bootstrap. Do not independently add `async`,
@@ -105,6 +106,9 @@ implements the frozen atomic 81-function POS catalog, cart, pending-sale
 recovery, drink-media, and image-editor boundary through the typed `catalog`
 domain. Its exact classic parity, recovery, mobile-safety, cross-platform,
 Pages, and guarded signed-in production gates all passed.
+Phase 4I freezes the next atomic 18-function workspace read, refresh, checkout
+validation, pending-sale, and sale-recovery boundary before its executable
+implementation begins.
 Use the Node version recorded in
 [`.nvmrc`](.nvmrc), then run:
 
