@@ -30,7 +30,6 @@ const activeRuntimeFiles = [
   'pos-catalog.js',
   'workspace-sync.js',
   'pos-operations.js',
-  'render-modals.js',
   'boot.js',
   'start.js',
 ] as const;
@@ -590,17 +589,11 @@ function collectPosControllerFingerprint() {
   }
 }
 
-test('typed POS view keeps the exact boundary, registration slot, runtime, and fallback', async ({
+test('typed POS view keeps its registration slot, runtime, and fallback', async ({
   page,
   context,
 }) => {
   await stubSupabase(page);
-  await page.route(/\/assets\/js\/render-modals\.js(?:\?|$)/, async (route) => {
-    const response = await route.fetch();
-    const source = await response.text();
-    const probe = `\nwindow.__posViewBoundary={hasPos:Object.prototype.hasOwnProperty.call(window.MatchaLunaApp.domains,'pos'),root:${JSON.stringify(posViewNames)}.map(function(name){return typeof window[name];}),scripts:Array.from(document.querySelectorAll('script[data-matcha-luna-runtime]')).map(function(script){return script.dataset.matchaLunaRuntime;})};\n`;
-    await route.fulfill({ response, body: source + probe });
-  });
   await page.goto('index.html?test=1', { waitUntil: 'load' });
   await page.evaluate(() =>
     (window as typeof window & { MatchaLunaApp: { ready: Promise<void> } })
@@ -650,7 +643,6 @@ test('typed POS view keeps the exact boundary, registration slot, runtime, and f
         document.querySelectorAll<HTMLScriptElement>('script[data-matcha-luna-runtime]'),
         (script) => script.dataset.matchaLunaRuntime,
       ),
-      boundary: root.__posViewBoundary,
       stocksTail: Object.keys(facade.domains.stocks).slice(-27),
     };
   }, [...posViewNames]);
@@ -690,8 +682,8 @@ test('typed POS view keeps the exact boundary, registration slot, runtime, and f
   expect(contract).toMatchObject({
     version: 1,
     contractLength: 175,
-    domainOrder: ['core', 'runtime', 'costing', 'stocks', 'publication', 'pos', 'support', 'events', 'legacy'],
-    domainSizes: { core: 15, runtime: 4, costing: 37, stocks: 63, publication: 10, pos: 19, support: 3, events: 1 },
+    domainOrder: ['core', 'runtime', 'costing', 'stocks', 'publication', 'modals', 'pos', 'support', 'events', 'legacy'],
+    domainSizes: { core: 15, runtime: 4, costing: 37, stocks: 63, publication: 10, modals: 46, pos: 19, support: 3, events: 1 },
     posOrder: posViewNames,
     protectedNames: [],
     activeRuntime: activeRuntimeFiles,
@@ -707,11 +699,6 @@ test('typed POS view keeps the exact boundary, registration slot, runtime, and f
   expect(contract.roundTrips).toEqual(posViewNames.map(() => ({
     domainReachedRoot: true, rootReachedDomain: true,
   })));
-  expect(contract.boundary).toEqual({
-    hasPos: false,
-    root: posViewNames.map(() => 'undefined'),
-    scripts: ['state.js', 'pos-catalog.js', 'workspace-sync.js', 'pos-operations.js', 'render-modals.js'],
-  });
   expect(contract.stocksTail).toContain('renderPos');
   expect(contract.stocksTail).toContain('renderAll');
   expect(classicRuntime).toEqual({

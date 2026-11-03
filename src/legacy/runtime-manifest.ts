@@ -11,9 +11,7 @@ export const AFTER_STOCKS_BEFORE_COSTING_VIEW = Object.freeze([
   'pos-operations.js',
 ] as const);
 
-export const AFTER_COSTING_VIEW_BEFORE_STOCKS_VIEW = Object.freeze([
-  'render-modals.js',
-] as const);
+export const AFTER_COSTING_VIEW_BEFORE_STOCKS_VIEW = Object.freeze([] as const);
 
 export const AFTER_STOCKS_VIEW_BEFORE_EVENTS = Object.freeze([] as const);
 

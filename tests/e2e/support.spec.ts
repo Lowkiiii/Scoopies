@@ -9,7 +9,6 @@ const activeRuntimeFiles = [
   'pos-catalog.js',
   'workspace-sync.js',
   'pos-operations.js',
-  'render-modals.js',
   'boot.js',
   'start.js',
 ] as const;
