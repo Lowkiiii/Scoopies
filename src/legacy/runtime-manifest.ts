@@ -11,9 +11,7 @@ export const AFTER_COSTING_VIEW_BEFORE_STOCKS_VIEW = Object.freeze([] as const);
 
 export const AFTER_STOCKS_VIEW_BEFORE_EVENTS = Object.freeze([] as const);
 
-export const AFTER_EVENTS_BEFORE_COMPATIBILITY = Object.freeze([
-  'boot.js',
-] as const);
+export const AFTER_EVENTS_BEFORE_COMPATIBILITY = Object.freeze([] as const);
 
 export const BEFORE_COMPATIBILITY = Object.freeze([
   ...BEFORE_COSTING,

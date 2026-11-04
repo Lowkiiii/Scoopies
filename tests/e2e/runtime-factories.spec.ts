@@ -10,7 +10,6 @@ const runtimeFactoryNames = [
 ];
 
 const activeRuntimeFiles = [
-  'boot.js',
   'start.js',
 ];
 

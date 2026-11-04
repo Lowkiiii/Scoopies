@@ -21,7 +21,7 @@ const protectedWorkspaceNames = [
 ] as const;
 
 const activeRuntimeFiles = [
-  'boot.js', 'start.js',
+  'start.js',
 ] as const;
 
 const transitionRuntimeFiles = [
@@ -216,12 +216,12 @@ test('typed Workspace boundary preserves API, registration, descriptors, runtime
     contractLength: 175,
     domainOrder: [
       'core', 'runtime', 'state', 'costing', 'catalog', 'stocks', 'workspace', 'pos',
-      'publication', 'modals', 'support', 'events', 'legacy',
+      'publication', 'modals', 'support', 'events', 'bootstrap', 'legacy',
     ],
     domainSizes: {
       core: 15, runtime: 4, state: 141, costing: 37, catalog: 81, stocks: 63,
       workspace: 18, publication: 10, modals: 46, pos: 79,
-      support: 3, events: 1,
+      support: 3, events: 1, bootstrap: 1,
     },
     workspaceOrder: workspaceNames,
     protectedNames: protectedWorkspaceNames,
