@@ -872,14 +872,13 @@ test('typed Stocks view matches the retained classic view fingerprint', async ({
     'On hand',
     'Low-stock alert',
     'Last updated',
-    'Action',
   ]);
   expect(
     await page.locator('.stock-row[data-stock-item]').evaluateAll((rows) =>
       rows.map((row) => (row as HTMLElement).dataset.stockItem),
     ),
   ).toEqual(['out', 'low', 'uncounted', 'good']);
-  await expect(page.locator('.stock-row [data-stock-field]')).toHaveCount(24);
+  await expect(page.locator('.stock-row [data-stock-field]')).toHaveCount(20);
   await expect(page.locator('#stockVisibleCount')).toHaveAttribute(
     'aria-live',
     'polite',
@@ -905,11 +904,11 @@ test('typed Stocks view matches the retained classic view fingerprint', async ({
     removedRow.locator('[data-stock-field="status"]'),
   ).toHaveText('Out of stock');
   await expect(
-    removedRow.locator('[data-stock-field="on-hand"]'),
-  ).toHaveText('0 ml');
+    removedRow.locator('[data-stock-inline-field="count"]'),
+  ).toHaveValue('0');
   await expect(
-    removedRow.locator('[data-stock-field="threshold"]'),
-  ).toHaveText('100 ml');
+    removedRow.locator('[data-stock-inline-field="threshold"]'),
+  ).toHaveValue('100');
   await expect(
     removedRow.locator('[data-stock-field="updated"]'),
   ).toContainText('Oct 2');
@@ -921,17 +920,18 @@ test('typed Stocks view matches the retained classic view fingerprint', async ({
     uncountedRow.locator('[data-stock-field="status"]'),
   ).toHaveText('Not counted');
   await expect(
-    uncountedRow.locator('[data-stock-field="on-hand"]'),
-  ).toHaveText('Not counted');
+    uncountedRow.locator('[data-stock-inline-field="count"]'),
+  ).toHaveValue('');
   await expect(
-    uncountedRow.locator('[data-stock-field="threshold"]'),
-  ).toHaveText('Disabled');
+    uncountedRow.locator('[data-stock-inline-field="threshold"]'),
+  ).toHaveValue('');
   await expect(
     uncountedRow.locator('[data-stock-field="updated"]'),
   ).toHaveText('No count yet');
+  await expect(page.locator('.stock-row .stock-inline-input')).toHaveCount(8);
   await expect(
     page.locator('.stock-row [data-act="openStockModal"]'),
-  ).toHaveCount(4);
+  ).toHaveCount(0);
   await expect(page.locator('#stockRoot')).toContainText(
     'Inventory notice <safe>',
   );
@@ -948,18 +948,15 @@ test('typed Stocks view matches the retained classic view fingerprint', async ({
   await expect(page.locator('#stockRoot')).toContainText(
     'Fixture identity conflict',
   );
-  await expect(
-    page.locator('.stock-row [data-act="openStockModal"]'),
-  ).toHaveCount(4);
   expect(
     await page
-      .locator('.stock-row [data-act="openStockModal"]')
-      .evaluateAll((buttons) =>
-        buttons.every((button) => (button as HTMLButtonElement).disabled),
+      .locator('.stock-row .stock-inline-input')
+      .evaluateAll((inputs) =>
+        inputs.every((input) => (input as HTMLInputElement).disabled),
       ),
   ).toBe(true);
   await expect(
-    page.locator('.stock-row [data-act="openStockModal"]').first(),
+    page.locator('.stock-row .stock-inline-input').first(),
   ).toHaveAttribute(
     'title',
     'Resolve the costing and stock identity conflict first',
@@ -978,13 +975,13 @@ test('typed Stocks view matches the retained classic view fingerprint', async ({
   );
   expect(
     await page
-      .locator('.stock-row [data-act="openStockModal"]')
-      .evaluateAll((buttons) =>
-        buttons.every((button) => (button as HTMLButtonElement).disabled),
+      .locator('.stock-row .stock-inline-input')
+      .evaluateAll((inputs) =>
+        inputs.every((input) => (input as HTMLInputElement).disabled),
       ),
   ).toBe(true);
   await expect(
-    page.locator('.stock-row [data-act="openStockModal"]').first(),
+    page.locator('.stock-row .stock-inline-input').first(),
   ).toHaveAttribute('title', 'Recover the pending stock update first');
   await page.evaluate(() => {
     const app = window as typeof window & Record<string, any>;
@@ -1000,10 +997,13 @@ test('typed Stocks view matches the retained classic view fingerprint', async ({
     app.stockCanManage = () => false;
     stocks.renderStocks();
   });
-  await expect(page.locator('.stock-row .stock-read-only')).toHaveCount(4);
+  await expect(page.locator('.stock-row .stock-inline-input')).toHaveCount(0);
   await expect(
     page.locator('.stock-row [data-act="openStockModal"]'),
   ).toHaveCount(0);
+  await expect(
+    removedRow.locator('[data-stock-field="on-hand"]'),
+  ).toHaveText('0 ml');
 
   await page.evaluate(() => {
     const app = window as typeof window & Record<string, any>;

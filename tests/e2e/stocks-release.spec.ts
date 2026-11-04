@@ -518,11 +518,10 @@ test('authenticated data-heavy Stocks view stays usable at a mobile width', asyn
     'On hand',
     'Low-stock alert',
     'Last updated',
-    'Action',
   ]);
   await expect(stockTable.getByRole('row')).toHaveCount(9);
   await expect(stockTable.getByRole('rowheader')).toHaveCount(8);
-  await expect(stockTable.getByRole('cell')).toHaveCount(40);
+  await expect(stockTable.getByRole('cell')).toHaveCount(32);
   await expect(page.locator('.stock-row[data-stock-item]')).toHaveCount(8);
   await expect(page.locator('.stock-history-row')).toHaveCount(12);
   await expect(
@@ -533,9 +532,10 @@ test('authenticated data-heavy Stocks view stays usable at a mobile width', asyn
           'Organic Ceremonial Grade Matcha Powder From Uji Kyoto Reserve',
       }),
   ).toBeVisible();
+  await expect(page.locator('.stock-row .stock-inline-input')).toHaveCount(16);
   await expect(
     page.locator('.stock-row [data-act="openStockModal"]'),
-  ).toHaveCount(8);
+  ).toHaveCount(0);
 
   const layout = await page.evaluate(() => {
     const section = document.getElementById('stocks') as HTMLElement;
@@ -600,6 +600,5 @@ test('authenticated data-heavy Stocks view stays usable at a mobile width', asyn
       label: 'Last updated',
       before: 'Last updated',
     },
-    { field: 'action', label: 'Action', before: 'Action' },
   ]);
 });

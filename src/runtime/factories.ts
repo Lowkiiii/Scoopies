@@ -72,6 +72,7 @@ export interface StockState {
   status: string;
   kind: string;
   lastUpdatedAt: number;
+  inlineEdits?: Record<string, unknown>;
 }
 
 export interface StockModalState {

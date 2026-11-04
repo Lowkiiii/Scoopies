@@ -1,4 +1,8 @@
 import { runtimeValue } from './bindings';
+import {
+  stockInlineCommitElement,
+  stockInlineResetElement,
+} from '../stocks/inline-edit';
 import type { LegacyValue } from './types';
 
 export function handleBackdropClick(event: LegacyValue): void {
@@ -33,6 +37,18 @@ export function handleBackdropClick(event: LegacyValue): void {
 }
 
 export function handleBodyKeydown(event: LegacyValue): void {
+  if (event.target && event.target.dataset.stockInlineField) {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      stockInlineCommitElement(event.target).catch(function () {});
+      return;
+    }
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      stockInlineResetElement(event.target);
+      return;
+    }
+  }
   if (event.target && event.target.id === 'posPhotoCropCanvas') {
     const photoKeyStep = event.shiftKey ? 50 : 10;
     if (event.key === 'ArrowLeft') {

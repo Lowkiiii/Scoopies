@@ -6,6 +6,7 @@ import {
   stockStatus,
   stockSummaryHtml,
 } from './formatting';
+import { stockInlineFieldState, stockInlineLocked } from './inline-edit';
 import { stockStoredPending } from './storage';
 import type { LegacyValue } from './types';
 
@@ -34,6 +35,79 @@ export function stockFilterBarHtml(): string {
   );
 }
 
+function stockInlineEditorHtml(
+  item: LegacyValue,
+  field: 'count' | 'threshold',
+  locked: boolean,
+  lockReason: string,
+): string {
+  const edit = stockInlineFieldState(item, field);
+  const fallback =
+    field === 'count'
+      ? item.initialized
+        ? String(item.balance)
+        : ''
+      : item.threshold == null
+        ? ''
+        : String(item.threshold);
+  const value = edit && edit.value != null ? String(edit.value) : fallback;
+  const state = String((edit && edit.status) || 'idle');
+  const message = String(
+    (edit && edit.error) ||
+      (state === 'saving'
+        ? 'Saving...'
+        : state === 'saved'
+          ? 'Saved'
+          : ''),
+  );
+  const invalid =
+    state === 'error' || state === 'retry' || state === 'uncertain';
+  const safeId = String(item.id || '').replace(/[^a-zA-Z0-9_-]/g, '-');
+  const feedbackId =
+    'stockInlineFeedback-' + safeId + '-' + String(field);
+  const fieldLabel = field === 'count' ? 'on hand' : 'low-stock alert';
+  const placeholder = field === 'count' ? 'Enter count' : 'Disabled';
+  return (
+    '<div class="stock-inline-editor" data-stock-inline-cell data-stock-inline-state="' +
+    runtimeValue('escapeHtml')(state) +
+    '"><div class="stock-inline-control"><input class="stock-inline-input" type="number" inputmode="decimal" min="0" max="1000000000000" step="any" data-stock-inline-field="' +
+    field +
+    '" data-id="' +
+    runtimeValue('escapeHtml')(item.id) +
+    '" value="' +
+    runtimeValue('escapeHtml')(value) +
+    '" placeholder="' +
+    placeholder +
+    '" aria-label="' +
+    runtimeValue('escapeHtml')(
+      String(item.name || 'Stock item') +
+        ' ' +
+        fieldLabel +
+        ' in ' +
+        String(item.baseUnit || ''),
+    ) +
+    '" aria-describedby="' +
+    feedbackId +
+    '" aria-invalid="' +
+    (invalid ? 'true' : 'false') +
+    '"' +
+    (locked
+      ? ' disabled title="' + runtimeValue('escapeHtml')(lockReason) + '"'
+      : '') +
+    '><span class="stock-inline-unit" aria-hidden="true">' +
+    runtimeValue('escapeHtml')(item.baseUnit) +
+    '</span></div><div id="' +
+    feedbackId +
+    '" class="stock-inline-feedback ' +
+    (invalid ? 'bad' : state === 'saved' ? 'good' : '') +
+    '" data-stock-inline-feedback="' +
+    field +
+    '" aria-live="polite">' +
+    runtimeValue('escapeHtml')(message) +
+    '</div></div>'
+  );
+}
+
 export function stockItemCardsHtml(): string {
   const items = readStocksBinding(
     'stockFilteredItems',
@@ -53,9 +127,23 @@ export function stockItemCardsHtml(): string {
     stockStoredPending,
   )();
   const sourceConflict = !!runtimeValue('stockState').sourceConflict;
+  const canManage = runtimeValue('stockCanManage')();
+  const inlineLocked = stockInlineLocked();
+  const loading =
+    !!runtimeValue('stockState').loading ||
+    !!runtimeValue('stockState').refreshing;
+  const lockReason = pendingRecovery
+    ? 'Recover the pending stock update first'
+    : sourceConflict
+      ? 'Resolve the costing and stock identity conflict first'
+      : loading
+        ? 'Wait for the stock list to finish refreshing'
+        : inlineLocked
+          ? 'Wait for the current stock value to finish saving'
+          : '';
   return (
     '<div class="stock-inventory"><table class="stock-table"><caption class="stock-table-caption">Physical ingredient and prepared mixture inventory</caption><thead><tr>' +
-    '<th scope="col" data-stock-field="item">Item</th><th scope="col" data-stock-field="status">Status</th><th scope="col" data-stock-field="on-hand">On hand</th><th scope="col" data-stock-field="threshold">Low-stock alert</th><th scope="col" data-stock-field="updated">Last updated</th><th scope="col" data-stock-field="action">Action</th>' +
+    '<th scope="col" data-stock-field="item">Item</th><th scope="col" data-stock-field="status">Status</th><th scope="col" data-stock-field="on-hand">On hand</th><th scope="col" data-stock-field="threshold">Low-stock alert</th><th scope="col" data-stock-field="updated">Last updated</th>' +
     '</tr></thead><tbody>' +
     items
       .map(function (item: LegacyValue) {
@@ -79,9 +167,6 @@ export function stockItemCardsHtml(): string {
               minute: '2-digit',
             })
           : 'No count yet';
-        const disabledReason = pendingRecovery
-          ? 'Recover the pending stock update first'
-          : 'Resolve the costing and stock identity conflict first';
         // `stock-card` is a selector-only compatibility alias for the protected
         // legacy browser baseline; the element remains one semantic table row.
         return (
@@ -105,33 +190,32 @@ export function stockItemCardsHtml(): string {
           '">' +
           runtimeValue('escapeHtml')(status.label) +
           '</span></td>' +
-          '<td class="stock-on-hand-cell" data-stock-field="on-hand" data-label="On hand"><span class="stock-on-hand ' +
-          (status.key === 'out' ? 'bad' : '') +
-          '">' +
-          (item.initialized
-            ? readStocksBinding(
-                'stockFormatQuantity',
-                stockFormatQuantity,
-              )(item.balance, item.baseUnit, false)
-            : 'Not counted') +
-          '</span></td>' +
+          '<td class="stock-on-hand-cell" data-stock-field="on-hand" data-label="On hand">' +
+          (canManage
+            ? stockInlineEditorHtml(item, 'count', inlineLocked, lockReason)
+            : '<span class="stock-on-hand ' +
+              (status.key === 'out' ? 'bad' : '') +
+              '">' +
+              (item.initialized
+                ? readStocksBinding(
+                    'stockFormatQuantity',
+                    stockFormatQuantity,
+                  )(item.balance, item.baseUnit, false)
+                : 'Not counted') +
+              '</span>') +
+          '</td>' +
           '<td class="stock-threshold-cell" data-stock-field="threshold" data-label="Low-stock alert">' +
-          runtimeValue('escapeHtml')(threshold) +
+          (canManage
+            ? stockInlineEditorHtml(
+                item,
+                'threshold',
+                inlineLocked,
+                lockReason,
+              )
+            : runtimeValue('escapeHtml')(threshold)) +
           '</td>' +
           '<td class="stock-updated-cell" data-stock-field="updated" data-label="Last updated">' +
           runtimeValue('escapeHtml')(last) +
-          '</td><td class="stock-action-cell" data-stock-field="action" data-label="Action">' +
-          (runtimeValue('stockCanManage')()
-            ? '<button class="btn small secondary stock-update-button" data-act="openStockModal" data-id="' +
-              runtimeValue('escapeHtml')(item.id) +
-              '"' +
-              (pendingRecovery || sourceConflict
-                ? ' disabled title="' +
-                  runtimeValue('escapeHtml')(disabledReason) +
-                  '"'
-                : '') +
-              '>Update stock</button>'
-            : '<span class="stock-read-only">Read only</span>') +
           '</td></tr>'
         );
       })
@@ -309,7 +393,7 @@ export function renderStocks(): void {
     return;
   }
   const note =
-    '<div class="note stock-phase-note"><strong>Manual inventory — Phase 1.</strong> Enter a real opening count before using an item. POS sales do not subtract stock yet. Prepared mixtures cannot use Add stock until batch production is built. Packaging stock comes later.</div>';
+    '<div class="note stock-phase-note"><strong>Spreadsheet-style inventory.</strong> Click an On hand or Low-stock alert box, type the amount, then press Enter or tap away to save. On hand is the exact physical amount you counted; leave the alert blank to disable it. POS sales do not subtract stock yet.</div>';
   const toolbar =
     '<div class="card">' +
     readStocksBinding('stockSummaryHtml', stockSummaryHtml)() +
