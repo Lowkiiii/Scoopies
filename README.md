@@ -43,7 +43,7 @@ preserving its established browser contract:
 - [`src/bootstrap`](src/bootstrap) contains the typed Test, offline, and
   connected startup coordinator released in Phase 4L.
 - [`src/start`](src/start) contains the private typed Start invocation
-  implemented by the Phase 4M candidate.
+  released in Phase 4M.
 - [`src/costing`](src/costing) contains typed ingredient, mixture, recipe,
   packaging, product, publication snapshot, validation, shared view-helper,
   and costing-page rendering logic introduced by Phases 3B2 and 4D.
@@ -86,8 +86,7 @@ preserving its established browser contract:
   Costing-presentation, POS-presentation, Publication, and Modal-workflow
   released slices plus the released Phase 4H POS-catalog boundary and the
   released Phase 4I Workspace, Phase 4J POS-operations, and Phase 4K typed
-  State-hub and Phase 4L typed Bootstrap boundaries, plus the Phase 4M typed
-  Start implementation candidate.
+  State-hub, Phase 4L typed Bootstrap, and Phase 4M typed Start boundaries.
 
 The retained JavaScript fallback files intentionally remain ordered classic
 scripts for cached/pre-module clients. Do not independently add `async`,
@@ -155,9 +154,10 @@ Phase 4M implements Start as one private typed invocation after facade
 finalization, preserving live root lookup, bare-call receiver and ignored-
 result parity, classic-script-equivalent synchronous error reporting, and
 unchanged cached-client fallbacks. Fresh startup now requests no classic
-runtime. This implementation remains a candidate until every release gate
-passes; it adds no compatibility domain or browser API and changes no user
-interface, data, or business behavior.
+runtime. Its exact invocation, error, readiness, cache, mobile safety, cross-
+platform CI, Pages artifact, live-browser, and guarded signed-in production
+gates all passed. It adds no compatibility domain or browser API and changes no
+user interface, data, or business behavior.
 
 Use the Node version recorded in
 [`.nvmrc`](.nvmrc), then run:
@@ -170,7 +170,7 @@ npm test
 ```
 
 `npm test` first creates a fresh `dist/`, then previews and exercises that
-artifact. The Phase 4M candidate runs the protected 182-test legacy browser
+artifact. The released Phase 4M slice runs the protected 182-test legacy browser
 suite inside an exact 168-run matrix: 130 desktop Chromium, 19 Pixel Chrome,
 and 19 iPhone WebKit runs while preserving the exact 175-name compatibility
 contract.
