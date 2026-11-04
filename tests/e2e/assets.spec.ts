@@ -2,9 +2,7 @@ import { expect, test } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-const expectedRuntimeFiles = [
-  'start.js',
-];
+const expectedRuntimeFiles: string[] = [];
 
 const expectedRuntimePaths = expectedRuntimeFiles.map((fileName) => `/Scoopies/assets/js/${fileName}`);
 const transitionRuntimeFiles = [
@@ -82,16 +80,14 @@ test('the module bootstrap loads the classic runtime without changing the app co
   );
   expect(runtimeScripts.map(({ fileName }) => fileName)).toEqual(expectedRuntimeFiles);
   expect(runtimeScripts.map(({ pathname }) => pathname)).toEqual(expectedRuntimePaths);
-  const runtimeVersions = Array.from(new Set(runtimeScripts.map(({ version }) => version)));
-  expect(runtimeVersions).toHaveLength(1);
-  expect(runtimeVersions[0]).toMatch(/^[a-f0-9]{16}$/);
-  expect(runtimeScripts.every(({ version, dataVersion }) => version === dataVersion)).toBe(true);
+  expect(runtimeScripts).toEqual([]);
 
   [...stylesheets, ...moduleEntries, ...expectedRuntimePaths].forEach((path) => {
     expect(assetResponses.get(path), `${path} must load exactly once with HTTP 200`).toEqual([200]);
   });
   expect(assetResponses.has('/Scoopies/assets/js/state.js')).toBe(false);
   expect(assetResponses.has('/Scoopies/assets/js/boot.js')).toBe(false);
+  expect(assetResponses.has('/Scoopies/assets/js/start.js')).toBe(false);
   expect(assetResponses.has('/Scoopies/assets/js/core.js')).toBe(false);
   expect(assetResponses.has('/Scoopies/assets/js/runtime-factories.js')).toBe(false);
   expect(assetResponses.has('/Scoopies/assets/js/costing.js')).toBe(false);

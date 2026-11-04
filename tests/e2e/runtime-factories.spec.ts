@@ -9,9 +9,7 @@ const runtimeFactoryNames = [
   'freshStockModal',
 ];
 
-const activeRuntimeFiles = [
-  'start.js',
-];
+const activeRuntimeFiles: string[] = [];
 
 const transitionRuntimeFiles = [
   'core.js',

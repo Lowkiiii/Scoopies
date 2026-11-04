@@ -15,8 +15,8 @@ preserving its established browser contract:
 
 - [`index.html`](index.html) contains the document structure and UI markup.
 - [`assets/styles.css`](assets/styles.css) contains the application styles.
-- [`assets/js`](assets/js) contains the remaining classic Start script plus
-  compatibility fallbacks for cached clients. The former classic Bootstrap
+- [`assets/js`](assets/js) contains compatibility fallbacks for cached clients,
+  including the retained classic Start script. The former classic Bootstrap
   (`boot.js`), State and persistence (`state.js`), Core, Runtime factories,
   Costing,
   Costing presentation (`render-costing.js`), POS catalog (`pos-catalog.js`),
@@ -31,7 +31,8 @@ preserving its established browser contract:
   synchronization, POS operations, Publication, POS presentation, Stocks
   view/controller, Support, Events, and Bootstrap modules at their established
   runtime positions, with State after Runtime and before Costing and Bootstrap
-  after Events, and loads the remaining classic Start runtime in order.
+  after Events, then performs the private typed Start invocation after facade
+  finalization. Fresh entry loads no classic runtime scripts.
 - [`src/core`](src/core) contains the typed unit, money, identity, and stable
   serialization helpers introduced by Phase 3B1.
 - [`src/runtime`](src/runtime) contains the typed fresh-state factories
@@ -41,6 +42,8 @@ preserving its established browser contract:
   authentication responsibilities released in Phase 4K.
 - [`src/bootstrap`](src/bootstrap) contains the typed Test, offline, and
   connected startup coordinator released in Phase 4L.
+- [`src/start`](src/start) contains the private typed Start invocation
+  implemented by the Phase 4M candidate.
 - [`src/costing`](src/costing) contains typed ingredient, mixture, recipe,
   packaging, product, publication snapshot, validation, shared view-helper,
   and costing-page rendering logic introduced by Phases 3B2 and 4D.
@@ -83,16 +86,15 @@ preserving its established browser contract:
   Costing-presentation, POS-presentation, Publication, and Modal-workflow
   released slices plus the released Phase 4H POS-catalog boundary and the
   released Phase 4I Workspace, Phase 4J POS-operations, and Phase 4K typed
-  State-hub and Phase 4L typed Bootstrap boundaries. It also freezes the
-  documentation-only Phase 4M typed Start contract; that executable migration
-  has not started.
+  State-hub and Phase 4L typed Bootstrap boundaries, plus the Phase 4M typed
+  Start implementation candidate.
 
-The remaining JavaScript runtime files are intentionally loaded as ordered
-classic scripts by the module bootstrap. Do not independently add `async`,
+The retained JavaScript fallback files intentionally remain ordered classic
+scripts for cached/pre-module clients. Do not independently add `async`,
 `defer`, an IIFE, or a strict-mode wrapper to them: the protected legacy suite
-still accesses established application functions through `window`. Typed
-domains register descriptors with the compatibility facade while the direct
-browser contract remains intact.
+still accesses established application functions through `window`. Fresh
+entry uses typed modules and requests no classic runtime; typed domains retain
+the direct browser contract through the compatibility facade.
 
 This frontend-modernization numbering is separate from the historical POS
 database implementation phases documented below.
@@ -144,17 +146,18 @@ State.
 Phase 4L implements the frozen one-function Bootstrap surface while preserving
 the exact Test, offline, and connected startup effects, Promise and failure
 boundaries, live State dependencies, and unchanged cached-client fallbacks.
-Fresh startup now loads only classic `start.js`; Start remains a separate,
-reversible future Phase 4M. Its exact startup parity, failure, concurrency,
-cache, mobile safety, cross-platform CI, Pages artifact, live-browser, and
-guarded signed-in production gates all passed.
+At Phase 4L's release, fresh startup loaded only classic `start.js`, keeping
+Start separately reversible for Phase 4M. Its exact startup parity, failure,
+concurrency, cache, mobile safety, cross-platform CI, Pages artifact, live-
+browser, and guarded signed-in production gates all passed.
 
-Phase 4M currently changes documentation only. It freezes Start as one private
-typed invocation after facade finalization, with live root lookup, bare-call
-receiver and ignored-result parity, classic-script-equivalent synchronous error
-reporting, an empty fresh classic runtime, unchanged cached-client fallbacks,
-and an exact 168-run implementation matrix. It adds no compatibility domain or
-browser API and changes no user interface, data, or business behavior.
+Phase 4M implements Start as one private typed invocation after facade
+finalization, preserving live root lookup, bare-call receiver and ignored-
+result parity, classic-script-equivalent synchronous error reporting, and
+unchanged cached-client fallbacks. Fresh startup now requests no classic
+runtime. This implementation remains a candidate until every release gate
+passes; it adds no compatibility domain or browser API and changes no user
+interface, data, or business behavior.
 
 Use the Node version recorded in
 [`.nvmrc`](.nvmrc), then run:
@@ -167,9 +170,9 @@ npm test
 ```
 
 `npm test` first creates a fresh `dist/`, then previews and exercises that
-artifact. The released Phase 4L slice runs the protected 182-test legacy browser
-suite inside an exact 162-run matrix: 126 desktop Chromium, 18 Pixel Chrome,
-and 18 iPhone WebKit runs while preserving the exact 175-name compatibility
+artifact. The Phase 4M candidate runs the protected 182-test legacy browser
+suite inside an exact 168-run matrix: 130 desktop Chromium, 19 Pixel Chrome,
+and 19 iPhone WebKit runs while preserving the exact 175-name compatibility
 contract.
 Pull requests and pushes to `main` run the same type-check, build, and browser
 checks on both Ubuntu and Windows through

@@ -29,9 +29,7 @@ const protectedModalNames = [
   'closeMixtureModal', 'saveMixture',
 ] as const;
 
-const activeRuntimeFiles = [
-  'start.js',
-] as const;
+const activeRuntimeFiles = [] as const;
 
 const transitionRuntimeFiles = [
   'core.js', 'runtime-factories.js', 'state.js', 'costing.js',

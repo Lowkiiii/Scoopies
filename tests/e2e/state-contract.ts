@@ -71,4 +71,4 @@ export const transitionRuntimeFiles = [
   'compatibility.js', 'start.js',
 ] as const;
 
-export const activeRuntimeFiles = ['start.js'] as const;
+export const activeRuntimeFiles = [] as const;
