@@ -65,6 +65,11 @@ that schema, its RPCs, or production data; see
   its bounded implementation merged at
   `be0ce72f3d623fc1ee4173a424c748fe2f19bd58`. Every applicable gate passed
   and the release evidence is recorded below.
+- **4L — typed Bootstrap (contract frozen; implementation not started):** this
+  documentation-only boundary freezes the exact one-function Bootstrap API,
+  startup order, live State dependencies, Promise/failure behavior, runtime and
+  cached-client transition, and 162-run implementation matrix. It changes no
+  executable source or production behavior.
 - Later slices remain bounded by the migration waves below. Each requires its
   own exact API/parity contract before implementation.
 
@@ -2588,6 +2593,280 @@ production data.
   table, storage or persistence format, business rule, or production data. All
   universal gates, cross-platform PR and post-merge CI, tested-artifact Pages
   deployment, live verification, and guarded production smoke passed.
+
+## Phase 4L contract — typed Bootstrap
+
+`boot.js` is the final startup coordinator before the retained one-line Start
+script. It renders the authentication gate, chooses Test, offline, or connected
+startup, initializes or consults the cloud client, delegates authenticated
+state loading, and performs the initial account and application render. Its 24
+physical lines are small, but its Promise, catch, ordering, and finalization
+boundaries have application-wide blast radius.
+
+This contract replaces only `boot.js`. It does not combine Bootstrap with
+State or Start:
+
+1. released Phase 4K owns typed State while active classic runtime remains
+   exactly `boot.js`, then `start.js`;
+2. Phase 4L will replace only `boot.js`, leaving active classic runtime exactly
+   `start.js`; and
+3. future Phase 4M will separately contract and replace only `start.js`.
+
+Keeping Start separate preserves the real classic invocation oracle and makes
+rollback independent. Phase 4L must not make `MatchaLunaApp.ready` await or
+catch Bootstrap, add a hidden once guard, merge initial rendering into State,
+or change authentication, persistence, cloud, POS, Stocks, or costing behavior.
+
+### Exact Bootstrap surface and registration
+
+The new `bootstrap` compatibility domain contains exactly one function:
+
+```text
+boot(): Promise<void>
+```
+
+`boot` remains declared `async`, accepts no declared parameters, and resolves
+with `undefined` on successful completion. JavaScript callers may still supply
+arguments or a receiver; Bootstrap ignores both and preserves the same
+observable trace. Registration itself must not invoke `boot` or perform any
+startup effect.
+
+`boot` is an operational browser global, not one of the 175 protected
+compatibility names. Contract version 1 and the exact protected-name inventory
+remain unchanged. The Bootstrap-domain `boot` descriptor must be enumerable,
+configurable, and writable. The browser-root `boot` descriptor must be
+enumerable and configurable with getter and setter accessors. Both surfaces
+remain bidirectionally live. Reassigning either `window.boot` or
+`MatchaLunaApp.domains.bootstrap.boot` must update the other surface, and
+classic `start.js` must invoke the current root function.
+
+The typed implementation belongs under `src/bootstrap/`, with browser
+registration isolated in `src/compatibility/register-bootstrap.ts`. It
+registers at the former `boot.js` slot using this exact orchestration boundary:
+
+1. register Events and install all delegated event handlers;
+2. retain and await `loadClassicScripts(AFTER_EVENTS_BEFORE_COMPATIBILITY)` at
+   its existing position, with that manifest segment empty after migration;
+3. synchronously register the one-function Bootstrap domain;
+4. bind the Legacy domain and finalize the facade; and
+5. load retained classic `start.js` after finalization.
+
+Bootstrap registration must not be hoisted before handler installation or the
+retained loader boundary, and it must not move after Legacy binding,
+finalization, or Start. The resulting exact compatibility-domain order is:
+
+`core, runtime, state, costing, catalog, stocks, workspace, pos, publication, modals, support, events, bootstrap, legacy`
+
+### Exact branch and effect order
+
+Every `boot()` call resolves all State cells and functions live from the browser
+root. It must preserve the following exact order and branch behavior.
+
+1. Common entry:
+   - call `renderGate()` first;
+   - read `TEST_MODE` only after that call returns.
+2. Test mode when `TEST_MODE` is truthy:
+   - write `offlineMode = true`;
+   - call `showGate(false)`;
+   - call `setStatus('Test mode', '')`;
+   - write `lastState = snapshot(state)`;
+   - call `renderAccount()`;
+   - call `renderAll()`;
+   - return without reading configuration or initializing a client.
+3. Non-Test configuration:
+   - call `activeUrl()`, then `activeKey()`;
+   - call `initClient(url, key)` and branch on its exact truthiness.
+4. Offline/client-unavailable startup when `initClient` is falsy:
+   - write `offlineMode = true`;
+   - call `showGate(false)`;
+   - call `setStatus('Saved on device', '')`;
+   - write `lastState = snapshot(state)`;
+   - call `renderAccount()`;
+   - call the shared final `renderAll()` exactly once;
+   - do not call `saveCfg`, `getSession`, or `handleAuth`.
+5. Connected startup when `initClient` is truthy:
+   - call `saveCfg({ url, key })`, preserving property order;
+   - call `setStatus('Connecting…', '')`;
+   - call `cloud.client.auth.getSession()` with `auth` as its receiver;
+   - await the returned value;
+   - pass exactly `s && s.data ? s.data.session : null` as the sole argument to
+     the then-current `handleAuth` function, including the classic expression's
+     two reads of truthy `s.data` and use of the second value;
+   - await `handleAuth`;
+   - call the shared final `renderAll()` exactly once.
+6. Connected recovery when client/auth access, `getSession`, session
+   extraction, or `handleAuth` throws or rejects inside the existing `try`:
+   - swallow the original error;
+   - write `offlineMode = false`;
+   - call `showGate(true)`;
+   - call `setStatus('Sign in to sync', 'bad')`;
+   - call `renderAccount()`;
+   - then call the shared final `renderAll()` exactly once.
+
+The Test branch returns before the shared final render; it still renders exactly
+once inside its branch. The offline and both connected outcomes fall through to
+the shared final render. No branch adds logging, retries, alerts, storage
+cleanup, client disposal, or additional rendering.
+
+### Promise, readiness, failure, and concurrency parity
+
+Calls to an async function begin synchronously. Therefore Test-mode effects,
+offline effects, configuration lookup, client initialization, config save, and
+the initial connected status occur before the returned Promise settles or the
+first pending `await` suspends. The returned Promise remains distinct for every
+call and resolves with `undefined` only after that call's complete path.
+
+Classic `start.js` resolves root `boot` and invokes it exactly once, with no
+arguments and without awaiting, returning, storing, or catching its Promise.
+The `start.js` script load can complete and `MatchaLunaApp.ready` can resolve
+while connected Bootstrap is still awaiting session lookup or `handleAuth`.
+Facade finalization must already be true when Start invokes Bootstrap.
+
+The existing connected `try` begins only after `saveCfg` and the initial
+`Connecting…` status. It covers client/auth property access, `getSession`,
+session extraction, and awaited `handleAuth`. It does not cover `renderGate`,
+`TEST_MODE`, `activeUrl`, `activeKey`, `initClient`, `saveCfg`, the initial
+connected `setStatus`, any Test/offline effect, the catch body's recovery
+effects, or the shared final `renderAll`. Errors outside the `try`, errors thrown
+by recovery itself, and final-render errors reject the async Promise. Because
+Start ignores that Promise, such rejection must not turn the script load into a
+synchronous Start failure or make facade readiness reject.
+
+Bootstrap intentionally has no once, pending, generation, cancellation, or
+deduplication guard. Manual repeated and overlapping calls each execute a full,
+independent trace and return an independent Promise. Shared State mutations and
+render ordering remain the natural result of call interleaving. The typed
+implementation must not serialize, coalesce, cancel, or otherwise improve this
+classic behavior.
+
+Every dependency remains live at the moment it is used, including after an
+`await`. Required State cells are `TEST_MODE`, `offlineMode`, `lastState`,
+`state`, and `cloud`. Required functions are `renderGate`, `showGate`,
+`setStatus`, `snapshot`, `renderAccount`, `renderAll`, `activeUrl`, `activeKey`,
+`initClient`, `saveCfg`, and `handleAuth`. Replacing a root or State-domain
+binding before invocation or while session lookup is pending must affect the
+next access. Writes to `offlineMode` and `lastState` must continue propagating
+through the typed State accessors in both directions.
+
+Classic global dependency calls remain bare calls with no explicit receiver:
+strict replacement functions observe `undefined`, while non-strict functions
+retain ordinary JavaScript receiver coercion. `getSession` separately retains
+`cloud.client.auth` as its receiver. The typed implementation must not
+destructure, pre-bind, or capture these functions in a way that changes call or
+receiver behavior or collapses repeated property access.
+
+### Compatibility, runtime, and cached-client transition
+
+Phase 4L removes only `boot.js` from the active manifest. The exact fresh active
+classic runtime becomes:
+
+1. `start.js`
+
+Fresh entry must create the exact one-function Bootstrap domain, request
+`start.js` exactly once after finalization, and never request `state.js` or
+`boot.js`. The retained Start asset stays byte-identical and continues to invoke
+root `boot()`.
+
+The exact 18-script cached/pre-module transition remains unchanged, including
+classic `boot.js`, `compatibility.js`, and `start.js` in their existing order.
+Pre-module HTML must still reach Test mode with the exact 175-name protected
+contract. A cached Phase 4K module entry must still load a versioned classic
+`boot.js`, finalize, load Start, and initialize exactly once without page or
+console errors. No client may execute both typed and classic Bootstrap in the
+same entry path.
+
+The retained Bootstrap fallback is frozen at Git blob
+`79ece45aad9b175fe026296bf8d6552dc9900c05` and canonical LF SHA-256
+`D3028ABA1939978497DD74235914AB44978A8838D75A4B01C41545A40DD6D95E`.
+Both unversioned and prior-version query-string URLs must return identical
+bytes. The retained Start fallback remains blob
+`2ec5d4cd26b3cbeb5e10d8f0a5cd8eb129acbace` and canonical LF SHA-256
+`5CF0A8DE9986B051060B4E29DB69511AE962A9B8FCAD9F8F1AD233DAC3C680C3`.
+
+### Exact Phase 4L implementation coverage
+
+The future implementation must add exactly eight desktop-only Bootstrap parity
+and safety tests plus one Bootstrap mobile test selected by all three projects.
+From the released 151-run baseline, the complete matrix becomes exactly 162
+runs: 126 desktop Chromium, 18 Pixel Chrome, and 18 iPhone WebKit. The focused
+Bootstrap slice is exactly 11 runs.
+
+The eight desktop tests separately cover:
+
+1. exact one-function API, registration after Events and before Legacy, domain
+   and root descriptors, 175 protected names, fresh active runtime with no
+   `boot.js` request, exact 18-script cached execution, cached Phase 4K module-
+   entry behavior, unversioned/prior-version fallback byte equality, and frozen
+   fallback provenance;
+2. exact Test-mode call/effect order, synchronous effects, snapshot identity,
+   status, gate, account, render, Promise type, and resolution;
+3. offline/client-unavailable URL, key, initialization, no-auth/no-config
+   behavior, snapshot, gate/status/account/render order, and Promise timing;
+4. connected null, malformed, and populated session results, config payload,
+   bare global call semantics, auth receiver, exact repeated `data` access,
+   `getSession`/`handleAuth`/render order, late `handleAuth` and `renderAll`
+   replacement, argument extraction, and Promise timing;
+5. deferred connected startup, finalization-before-Start, exactly-once Start
+   invocation, readiness independence, late live `handleAuth`, and State
+   accessor writes;
+6. synchronous throws and rejected Promises from client/auth access,
+   `getSession`, session extraction, and `handleAuth`, including exact caught
+   recovery and final rendering;
+7. failures outside the classic `try`, catch-body failures, final-render
+   failures, rejected-Promise/partial-effect behavior, and readiness isolation;
+8. manual repeated and overlapping calls, ignored arguments/receiver,
+   independent Promise settlement, live dependency reassignment, and exact
+   interleaved effect ordering.
+
+The one cross-project mobile test covers deterministic Test, offline, and
+connected signed-out startup at desktop, Pixel, and iPhone sizes; exactly-once
+initial Start invocation; visible, focusable, contained authentication UI;
+expected config storage only; zero horizontal overflow; and zero escaped
+network or business-data writes.
+
+All Bootstrap tests that touch client/session behavior must install guards
+before navigation, match the Supabase SDK by its exact URL, block the real
+project and every unexpected external request, and use deterministic in-page
+Supabase/auth fakes. They must trap fetch, table query, RPC, object-storage, and
+business-write hooks; permit only the expected `scoopies_cloud_cfg` storage
+write; use no production credential; and assert session data only through
+booleans or shapes. Config keys, session/token values, business State, `NAMES`,
+screenshots, traces, videos, and fixtures containing business data must never be
+retained. Intentional rejection paths must run in isolated fixtures so expected
+failures cannot escape as unasserted page, console, request, or server errors.
+Each test must prove its guards are non-vacuous with counters: guards and hooks
+installed; Test/offline config writes equal zero; connected config writes equal
+one; `createClient` and `getSession` calls equal their branch-specific expected
+counts; and unexpected fetches, queries, RPCs, object-storage operations,
+storage writes, and business-data writes all equal zero.
+
+The implementation must preserve the exact 182-test legacy baseline,
+175-name compatibility contract, clean dependency audit, Ubuntu/Windows CI,
+tested-artifact Pages deployment, fresh 390-pixel live verification, and
+guarded signed-in production smoke. The smoke must prove from DOM,
+network/performance entries, and facade keys that fresh classic-runtime requests
+consist exactly of `start.js`, never request `state.js` or `boot.js`, expose
+exactly `boot` in the Bootstrap domain, retain the exact State 141, POS 79, and
+Workspace 18 key assertions, preserve compatibility version 1 with exactly 175
+protected names, and retain all existing real POS, Stocks, Ingredients,
+Recipes, and Pricing reads with no escaped business-data write.
+
+### Phase 4L contract status (frozen; implementation not started)
+
+- This contract changes only `README.md` and this Phase 4 document. It changes
+  no source, classic asset, dependency, test, workflow, UI, backend schema, RPC,
+  RLS/auth policy, table, storage or persistence format, business rule, or
+  production data.
+- Current runtime remains exactly `boot.js`, then `start.js`; the cached path
+  remains exactly 18 scripts; `boot.js` and `start.js` remain byte-identical.
+- The released matrix remains exactly 151 runs during this documentation-only
+  slice. Exactly 162 runs are required only for the future implementation.
+- Implementation is prohibited until independent source-inventory,
+  architecture, parity/test-strength, security, cached-client, mobile, and
+  final-diff reviews find no blocker and the contract passes clean install,
+  zero high-severity audit, type-check, production build, the full current
+  matrix, cross-platform PR and post-merge CI, tested-artifact Pages deployment,
+  live verification, and the guarded signed-in production smoke.
 
 ## Universal executable-slice gates
 
