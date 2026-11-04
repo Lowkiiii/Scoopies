@@ -87,10 +87,10 @@ preserving its established browser contract:
   released slices plus the released Phase 4H POS-catalog boundary and the
   released Phase 4I Workspace, Phase 4J POS-operations, and Phase 4K typed
   State-hub, Phase 4L typed Bootstrap, and Phase 4M typed Start boundaries.
-- [`docs/STOCKS_UI_PHASE_5.md`](docs/STOCKS_UI_PHASE_5.md) freezes the next
-  Shopify-inspired Stocks presentation contract: a semantic desktop inventory
-  table, responsive labeled mobile rows, unchanged inventory behavior and
-  backend, exact compatibility limits, tests, release gates, and rollback.
+- [`docs/STOCKS_UI_PHASE_5.md`](docs/STOCKS_UI_PHASE_5.md) records the released
+  Shopify-inspired Stocks presentation: a semantic desktop inventory table,
+  responsive labeled mobile rows, unchanged inventory behavior and backend,
+  exact compatibility limits, test and production evidence, and rollback.
 
 The retained JavaScript fallback files intentionally remain ordered classic
 scripts for cached/pre-module clients. Do not independently add `async`,
@@ -163,13 +163,13 @@ platform CI, Pages artifact, live-browser, and guarded signed-in production
 gates all passed. It adds no compatibility domain or browser API and changes no
 user interface, data, or business behavior.
 
-Phase 5A freezes the Stocks redesign contract without changing production UI.
-It keeps the current typed Stocks domain, modal, Events hooks, persistence,
-permissions, calculations, and cached fallback unchanged. Phase 5B may replace
-only the fresh typed two-column stock cards with the contracted semantic table
-and responsive mobile rows. The existing CI workflow automatically deploys a
-passing `main` artifact; Phase 5C validates that deployment and records its
-release evidence.
+Phase 5A froze the Stocks redesign contract without changing production UI.
+Phase 5B replaced only the fresh typed two-column stock cards with the
+contracted semantic table and responsive mobile rows while keeping the typed
+Stocks domain, modal, Events hooks, persistence, permissions, calculations,
+and cached fallback unchanged. Phase 5C passed cross-platform CI, exact Pages
+artifact parity, desktop and 390-pixel live-browser checks, and the guarded
+signed-in production smoke. The Stocks presentation redesign is released.
 
 Use the Node version recorded in
 [`.nvmrc`](.nvmrc), then run:

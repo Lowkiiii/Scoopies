@@ -4,9 +4,10 @@
 
 Phase 5A is the released, documentation-only contract for the Matcha Luna
 Stocks redesign. It was merged separately at
-`dbddd613b6db14ad71da3dac4f96c04f3a9a5e3c`. Phase 5B is the independently
-reviewed implementation candidate; it remains off production until its pull
-request and post-merge release gates pass.
+`dbddd613b6db14ad71da3dac4f96c04f3a9a5e3c`. Phase 5B is released at
+`9849d7f2c82f389255d7b159785b2dd299567ec1`, and Phase 5C has verified its
+tested artifact, live desktop and mobile presentation, and guarded signed-in
+production reads. The redesign is complete.
 
 Phase 5 is intentionally split into three independently reviewable steps:
 
@@ -320,10 +321,10 @@ Phase 5B is complete only when all of the following are true:
 
 Phase 5B does not deploy its implementation branch directly.
 
-## Phase 5B candidate evidence
+## Phase 5B implementation evidence
 
-The implementation candidate was checked against the frozen contract before
-opening its pull request:
+The implementation was checked against the frozen contract before opening its
+pull request:
 
 - the diff contains only the seven allowed renderer, narrow formatting,
   isolated Stocks CSS, test, and contract-document files;
@@ -354,6 +355,57 @@ After Phase 5B merges to `main`, Phase 5C must verify:
    Recipes, and Pricing screens without a business-data write; and
 7. a separate release-record pull request records the exact commits, run IDs,
    artifact evidence, browser evidence, and rollback point.
+
+## Phase 5C release record
+
+Phase 5C completed on November 5, 2026 (Asia/Singapore). The release is
+presentation-only and includes no schema, RPC, RLS, storage, authentication,
+costing, stock-calculation, or business-data migration.
+
+- Phase 5A contract commit `591f7135e27d998e4d3926e7170c1be1430a2f9d`
+  passed PR `#56` CI run `41880184383` before merging separately at
+  `dbddd613b6db14ad71da3dac4f96c04f3a9a5e3c`; its post-merge CI and Pages run
+  was `41881691206`.
+- Phase 5B implementation commit
+  `cec56d6e1ed8704bed483e2768fefaf363aabc6c` passed PR `#57` CI run
+  `41887451731` on Ubuntu and Windows before merging at
+  `9849d7f2c82f389255d7b159785b2dd299567ec1`.
+- Exact post-merge CI and Pages run `41888031277`, attempt 2, passed on that
+  merge: Browser tests in 3m10s, Windows browser tests in 2m53s, verified Pages
+  packaging in 14s, and deployment in 11s. Attempt 1 was force-cancelled after
+  its hosted Ubuntu browser-install step remained in progress for 13m46s;
+  attempt 2 reran every gate from a clean runner.
+- The deployed artifact was
+  `verified-pages-dist-9849d7f2c82f389255d7b159785b2dd299567ec1`.
+  All 22 files matched the live Pages bytes by SHA-256, including
+  `index-Bujj2GdY.css` and `index-D5UzfrBq.js`. The retained classic Stocks
+  fallback remained at Git blob `d734b8c5b0ebb4d60916e42561083db80b2f0ec8`
+  and LF-normalized SHA-256
+  `1bb2a3c272b8473b63a6ff41c88500ec370a130960cd087882a8de65e32fb754`.
+- Fresh signed-out production contexts at 1440x1000 and 390x844 kept the auth
+  gate visible, exposed facade version 1 with 175 names in the exact domain
+  order, fit at 1440/1440 and 390/390, and requested no fresh classic State,
+  Bootstrap, or Start runtime.
+- Fresh unauthenticated Test-mode contexts used in-memory stock fixtures only.
+  The 1440-pixel view exposed the exact six-column semantic table; the
+  390-pixel view transformed the same five rows into labeled cards with no
+  duplicate mobile markup. Both had contained layout; the desktop Update
+  action measured at least 44 pixels, and the 390-pixel Refresh, search, type,
+  status, and Update controls measured at least 44x44 pixels. The probes found
+  zero page, console, failed-request, or server errors and zero business-write
+  requests.
+- Protected signed-in production smoke run `41891963059` targeted the exact
+  merge SHA and passed its read-only job in 37s. It read the real POS, Stocks,
+  Ingredients, Recipes, and Pricing screens while allowing no business-data
+  write to escape. The run retained no trace, screenshot, video, credential,
+  business-data artifact, or uploaded artifact (`total_count: 0`).
+- Independent architecture/scope, test-contract, and responsive
+  UI/accessibility reviews all reported clear before merge.
+
+Rollback is one merge revert: revert
+`9849d7f2c82f389255d7b159785b2dd299567ec1` to return to the contract-only
+baseline `dbddd613b6db14ad71da3dac4f96c04f3a9a5e3c`. No data rollback or repair
+is involved.
 
 ## Rollback
 
