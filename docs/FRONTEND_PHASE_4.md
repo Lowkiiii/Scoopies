@@ -70,11 +70,10 @@ that schema, its RPCs, or production data; see
   its bounded implementation merged at
   `24497cdccf42466bbeec0ff449addd81538807b4`. Every applicable gate passed
   and the release evidence is recorded below.
-- **4M — typed Start (implementation candidate):** the frozen private Start
-  contract merged at `86bc198af2c7f20b7e453d3d0ae5aa2883fb5737`.
-  The bounded typed candidate described below removes the final fresh classic
-  request while retaining every cached fallback; it is not released until all
-  implementation and production gates pass.
+- **4M — typed Start (released):** the frozen private Start contract merged at
+  `86bc198af2c7f20b7e453d3d0ae5aa2883fb5737`; its bounded implementation
+  merged at `d33e5646ee3c275a19f0f59ee10fe358c8f85bfc`. Every applicable gate
+  passed and the release evidence is recorded below.
 - Later slices remain bounded by the migration waves below. Each requires its
   own exact API/parity contract before implementation.
 
@@ -3913,7 +3912,7 @@ Start with Bootstrap or add public surface:
 1. released Phase 4K owns typed State;
 2. released Phase 4L owns typed Bootstrap while fresh active classic runtime
    remains exactly `start.js`; and
-3. Phase 4M replaces only fresh `start.js`, leaving active classic runtime
+3. released Phase 4M replaces only fresh `start.js`, leaving active classic runtime
    empty while retaining every cached/pre-module fallback.
 
 Phase 4M changes no UI, authentication flow, Supabase schema, RPC, RLS policy,
@@ -4115,7 +4114,7 @@ in production smoke. Independent architecture, source-parity, test-strength,
 cache/security, scope, final-diff, documentation, and release-readiness audits
 must find no blocker.
 
-### Phase 4M implementation status (candidate)
+### Phase 4M implementation status (released)
 
 - `src/start/index.ts` implements the private Start boundary with one live root
   read and, after a successful callable lookup, one call with an undefined
@@ -4133,11 +4132,95 @@ must find no blocker.
   passes locally in 2.2 minutes with the exact 182-test legacy and 175-name
   compatibility baselines intact. Type-check and the 127-module production
   build also pass.
-- This candidate changes no UI, backend schema, RPC, RLS/auth policy, table,
-  storage or persistence format, business rule, or production data. It remains
-  unreleased until cross-platform PR and post-merge CI, tested-artifact Pages
+- This released slice changes no UI, backend schema, RPC, RLS/auth policy,
+  table, storage or persistence format, business rule, or production data. All
+  universal gates, cross-platform PR and post-merge CI, tested-artifact Pages
   deployment, byte-for-byte live verification, the 390-pixel probe, guarded
-  signed-in production smoke, and all final independent audits pass.
+  signed-in production smoke, and final independent audits passed.
+
+## Phase 4M exit gates (complete)
+
+- Start remains a private execution effect with no new domain, root global, or
+  protected compatibility name. It performs one live root read and, after a
+  successful callable lookup, one bare call with an undefined receiver and zero
+  arguments; its result remains entirely ignored.
+- Typed-versus-classic parity preserves strict and sloppy receiver behavior,
+  live lookup, ignored thenables and Promises, pending and rejected readiness
+  independence, and classic-script-equivalent synchronous browser errors.
+- Fresh active classic runtime is exactly empty and requests no `state.js`,
+  `boot.js`, or `start.js`. Cached Phase 4L and pre-module entry paths remain
+  mutually exclusive and retain the exact 18-script transition. The classic
+  Start fallback remains unchanged at Git blob
+  `2ec5d4cd26b3cbeb5e10d8f0a5cd8eb129acbace` and canonical LF SHA-256
+  `5CF0A8DE9986B051060B4E29DB69511AE962A9B8FCAD9F8F1AD233DAC3C680C3`.
+- The exact 182-test legacy and 175-name compatibility baselines pass; all 168
+  matrix cases complete successfully locally and in Ubuntu and Windows CI.
+- The tested `main` artifact is live, matches all 22 GitHub Pages files byte-
+  for-byte, passes fresh 390-pixel browser verification, and passes the guarded
+  signed-in production smoke.
+- Independent architecture, test-strength, source/cache parity, scope/security,
+  documentation, final-diff, evidence, and release-readiness audits found no
+  blocker. No auth policy, Supabase schema, RPC, table, storage or persistence
+  format, UI, business rule, or production-data behavior changed.
+
+Every Phase 4M gate above passed before the phase was marked released.
+
+## Phase 4M release record
+
+- Contract pull request: [#53](https://github.com/Lowkiiii/Scoopies/pull/53)
+- Contract commit: `e5f8f101e24f1ea3f17dec67939e0a788368c7c7`
+- Contract merge commit: `86bc198af2c7f20b7e453d3d0ae5aa2883fb5737`
+- Contract PR CI:
+  [41850371637](https://github.com/Lowkiiii/Scoopies/actions/runs/41850371637)
+- Contract main CI and Pages deployment:
+  [41851685286](https://github.com/Lowkiiii/Scoopies/actions/runs/41851685286)
+- Implementation pull request:
+  [#54](https://github.com/Lowkiiii/Scoopies/pull/54)
+- Implementation commit: `a2a265186e2e1edcf8a43f1a15752eb612878a4d`
+- Implementation merge commit:
+  `d33e5646ee3c275a19f0f59ee10fe358c8f85bfc`
+- Implementation PR CI:
+  [41855646487](https://github.com/Lowkiiii/Scoopies/actions/runs/41855646487)
+- Main CI and Pages deployment:
+  [41856263422](https://github.com/Lowkiiii/Scoopies/actions/runs/41856263422)
+- Signed-in production smoke:
+  [41857327056](https://github.com/Lowkiiii/Scoopies/actions/runs/41857327056)
+- Local verification: Node `24.22.2`; clean `npm ci`; zero audit
+  vulnerabilities; strict type-check and 127-module production build passed;
+  the focused Start slice passed all six runs and all 168 matrix cases
+  completed successfully in 2.1 minutes (130 desktop Chromium, 19 Pixel Chrome,
+  and 19 iPhone WebKit), including the exact 182-test legacy and 175-name
+  compatibility baselines.
+- Runtime verification: no Start domain or browser global exists; typed domain
+  order remains Core, Runtime, State, Costing, Catalog, Stocks, Workspace, POS,
+  Publication, Modals, Support, Events, Bootstrap, Legacy. State retains 141
+  bindings, POS 79, Workspace 18, and Bootstrap exactly `boot`; fresh active
+  classic runtime is empty with no State, Bootstrap, or Start request.
+- Cross-platform evidence: implementation PR CI passed on Ubuntu in 3m01s and
+  Windows in 2m56s. Post-merge CI passed on Ubuntu in 2m46s and Windows in
+  2m57s; Pages packaging took 6s and deployment took 9s. Pages packaged only
+  the verified Ubuntu `dist/` after both operating-system jobs passed.
+- Production artifact verification: all 22 files in downloaded artifact
+  `verified-pages-dist-d33e5646ee3c275a19f0f59ee10fe358c8f85bfc` returned HTTP
+  success from GitHub Pages and matched live SHA-256 bytes exactly. Pages served
+  `index-blOlu6eQ.js` and `index-B0B7i9SZ.css`; the fresh runtime requested no
+  classic script while the exact 18-script cached transition and unchanged
+  Start fallback matched the tested artifact.
+- Production browser verification: a fresh 390-pixel Chromium session finalized
+  the version-1 175-name contract in the exact domain order, retained State 141,
+  POS 79, Workspace 18, and Bootstrap `boot`, displayed at 390/390 width, and
+  reported zero page errors, console errors, failed requests, server errors, or
+  State, Bootstrap, and Start requests.
+- Signed-in verification: the protected main-only smoke passed in 37s while
+  loading the real POS, Stocks, Ingredients, Recipes, and Pricing views. Client
+  and network guards allowed no business-data write to escape and retained no
+  credentials, screenshots, traces, videos, or business-data artifacts.
+- Review evidence: independent architecture, test-strength, source/cache
+  parity, scope/security, documentation, final-diff, evidence, and release-
+  readiness audits found no blocker. The 23-file implementation changed only
+  the private typed Start boundary and manifest slot, exact tests, matrix
+  configuration, candidate documentation, and guarded read-only smoke; all
+  retained classic fallbacks remained byte-identical.
 
 No later Phase 4 executable slice is released until its exact API and parity
 contract is frozen and all applicable gates have recorded evidence.
