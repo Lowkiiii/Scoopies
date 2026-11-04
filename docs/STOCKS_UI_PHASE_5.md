@@ -2,10 +2,11 @@
 
 ## Status
 
-Phase 5A is the candidate, documentation-only contract for the Matcha Luna
-Stocks redesign. It is based on production `main` commit
-`62ec615be380dc44e05d34b10d1b5a6e80215e33` and may be implemented only after
-this contract passes review and is merged separately.
+Phase 5A is the released, documentation-only contract for the Matcha Luna
+Stocks redesign. It was merged separately at
+`dbddd613b6db14ad71da3dac4f96c04f3a9a5e3c`. Phase 5B is the independently
+reviewed implementation candidate; it remains off production until its pull
+request and post-merge release gates pass.
 
 Phase 5 is intentionally split into three independently reviewable steps:
 
@@ -274,8 +275,10 @@ than adding browser runs:
   compare every unchanged formatting, filtering, modal, POS-rendering,
   render-order, and state-branch field. Only intentionally changed typed
   presentation fields (`summaryHtml` and `filterBarHtml` when ARIA changes,
-  `cardsHtml`, `renderBranches`, and `renderedStocksHtml`) are excluded from
-  direct classic-markup equality. Deterministic typed assertions for semantic
+  `cardsHtml`, the table-derived `resultsSnapshot.text`, and
+  `renderedStocksHtml`) are excluded from direct classic-markup equality.
+  `renderBranches`, filtered row identities/counts, and active filters remain
+  exact typed-versus-classic comparisons. Deterministic typed assertions for semantic
   header order, populated rows, status and warning text, thresholds,
   timestamps, authorized and read-only actions, filtering, and empty/loading/
   error branches are added inside that same test run.
@@ -316,6 +319,25 @@ Phase 5B is complete only when all of the following are true:
 9. Contract and implementation are merged through separate pull requests.
 
 Phase 5B does not deploy its implementation branch directly.
+
+## Phase 5B candidate evidence
+
+The implementation candidate was checked against the frozen contract before
+opening its pull request:
+
+- the diff contains only the seven allowed renderer, narrow formatting,
+  isolated Stocks CSS, test, and contract-document files;
+- the classic cached Stocks fallback remains byte unchanged at the frozen Git
+  blob and LF-normalized SHA-256;
+- the dependency audit reports zero vulnerabilities;
+- strict type-check and the 127-module production build pass;
+- the focused Stocks slice passes all 12 runs;
+- the complete matrix passes all 168 runs: 130 desktop Chromium, 19 Pixel
+  Chrome, and 19 iPhone WebKit;
+- desktop and 390-pixel visual probes show the semantic table and responsive
+  labeled rows without page overflow; and
+- independent architecture/scope, test-contract, and responsive UI/accessibility
+  reviews report no blocker.
 
 ## Phase 5C release gates
 

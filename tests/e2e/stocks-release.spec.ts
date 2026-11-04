@@ -508,26 +508,43 @@ test('authenticated data-heavy Stocks view stays usable at a mobile width', asyn
 
   await expect(page.locator('section#stocks')).toHaveClass(/active/);
   await expect(page.locator('#stockVisibleCount')).toHaveText('8 of 8 items');
-  await expect(page.locator('.stock-grid .stock-card')).toHaveCount(8);
+  const stockTable = page.getByRole('table', {
+    name: 'Physical ingredient and prepared mixture inventory',
+  });
+  await expect(stockTable).toBeVisible();
+  await expect(stockTable.getByRole('columnheader')).toHaveText([
+    'Item',
+    'Status',
+    'On hand',
+    'Low-stock alert',
+    'Last updated',
+    'Action',
+  ]);
+  await expect(stockTable.getByRole('row')).toHaveCount(9);
+  await expect(stockTable.getByRole('rowheader')).toHaveCount(8);
+  await expect(stockTable.getByRole('cell')).toHaveCount(40);
+  await expect(page.locator('.stock-row[data-stock-item]')).toHaveCount(8);
   await expect(page.locator('.stock-history-row')).toHaveCount(12);
   await expect(
     page
-      .locator('.stock-card-title')
+      .locator('.stock-item-name')
       .filter({
         hasText:
           'Organic Ceremonial Grade Matcha Powder From Uji Kyoto Reserve',
       }),
   ).toBeVisible();
   await expect(
-    page.locator('.stock-card [data-act="openStockModal"]'),
+    page.locator('.stock-row [data-act="openStockModal"]'),
   ).toHaveCount(8);
 
   const layout = await page.evaluate(() => {
     const section = document.getElementById('stocks') as HTMLElement;
-    const grid = document.querySelector('.stock-grid') as HTMLElement;
+    const inventory = document.querySelector('.stock-inventory') as HTMLElement;
+    const table = document.querySelector('.stock-table') as HTMLElement;
+    const firstRow = document.querySelector('.stock-row') as HTMLElement;
     const sectionRect = section.getBoundingClientRect();
     const contained = Array.from(
-      document.querySelectorAll('.stock-card, .stock-history-row'),
+      document.querySelectorAll('.stock-row, .stock-history-row'),
     ).every((element) => {
       const rect = element.getBoundingClientRect();
       return (
@@ -538,14 +555,51 @@ test('authenticated data-heavy Stocks view stays usable at a mobile width', asyn
     return {
       viewportWidth: document.documentElement.clientWidth,
       pageWidth: document.documentElement.scrollWidth,
-      gridColumns: getComputedStyle(grid).gridTemplateColumns
-        .split(' ')
-        .filter(Boolean).length,
+      inventoryClientWidth: inventory.clientWidth,
+      inventoryScrollWidth: inventory.scrollWidth,
+      tableWidth: table.getBoundingClientRect().width,
+      rowDisplay: getComputedStyle(firstRow).display,
       contained,
     };
   });
 
   expect(layout.pageWidth).toBeLessThanOrEqual(layout.viewportWidth + 1);
-  expect(layout.gridColumns).toBe(1);
+  expect(layout.inventoryScrollWidth).toBeLessThanOrEqual(
+    layout.inventoryClientWidth + 1,
+  );
+  expect(layout.tableWidth).toBeLessThanOrEqual(
+    layout.inventoryClientWidth + 1,
+  );
+  expect(layout.rowDisplay).toBe('grid');
   expect(layout.contained).toBe(true);
+
+  const firstRowLabels = await page
+    .locator('.stock-row')
+    .first()
+    .locator('[data-stock-field]:not([data-stock-field="item"])')
+    .evaluateAll((cells) =>
+      cells.map((cell) => ({
+        field: (cell as HTMLElement).dataset.stockField,
+        label: (cell as HTMLElement).dataset.label,
+        before: getComputedStyle(cell, '::before').content.replace(
+          /^["']|["']$/g,
+          '',
+        ),
+      })),
+    );
+  expect(firstRowLabels).toEqual([
+    { field: 'status', label: 'Status', before: 'Status' },
+    { field: 'on-hand', label: 'On hand', before: 'On hand' },
+    {
+      field: 'threshold',
+      label: 'Low-stock alert',
+      before: 'Low-stock alert',
+    },
+    {
+      field: 'updated',
+      label: 'Last updated',
+      before: 'Last updated',
+    },
+    { field: 'action', label: 'Action', before: 'Action' },
+  ]);
 });
