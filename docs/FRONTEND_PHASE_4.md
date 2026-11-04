@@ -60,11 +60,11 @@ that schema, its RPCs, or production data; see
   `6e73cb2ed543db70fe1aa06737b7c6a7defe2b9b`; its bounded implementation merged
   at `fe4a77b27b02e5d6812e645991d45d66e8a99e76`. Every applicable gate passed
   and the release evidence is recorded below.
-- **4K — typed State hub (implementation candidate):** the frozen 87-value and
-  54-function State surface is implemented by the bounded typed candidate
-  described below. It preserves the exact registration, initialization, live-
-  binding, fallback, and 151-run contracts, changes no backend or business
-  data, and is not released until every gate passes.
+- **4K — typed State hub (released):** the frozen 87-value and 54-function
+  State contract merged at `289d895b3815cc04e117f3048f033355738a2cf3`;
+  its bounded implementation merged at
+  `be0ce72f3d623fc1ee4173a424c748fe2f19bd58`. Every applicable gate passed
+  and the release evidence is recorded below.
 - Later slices remain bounded by the migration waves below. Each requires its
   own exact API/parity contract before implementation.
 
@@ -2561,7 +2561,7 @@ screenshots, traces, videos, or business data. Phase 4K changes no UI, backend
 schema, RLS/auth policy, RPC, table, storage format, business rule, or
 production data.
 
-### Phase 4K implementation status (candidate)
+### Phase 4K implementation status (released)
 
 - Eleven responsibility-focused modules under `src/state` implement the exact
   ordered 87-value and 54-function State surface. Registration installs the
@@ -2579,14 +2579,15 @@ production data.
 - Sixteen desktop State parity/safety tests and two cross-project mobile State
   tests define the exact 151-run matrix: 117 desktop Chromium, 17 Pixel Chrome,
   and 17 iPhone WebKit runs. The focused State slice contains exactly 22 runs;
-  strict type-check and the 121-module production build pass locally. The full
-  matrix and remaining release gates must pass before release, including the
-  exact 182-test legacy and 175-name compatibility baselines.
-- This candidate changes no UI, backend schema, RPC, RLS/auth policy, table,
-  storage or persistence format, business rule, or production data. It is not
-  released until every universal gate, cross-platform PR and post-merge CI
-  run, tested-artifact Pages deployment, live verification, and guarded
-  production smoke pass.
+  clean `npm ci`, zero audit vulnerabilities, strict type-check, the 121-module
+  production build, and all 22 focused runs passed locally. All 151 matrix
+  cases completed successfully locally; the exact 182-test legacy and 175-name
+  compatibility baselines and the full matrix exited cleanly in cross-platform
+  PR and post-merge CI.
+- This released slice changes no UI, backend schema, RPC, RLS/auth policy,
+  table, storage or persistence format, business rule, or production data. All
+  universal gates, cross-platform PR and post-merge CI, tested-artifact Pages
+  deployment, live verification, and guarded production smoke passed.
 
 ## Universal executable-slice gates
 
@@ -3428,6 +3429,93 @@ Every Phase 4J gate above passed before the phase was marked released.
   registration and manifest slot, exact tests, matrix configuration, candidate
   documentation, and guarded read-only smoke; the retained classic fallback
   remained byte-identical.
+
+## Phase 4K exit gates (complete)
+
+- The exact ordered State API contains 141 bindings: 87 values and 54
+  functions. It registers atomically after Runtime and before Costing,
+  initializes once in classic source order, and keeps root/domain assignments
+  bidirectionally live. Typed domain order is Core, Runtime, State, Costing,
+  Catalog, Stocks, Workspace, POS, Publication, Modals, Support, Events,
+  Legacy; compatibility remains version 1 with exactly 175 protected names,
+  including this slice's exact 50.
+- Typed-versus-classic parity preserves initialization, normalization,
+  reconciliation, local and cloud persistence, realtime coordination, history,
+  authentication, stale and failure paths, Promise timing, object identity,
+  mutation behavior, and live call-time dependencies.
+- The active classic runtime is exactly `boot.js`, then `start.js`, and no
+  longer requests `state.js`. The cached/pre-module transition remains exactly
+  18 scripts; the retained fallback is unchanged at Git blob
+  `c62c1b4754296e68e4817d4ecaa2089cc45e894d` and canonical SHA-256
+  `0FBB22C6437EC9B19CAC4C00AA4A58D51A6ABE63089825CE0875E2B77DCA36E0`.
+- The exact 182-test legacy baseline and 175-name compatibility baseline pass;
+  all 151 matrix cases completed successfully locally before the known Windows
+  runner cleanup hang, and the complete matrix exited cleanly in Ubuntu and
+  Windows CI.
+- The tested `main` artifact is live, matches all 22 GitHub Pages files byte-
+  for-byte, passes fresh 390-pixel browser verification, and passes the guarded
+  signed-in production smoke.
+- Independent runtime-architecture, source-parity, test-strength,
+  scope/security, final-diff, and release-readiness audits found no blocker. No
+  auth policy, Supabase schema, RPC, table, storage or persistence format, UI,
+  business rule, or production-data behavior changed.
+
+Every Phase 4K gate above passed before the phase was marked released.
+
+## Phase 4K release record
+
+- Contract pull request: [#47](https://github.com/Lowkiiii/Scoopies/pull/47)
+- Contract commit: `16806d69a7b9a2a0eb16aa4fd6d23e8495b2f046`
+- Contract merge commit: `289d895b3815cc04e117f3048f033355738a2cf3`
+- Contract PR CI:
+  [41714786966](https://github.com/Lowkiiii/Scoopies/actions/runs/41714786966)
+- Contract main CI and Pages deployment:
+  [41715319102](https://github.com/Lowkiiii/Scoopies/actions/runs/41715319102)
+- Implementation pull request:
+  [#48](https://github.com/Lowkiiii/Scoopies/pull/48)
+- Implementation commit: `5cdffc5d7def78b9ddfc1de1a77c5017eedc5075`
+- Implementation merge commit:
+  `be0ce72f3d623fc1ee4173a424c748fe2f19bd58`
+- Implementation PR CI:
+  [41804130592](https://github.com/Lowkiiii/Scoopies/actions/runs/41804130592)
+- Main CI and Pages deployment:
+  [41804530772](https://github.com/Lowkiiii/Scoopies/actions/runs/41804530772)
+- Signed-in production smoke:
+  [41806366637](https://github.com/Lowkiiii/Scoopies/actions/runs/41806366637)
+- Local verification: Node `24.22.2`; clean `npm ci`; zero audit
+  vulnerabilities; strict type-check and 121-module production build passed;
+  the focused State slice passed all 22 runs and all 151 matrix cases completed
+  successfully (117 desktop Chromium, 17 Pixel Chrome, and 17 iPhone WebKit),
+  including the exact 182-test legacy and 175-name compatibility baselines.
+- Runtime verification: the exact ordered State API contains 87 values and 54
+  functions, its 50 protected root bindings remain live, and typed domain sizes
+  are Core 15, Runtime 4, State 141, Costing 37, Catalog 81, Stocks 63,
+  Workspace 18, POS 79, Publication 10, Modals 46, Support 3, and Events 1.
+- Cross-platform evidence: implementation PR CI passed on Ubuntu in 2m25s and
+  Windows in 2m05s. Post-merge CI passed on Ubuntu in 2m59s and Windows in
+  2m53s; Pages packaging took 7s and deployment took 31s. Pages packaged only
+  the verified Ubuntu `dist/` after both operating-system jobs passed.
+- Production artifact verification: all 22 files in downloaded artifact
+  `verified-pages-dist-be0ce72f3d623fc1ee4173a424c748fe2f19bd58` returned
+  HTTP 200 from GitHub Pages and matched live bytes exactly. Pages served
+  `index-D6Jk_01T.js` and `index-B0B7i9SZ.css`; the exact two-script active
+  runtime did not request classic `state.js`, while the exact 18-script cached
+  transition and unchanged fallback matched the tested artifact.
+- Production browser verification: a fresh 390-pixel Chromium session loaded
+  the exact active order, finalized the version-1 175-name contract, exposed
+  the 141-binding State domain in the exact domain order, displayed at 390/390
+  width, and reported zero page errors, console errors, failed requests, server
+  errors, or classic State requests.
+- Signed-in verification: the protected main-only smoke passed in 42s while
+  loading the real POS, Stocks, Ingredients, Recipes, and Pricing views. Client
+  and network guards allowed no business-data write to escape and retained no
+  credentials, screenshots, traces, videos, or business-data artifacts.
+- Review evidence: independent runtime-architecture, source-parity,
+  test-strength, scope/security, final-diff, and release-readiness audits found
+  no blocker. The 33-file implementation changed only the typed State boundary,
+  compatibility registration and manifest slot, exact tests, matrix
+  configuration, candidate documentation, and guarded read-only smoke; the
+  retained classic fallback remained byte-identical.
 
 No later Phase 4 executable slice is released until its exact API and parity
 contract is frozen and all applicable gates have recorded evidence.

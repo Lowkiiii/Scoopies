@@ -37,7 +37,7 @@ preserving its established browser contract:
   introduced by Phase 4B.
 - [`src/state`](src/state) contains the typed application-state cells,
   normalization, reconciliation, persistence, cloud/realtime, history, and
-  authentication responsibilities implemented by the Phase 4K candidate.
+  authentication responsibilities released in Phase 4K.
 - [`src/costing`](src/costing) contains typed ingredient, mixture, recipe,
   packaging, product, publication snapshot, validation, shared view-helper,
   and costing-page rendering logic introduced by Phases 3B2 and 4D.
@@ -79,8 +79,8 @@ preserving its established browser contract:
   release gates, rollback, and typed Runtime-factory, Support,
   Costing-presentation, POS-presentation, Publication, and Modal-workflow
   released slices plus the released Phase 4H POS-catalog boundary and the
-  released Phase 4I Workspace and Phase 4J POS-operations boundaries, plus the
-  Phase 4K typed State-hub implementation candidate.
+  released Phase 4I Workspace, Phase 4J POS-operations, and Phase 4K typed
+  State-hub boundaries.
 
 The remaining JavaScript runtime files are intentionally loaded as ordered
 classic scripts by the module bootstrap. Do not independently add `async`,
@@ -133,8 +133,9 @@ Phase 4K implements the frozen 87-value and 54-function State surface as one
 141-binding typed domain while retaining the unchanged classic State fallback
 for cached clients. Fresh startup now loads only classic `boot.js` and
 `start.js`; Bootstrap and Start remain separately reversible future Phases 4L
-and 4M. This implementation remains a candidate until every release gate
-passes.
+and 4M. Its exact classic parity, recovery, mobile safety, cross-platform CI,
+Pages artifact, live-browser, and guarded signed-in production gates all
+passed.
 
 Use the Node version recorded in
 [`.nvmrc`](.nvmrc), then run:
@@ -147,7 +148,7 @@ npm test
 ```
 
 `npm test` first creates a fresh `dist/`, then previews and exercises that
-artifact. The Phase 4K candidate runs the protected 182-test legacy browser
+artifact. The released Phase 4K slice runs the protected 182-test legacy browser
 suite inside an exact 151-run matrix: 117 desktop Chromium, 17 Pixel Chrome,
 and 17 iPhone WebKit runs while preserving the exact 175-name compatibility
 contract.
