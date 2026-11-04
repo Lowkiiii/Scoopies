@@ -65,11 +65,12 @@ that schema, its RPCs, or production data; see
   its bounded implementation merged at
   `be0ce72f3d623fc1ee4173a424c748fe2f19bd58`. Every applicable gate passed
   and the release evidence is recorded below.
-- **4L — typed Bootstrap (contract frozen; implementation not started):** this
-  documentation-only boundary freezes the exact one-function Bootstrap API,
-  startup order, live State dependencies, Promise/failure behavior, runtime and
-  cached-client transition, and 162-run implementation matrix. It changes no
-  executable source or production behavior.
+- **4L — typed Bootstrap (implementation candidate):** the frozen one-function
+  Bootstrap surface is implemented by the bounded typed candidate described
+  below. It preserves the exact startup order, live State dependencies,
+  Promise/failure behavior, cached-client transition, and 162-run matrix,
+  changes no backend or business data, and is not released until every gate
+  passes.
 - Later slices remain bounded by the migration waves below. Each requires its
   own exact API/parity contract before implementation.
 
@@ -2608,8 +2609,8 @@ State or Start:
 
 1. released Phase 4K owns typed State while active classic runtime remains
    exactly `boot.js`, then `start.js`;
-2. Phase 4L will replace only `boot.js`, leaving active classic runtime exactly
-   `start.js`; and
+2. the Phase 4L candidate replaces only `boot.js`, leaving active classic
+   runtime exactly `start.js`; and
 3. future Phase 4M will separately contract and replace only `start.js`.
 
 Keeping Start separate preserves the real classic invocation oracle and makes
@@ -2785,7 +2786,7 @@ bytes. The retained Start fallback remains blob
 
 ### Exact Phase 4L implementation coverage
 
-The future implementation must add exactly eight desktop-only Bootstrap parity
+The implementation adds exactly eight desktop-only Bootstrap parity
 and safety tests plus one Bootstrap mobile test selected by all three projects.
 From the released 151-run baseline, the complete matrix becomes exactly 162
 runs: 126 desktop Chromium, 18 Pixel Chrome, and 18 iPhone WebKit. The focused
@@ -2851,22 +2852,30 @@ Workspace 18 key assertions, preserve compatibility version 1 with exactly 175
 protected names, and retain all existing real POS, Stocks, Ingredients,
 Recipes, and Pricing reads with no escaped business-data write.
 
-### Phase 4L contract status (frozen; implementation not started)
+### Phase 4L implementation status (candidate)
 
-- This contract changes only `README.md` and this Phase 4 document. It changes
-  no source, classic asset, dependency, test, workflow, UI, backend schema, RPC,
-  RLS/auth policy, table, storage or persistence format, business rule, or
-  production data.
-- Current runtime remains exactly `boot.js`, then `start.js`; the cached path
-  remains exactly 18 scripts; `boot.js` and `start.js` remain byte-identical.
-- The released matrix remains exactly 151 runs during this documentation-only
-  slice. Exactly 162 runs are required only for the future implementation.
-- Implementation is prohibited until independent source-inventory,
-  architecture, parity/test-strength, security, cached-client, mobile, and
-  final-diff reviews find no blocker and the contract passes clean install,
-  zero high-severity audit, type-check, production build, the full current
-  matrix, cross-platform PR and post-merge CI, tested-artifact Pages deployment,
-  live verification, and the guarded signed-in production smoke.
+- Four responsibility-focused modules under `src/bootstrap` and
+  `src/compatibility/register-bootstrap.ts` implement and register the exact
+  one-function Bootstrap surface after Events and before Legacy/finalization.
+  Browser-root and Bootstrap-domain assignments remain bidirectionally live;
+  compatibility stays at version 1 with exactly 175 protected names.
+- The active classic runtime is reduced from two scripts to exactly one:
+  `start.js`. Fresh startup does not request `state.js` or `boot.js`; the exact
+  18-script cached/pre-module transition remains available.
+- The retained `boot.js` and `start.js` fallbacks remain unchanged at their
+  frozen Git blobs and canonical LF SHA-256 values recorded above.
+- Eight desktop Bootstrap parity/safety tests and one cross-project mobile test
+  define the exact 162-run matrix: 126 desktop Chromium, 18 Pixel Chrome, and
+  18 iPhone WebKit runs. The focused Bootstrap slice contains exactly 11 runs;
+  clean dependency installation, zero audit vulnerabilities, strict type-check,
+  the 126-module production build, all 11 focused runs, and the complete 162-run
+  matrix pass locally, including the exact 182-test legacy and 175-name
+  compatibility baselines.
+- This candidate changes no UI, backend schema, RPC, RLS/auth policy, table,
+  storage or persistence format, business rule, or production data. It is not
+  released until every universal gate, cross-platform PR and post-merge CI
+  run, tested-artifact Pages deployment, live verification, and guarded
+  production smoke pass.
 
 ## Universal executable-slice gates
 

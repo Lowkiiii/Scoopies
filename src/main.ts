@@ -1,4 +1,5 @@
 import { installCompatibilityFacade } from './compatibility/facade';
+import { registerBootstrapModule } from './compatibility/register-bootstrap';
 import { registerCatalogModule } from './compatibility/register-catalog';
 import { registerCostingModule } from './compatibility/register-costing';
 import {
@@ -53,6 +54,7 @@ const ready = (async () => {
   registerEventsModule(facade, window);
   installEventHandlers(window);
   await loadClassicScripts(AFTER_EVENTS_BEFORE_COMPATIBILITY);
+  registerBootstrapModule(facade, window);
   facade.bindClassic('legacy', facade.contractNames);
   facade.finalize();
   await loadClassicScripts(AFTER_COMPATIBILITY);

@@ -242,7 +242,7 @@ test('typed State preserves the exact surface, registration, descriptors, runtim
   expect(contract.order).toEqual(stateBindingNames);
   expect(contract.domainOrder).toEqual([
     'core', 'runtime', 'state', 'costing', 'catalog', 'stocks', 'workspace',
-    'pos', 'publication', 'modals', 'support', 'events', 'legacy',
+    'pos', 'publication', 'modals', 'support', 'events', 'bootstrap', 'legacy',
   ]);
   expect(contract.protected).toEqual(protectedStateNames);
   expect(contract.valueDescriptors).toEqual(stateValueNames.map(() => ({
@@ -1085,7 +1085,6 @@ async function clientProbe(page: Page): Promise<unknown> {
 
 async function deferredBootstrapProbe(context: BrowserContext): Promise<unknown> {
   const page = await context.newPage();
-  const bootSource = readFileSync(resolve(process.cwd(), 'assets/js/boot.js'), 'utf8');
   const supabaseScript = `
     (() => {
       let release;
@@ -1116,28 +1115,52 @@ async function deferredBootstrapProbe(context: BrowserContext): Promise<unknown>
   page.on('console', (message) => {
     if (message.type() === 'error') consoleErrors.push(message.text());
   });
-  await installNetworkGuards(page, supabaseScript);
-  await page.route('**/assets/js/boot.js*', async (route) => {
-    await route.fulfill({
-      contentType: 'application/javascript',
-      body: `${bootSource}
-        (() => {
-          const originalBoot = boot;
-          boot = function (...args) {
-            const probe = window.__stateDeferredBoot;
-            probe.bootCalls += 1;
-            probe.finalizedAtBoot = !!window.MatchaLunaApp?.finalized;
-            const result = originalBoot.apply(this, args);
-            probe.bootReturnedPromise = !!result && typeof result.then === 'function';
-            Promise.resolve(result).then(
-              () => { probe.bootSettled = true; },
-              () => { probe.bootSettled = true; },
-            );
-            return result;
-          };
-        })();`,
+  await page.addInitScript(() => {
+    Object.defineProperty(window, 'MatchaLunaApp', {
+      configurable: true,
+      enumerable: true,
+      get: () => undefined,
+      set: (facade: any) => {
+        Object.defineProperty(window, 'MatchaLunaApp', {
+          configurable: true,
+          enumerable: true,
+          value: facade,
+          writable: true,
+        });
+        const originalRegisterModule = facade.registerModule;
+        facade.registerModule = function (
+          domain: string,
+          descriptors: Record<string, PropertyDescriptor>,
+        ) {
+          if (domain === 'bootstrap') {
+            const bootDescriptor = descriptors.boot;
+            const originalBoot = bootDescriptor.value;
+            descriptors = {
+              ...descriptors,
+              boot: {
+                ...bootDescriptor,
+                value: function (this: unknown, ...args: unknown[]) {
+                  const probe = (window as any).__stateDeferredBoot;
+                  probe.bootCalls += 1;
+                  probe.finalizedAtBoot = !!(window as any).MatchaLunaApp?.finalized;
+                  const result = originalBoot.apply(this, args);
+                  probe.bootReturnedPromise = !!result &&
+                    typeof result.then === 'function';
+                  Promise.resolve(result).then(
+                    () => { probe.bootSettled = true; },
+                    () => { probe.bootSettled = true; },
+                  );
+                  return result;
+                },
+              },
+            };
+          }
+          return originalRegisterModule.call(this, domain, descriptors);
+        };
+      },
     });
   });
+  await installNetworkGuards(page, supabaseScript);
   await page.goto('index.html?deferred-bootstrap=1', { waitUntil: 'load' });
   await page.evaluate(() =>
     (window as typeof window & { MatchaLunaApp: { ready: Promise<void> } })

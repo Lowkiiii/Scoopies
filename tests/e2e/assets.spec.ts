@@ -3,7 +3,6 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 const expectedRuntimeFiles = [
-  'boot.js',
   'start.js',
 ];
 
@@ -92,6 +91,7 @@ test('the module bootstrap loads the classic runtime without changing the app co
     expect(assetResponses.get(path), `${path} must load exactly once with HTTP 200`).toEqual([200]);
   });
   expect(assetResponses.has('/Scoopies/assets/js/state.js')).toBe(false);
+  expect(assetResponses.has('/Scoopies/assets/js/boot.js')).toBe(false);
   expect(assetResponses.has('/Scoopies/assets/js/core.js')).toBe(false);
   expect(assetResponses.has('/Scoopies/assets/js/runtime-factories.js')).toBe(false);
   expect(assetResponses.has('/Scoopies/assets/js/costing.js')).toBe(false);

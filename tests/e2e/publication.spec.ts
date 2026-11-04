@@ -24,7 +24,6 @@ const protectedPublicationNames = [
 ] as const;
 
 const activeRuntimeFiles = [
-  'boot.js',
   'start.js',
 ] as const;
 
@@ -1409,11 +1408,11 @@ test('typed Publication keeps its registration boundary, slot, runtime, and fall
     contractLength: 175,
     domainOrder: [
       'core', 'runtime', 'state', 'costing', 'catalog', 'stocks', 'workspace', 'pos',
-      'publication', 'modals', 'support', 'events', 'legacy',
+      'publication', 'modals', 'support', 'events', 'bootstrap', 'legacy',
     ],
     domainSizes: {
       core: 15, runtime: 4, state: 141, costing: 37, catalog: 81, stocks: 63, workspace: 18,
-      publication: 10, modals: 46, pos: 79, support: 3, events: 1,
+      publication: 10, modals: 46, pos: 79, support: 3, events: 1, bootstrap: 1,
     },
     publicationOrder: publicationNames,
     protectedNames: protectedPublicationNames,

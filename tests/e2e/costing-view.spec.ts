@@ -20,7 +20,6 @@ const costingViewNames = [
 ] as const;
 
 const activeRuntimeFiles = [
-  'boot.js',
   'start.js',
 ] as const;
 
@@ -780,6 +779,7 @@ test('typed Costing view exposes the exact API and retained fallback', async ({
     'modals',
     'support',
     'events',
+    'bootstrap',
     'legacy',
   ]);
   expect(contract.costingLength).toBe(37);

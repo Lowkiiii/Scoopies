@@ -125,9 +125,14 @@ test('signed-in production reads the POS Stocks and Costing workspaces without m
   const workspaceBoundary = await page.evaluate(() => {
     const root = window as typeof window & Record<string, any>;
     return {
+      contractVersion: root.MatchaLunaApp.contractVersion,
+      contractCount: root.MatchaLunaApp.contractNames.length,
       names: Object.keys(root.MatchaLunaApp.domains.workspace || {}),
       posNames: Object.keys(root.MatchaLunaApp.domains.pos || {}),
       stateNames: Object.keys(root.MatchaLunaApp.domains.state || {}),
+      bootstrapNames: Object.keys(
+        root.MatchaLunaApp.domains.bootstrap || {},
+      ),
       runtime: Array.from(
         document.querySelectorAll<HTMLScriptElement>(
           'script[data-matcha-luna-runtime]',
@@ -138,16 +143,24 @@ test('signed-in production reads the POS Stocks and Costing workspaces without m
         .getEntriesByType('resource')
         .map((entry) => entry.name)
         .filter((name) => /\/assets\/js\/state\.js(?:[?#]|$)/.test(name)),
+      bootRequests: performance
+        .getEntriesByType('resource')
+        .map((entry) => entry.name)
+        .filter((name) => /\/assets\/js\/boot\.js(?:[?#]|$)/.test(name)),
     };
   });
+  expect(workspaceBoundary.contractVersion).toBe(1);
+  expect(workspaceBoundary.contractCount).toBe(175);
   expect(workspaceBoundary.names).toHaveLength(18);
   expect(workspaceBoundary.posNames).toHaveLength(79);
   expect(workspaceBoundary.posNames.slice(0, posOperationsNames.length)).toEqual(
     posOperationsNames,
   );
   expect(workspaceBoundary.stateNames).toEqual(stateBindingNames);
-  expect(workspaceBoundary.runtime).toEqual(['boot.js', 'start.js']);
+  expect(workspaceBoundary.bootstrapNames).toEqual(['boot']);
+  expect(workspaceBoundary.runtime).toEqual(['start.js']);
   expect(workspaceBoundary.stateRequests).toEqual([]);
+  expect(workspaceBoundary.bootRequests).toEqual([]);
 
   await page.locator('#authEmail').fill(email);
   await page.locator('#authPass').fill(password);

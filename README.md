@@ -15,9 +15,10 @@ preserving its established browser contract:
 
 - [`index.html`](index.html) contains the document structure and UI markup.
 - [`assets/styles.css`](assets/styles.css) contains the application styles.
-- [`assets/js`](assets/js) contains the remaining classic Bootstrap and Start
-  scripts plus compatibility fallbacks for cached clients. The former classic
-  State and persistence (`state.js`), Core, Runtime factories, Costing,
+- [`assets/js`](assets/js) contains the remaining classic Start script plus
+  compatibility fallbacks for cached clients. The former classic Bootstrap
+  (`boot.js`), State and persistence (`state.js`), Core, Runtime factories,
+  Costing,
   Costing presentation (`render-costing.js`), POS catalog (`pos-catalog.js`),
   POS presentation (`render-pos.js`), POS operations (`pos-operations.js`),
   Publication (`publication.js`), Stocks domain, Stocks view, Support
@@ -28,9 +29,9 @@ preserving its established browser contract:
   compatibility facade, registers typed Core, Runtime factories, State,
   Costing, Catalog, Costing presentation, Stocks domain, Workspace
   synchronization, POS operations, Publication, POS presentation, Stocks
-  view/controller, Support, and Events modules at their established runtime
-  positions, with State after Runtime and before Costing, and loads the
-  remaining classic runtime in order.
+  view/controller, Support, Events, and Bootstrap modules at their established
+  runtime positions, with State after Runtime and before Costing and Bootstrap
+  after Events, and loads the remaining classic Start runtime in order.
 - [`src/core`](src/core) contains the typed unit, money, identity, and stable
   serialization helpers introduced by Phase 3B1.
 - [`src/runtime`](src/runtime) contains the typed fresh-state factories
@@ -38,6 +39,8 @@ preserving its established browser contract:
 - [`src/state`](src/state) contains the typed application-state cells,
   normalization, reconciliation, persistence, cloud/realtime, history, and
   authentication responsibilities released in Phase 4K.
+- [`src/bootstrap`](src/bootstrap) contains the typed Test, offline, and
+  connected startup coordinator implemented by the Phase 4L candidate.
 - [`src/costing`](src/costing) contains typed ingredient, mixture, recipe,
   packaging, product, publication snapshot, validation, shared view-helper,
   and costing-page rendering logic introduced by Phases 3B2 and 4D.
@@ -80,8 +83,8 @@ preserving its established browser contract:
   Costing-presentation, POS-presentation, Publication, and Modal-workflow
   released slices plus the released Phase 4H POS-catalog boundary and the
   released Phase 4I Workspace, Phase 4J POS-operations, and Phase 4K typed
-  State-hub boundaries. It also freezes the documentation-only Phase 4L typed
-  Bootstrap contract; that executable migration has not started.
+  State-hub boundaries, plus the Phase 4L typed Bootstrap implementation
+  candidate.
 
 The remaining JavaScript runtime files are intentionally loaded as ordered
 classic scripts by the module bootstrap. Do not independently add `async`,
@@ -132,17 +135,17 @@ gates all passed.
 
 Phase 4K implements the frozen 87-value and 54-function State surface as one
 141-binding typed domain while retaining the unchanged classic State fallback
-for cached clients. Fresh startup now loads only classic `boot.js` and
-`start.js`; Bootstrap and Start remain separately reversible future Phases 4L
-and 4M. Its exact classic parity, recovery, mobile safety, cross-platform CI,
-Pages artifact, live-browser, and guarded signed-in production gates all
-passed.
+for cached clients. That slice's exact classic parity, recovery, mobile safety,
+cross-platform CI, Pages artifact, live-browser, and guarded signed-in
+production gates all passed; Bootstrap remains separately reversible from
+State.
 
-Phase 4L currently changes documentation only. It freezes the one-function
-Bootstrap surface, exact test/offline/connected startup effects, Promise and
-failure boundaries, live State dependencies, the one-script active-runtime
-target, and the exact 162-run implementation matrix. Start remains a separate,
-reversible future Phase 4M.
+Phase 4L implements the frozen one-function Bootstrap surface while preserving
+the exact Test, offline, and connected startup effects, Promise and failure
+boundaries, live State dependencies, and unchanged cached-client fallbacks.
+Fresh startup now loads only classic `start.js`; Start remains a separate,
+reversible future Phase 4M. This implementation remains a candidate until every
+release gate passes.
 
 Use the Node version recorded in
 [`.nvmrc`](.nvmrc), then run:
@@ -155,9 +158,9 @@ npm test
 ```
 
 `npm test` first creates a fresh `dist/`, then previews and exercises that
-artifact. The released Phase 4K slice runs the protected 182-test legacy browser
-suite inside an exact 151-run matrix: 117 desktop Chromium, 17 Pixel Chrome,
-and 17 iPhone WebKit runs while preserving the exact 175-name compatibility
+artifact. The Phase 4L candidate runs the protected 182-test legacy browser
+suite inside an exact 162-run matrix: 126 desktop Chromium, 18 Pixel Chrome,
+and 18 iPhone WebKit runs while preserving the exact 175-name compatibility
 contract.
 Pull requests and pushes to `main` run the same type-check, build, and browser
 checks on both Ubuntu and Windows through

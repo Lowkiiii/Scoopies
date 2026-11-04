@@ -591,6 +591,7 @@ test('the compatibility facade exactly protects the legacy browser contract', as
     'modals',
     'support',
     'events',
+    'bootstrap',
     'legacy',
   ]);
   expect(contract.namespaceNames).toEqual(contract.contractNames);
