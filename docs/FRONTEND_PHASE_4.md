@@ -3888,5 +3888,233 @@ Every Phase 4L gate above passed before the phase was marked released.
   exact tests, matrix configuration, candidate documentation, and guarded
   read-only smoke; the retained classic fallbacks remained byte-identical.
 
+## Phase 4M contract — typed Start
+
+`start.js` is the final one-line execution boundary:
+
+```js
+boot();
+```
+
+It creates no symbol, compatibility API, or domain. Its only responsibility is
+to resolve the current browser-root `boot` binding and invoke it once after the
+compatibility facade has finalized. Despite its size, this boundary controls
+startup timing, receiver semantics, ignored-Promise behavior, browser error
+reporting, facade readiness, and the last active classic-runtime request.
+
+This contract replaces only the fresh Start invocation. It does not combine
+Start with Bootstrap or add public surface:
+
+1. released Phase 4K owns typed State;
+2. released Phase 4L owns typed Bootstrap while fresh active classic runtime
+   remains exactly `start.js`; and
+3. Phase 4M replaces only fresh `start.js`, leaving active classic runtime
+   empty while retaining every cached/pre-module fallback.
+
+Phase 4M changes no UI, authentication flow, Supabase schema, RPC, RLS policy,
+table, storage format, persistence format, POS, Stocks, costing, recipe,
+pricing, inventory, or business-data behavior.
+
+### Private Start boundary and exact orchestration
+
+Start remains an internal execution effect. Phase 4M must not create a `start`
+compatibility domain, add `window.start`, add a protected compatibility name,
+or alter descriptors or domain order. Compatibility remains version 1 with
+exactly 175 protected names, and exact domain order remains:
+
+`core, runtime, state, costing, catalog, stocks, workspace, pos, publication, modals, support, events, bootstrap, legacy`
+
+The typed implementation belongs under `src/start/`. It exposes only an
+internal typed function to the module entry. Browser orchestration retains this
+exact order:
+
+1. register Events and install all delegated handlers;
+2. await the retained empty loader boundary before Bootstrap;
+3. register the one-function Bootstrap domain;
+4. bind Legacy and finalize the compatibility facade;
+5. await the retained final loader boundary, now empty; and
+6. synchronously invoke typed Start exactly once.
+
+The final loader call is intentionally retained even though its manifest
+segment is empty. It preserves the former Start slot and makes future cached-
+client reasoning explicit. Typed Start must not move before finalization, be
+scheduled as a later task, or execute from registration. No alternate entry
+path may execute both typed Start and classic `start.js`.
+
+### Exact lookup, call, and result semantics
+
+Every typed Start execution must preserve the observable semantics of the
+classic expression `boot();`:
+
+- read `boot` live from the browser root exactly once at the invocation moment;
+- after a successful callable lookup, perform exactly one call;
+- invoke with zero arguments;
+- preserve a bare-call receiver: strict replacement functions observe
+  `undefined`, while non-strict replacements receive ordinary JavaScript
+  global receiver coercion;
+- discard the return value without reading it; and
+- add no once flag, deduplication, retry, cancellation, logging, or recovery.
+
+The implementation must not import or capture Bootstrap directly, destructure
+or pre-bind `boot`, call `window.boot()`, use optional chaining, await or return
+the result, call `Promise.resolve`, inspect `then`, attach fulfillment or
+rejection handlers, or store the returned value. Reassigning either
+`window.boot` or `MatchaLunaApp.domains.bootstrap.boot` before Start executes
+must affect the call through the existing bidirectionally live Bootstrap
+accessors.
+
+A pending Bootstrap Promise must not delay `MatchaLunaApp.ready`. A rejected
+Bootstrap Promise remains ignored by Start and follows the browser's ordinary
+unhandled-rejection path; it must not reject facade readiness, change status to
+`App failed to start`, or trigger a second call.
+
+### Synchronous error and readiness parity
+
+Classic external-script execution has a distinct failure boundary. If reading
+root `boot`, validating callability, or invoking it throws synchronously, the
+browser reports the original error, but the successfully fetched external
+script still fires `load`; the retained classic loader resolves and facade
+readiness can fulfill.
+
+Typed Start must reproduce that boundary exactly enough to preserve application
+behavior:
+
+1. perform live lookup and invocation synchronously in the former Start slot;
+2. catch only a synchronous lookup/call failure at the Start boundary;
+3. report the same error asynchronously as an uncaught browser error, without
+   wrapping, translating, logging, or swallowing it; and
+4. allow module startup and `MatchaLunaApp.ready` to fulfill.
+
+This boundary must not catch or subscribe to a Promise returned by `boot`.
+There must be exactly one browser error for one synchronous failure and exactly
+one unhandled-rejection event for one rejected returned Promise. Intentional
+failure tests must isolate and fully assert these events so they cannot escape
+as unrelated test noise.
+
+### Runtime, fallback, and cache transition
+
+Phase 4M removes only `start.js` from the active manifest. The exact fresh
+active classic runtime becomes the empty list:
+
+```text
+[]
+```
+
+Fresh Phase 4M entry must make no classic runtime script request and no
+performance-resource request for `state.js`, `boot.js`, or `start.js`. Empty
+runtime means no versioned runtime script node; tests must not manufacture a
+placeholder solely to retain an old assertion.
+
+The exact 18-script cached/pre-module transition remains byte-for-byte and
+order-for-order unchanged:
+
+1. `core.js`
+2. `runtime-factories.js`
+3. `state.js`
+4. `costing.js`
+5. `pos-catalog.js`
+6. `stocks.js`
+7. `workspace-sync.js`
+8. `pos-operations.js`
+9. `publication.js`
+10. `render-costing.js`
+11. `render-modals.js`
+12. `render-pos.js`
+13. `render-stocks.js`
+14. `support.js`
+15. `events.js`
+16. `boot.js`
+17. `compatibility.js`
+18. `start.js`
+
+The retained `assets/js/start.js` fallback remains unchanged at Git blob
+`2ec5d4cd26b3cbeb5e10d8f0a5cd8eb129acbace` and canonical LF SHA-256
+`5CF0A8DE9986B051060B4E29DB69511AE962A9B8FCAD9F8F1AD233DAC3C680C3`.
+Unversioned and prior-version query-string URLs must return identical bytes.
+The existing build continues copying this asset for cached clients.
+
+Path ownership is mutually exclusive:
+
+- fresh Phase 4M entry executes typed Start once and requests no classic Start;
+- cached Phase 4L entry may request its versioned classic `start.js`, use typed
+  Bootstrap, and invoke Bootstrap once without also executing typed Start;
+- cached Phase 4K and pre-module paths may use retained classic Bootstrap and
+  Start, including the exact 18-script transition, and invoke once; and
+- no entry may double-start, mix typed and classic Start, or delete/rewrite the
+  fallback asset.
+
+### Exact Phase 4M implementation coverage
+
+The implementation adds exactly three desktop-only Start tests plus one Start
+mobile test selected by all three browser projects. Every existing test remains.
+From the released 162-run baseline, the complete matrix becomes exactly 168
+runs: 130 desktop Chromium, 19 Pixel Chrome, and 19 iPhone WebKit. The focused
+Start slice contains exactly six runs.
+
+The three desktop tests separately cover:
+
+1. the private/no-API boundary, exact registration/finalization/invocation
+   slot, unchanged domain and 175-name contracts, empty fresh runtime and zero
+   State/Bootstrap/Start requests, exact 18-script pre-module transition,
+   cached Phase 4L mutual exclusion, and frozen fallback bytes and provenance;
+2. typed-versus-retained-classic parity for live root lookup, one getter read,
+   one invocation, strict and non-strict receiver behavior, zero arguments,
+   discarded sentinel results, and a throwing/counting `then` getter that must
+   never be read; and
+3. pending and rejected returned Promises plus root-getter, non-callable, and
+   synchronous-call failures, proving exactly-once browser error or rejection
+   reporting, finalization-before-call, readiness independence, no failure
+   status, no duplicate event, and no unrelated page, console, request, or
+   server error.
+
+The one cross-project mobile test covers a deterministic fresh Test-mode entry
+at desktop, Pixel, and iPhone sizes: exactly one post-finalization call,
+undefined strict receiver, zero arguments, ignored return, empty runtime, zero
+State/Bootstrap/Start request, exact SDK interception, visible and keyboard-
+reachable shell, zero horizontal overflow, and zero escaped network or business
+write. Fetch, Storage, table-query, RPC, object-storage, and business-write
+guards must be installed before navigation and prove non-vacuous through
+installation and branch-specific counters.
+
+Existing tests must update only fresh active-runtime expectations from
+`['start.js']` to `[]`. Every transition-runtime list remains the exact 18
+scripts above. Existing Bootstrap startup/readiness and mobile coverage remains
+and gains explicit zero-Start-request assertions. The asset test replaces its
+obsolete one-runtime-version assertion with proof that fresh runtime contains
+no nodes or Start response. Both mobile project selectors include the new Start
+mobile specification.
+
+### Production, security, and release gates
+
+The manual protected production smoke must expect active runtime `[]` and add a
+performance-resource assertion that `start.js` requests are empty while
+retaining empty State and Bootstrap request checks. It must continue asserting:
+
+- Bootstrap keys exactly `boot`, State 141, POS 79, and Workspace 18;
+- compatibility version 1 and exactly 175 protected names;
+- real read-only POS, Stocks, Ingredients, Recipes, and Pricing paths; and
+- zero escaped table, RPC, object-storage, or business-data write.
+
+The smoke remains manual, `main`-only, environment-scoped, `contents: read`,
+and credential-safe. DOM credentials are cleared after login; screenshots,
+traces, and video remain disabled; credentials, tokens, business State, and
+business-data fixtures are never retained. No CI, Pages, Supabase, or deployment
+workflow change is required for Phase 4M.
+
+Before release, Phase 4M must pass clean dependency installation, zero audit
+vulnerabilities, strict type-check, production build, the exact 182-test legacy
+and 175-name compatibility baselines, all 168 browser runs locally and on
+Ubuntu and Windows, tested-artifact Pages deployment, byte-for-byte live
+artifact verification, a fresh 390-pixel browser probe, and the guarded signed-
+in production smoke. Independent architecture, source-parity, test-strength,
+cache/security, scope, final-diff, documentation, and release-readiness audits
+must find no blocker.
+
+### Phase 4M contract status
+
+This commit freezes documentation only. The executable Start migration has not
+started. The active runtime remains exactly `start.js` until a separate
+implementation pull request satisfies every contract and release gate above.
+
 No later Phase 4 executable slice is released until its exact API and parity
 contract is frozen and all applicable gates have recorded evidence.

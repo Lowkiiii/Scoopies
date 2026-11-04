@@ -83,7 +83,9 @@ preserving its established browser contract:
   Costing-presentation, POS-presentation, Publication, and Modal-workflow
   released slices plus the released Phase 4H POS-catalog boundary and the
   released Phase 4I Workspace, Phase 4J POS-operations, and Phase 4K typed
-  State-hub and Phase 4L typed Bootstrap boundaries.
+  State-hub and Phase 4L typed Bootstrap boundaries. It also freezes the
+  documentation-only Phase 4M typed Start contract; that executable migration
+  has not started.
 
 The remaining JavaScript runtime files are intentionally loaded as ordered
 classic scripts by the module bootstrap. Do not independently add `async`,
@@ -146,6 +148,13 @@ Fresh startup now loads only classic `start.js`; Start remains a separate,
 reversible future Phase 4M. Its exact startup parity, failure, concurrency,
 cache, mobile safety, cross-platform CI, Pages artifact, live-browser, and
 guarded signed-in production gates all passed.
+
+Phase 4M currently changes documentation only. It freezes Start as one private
+typed invocation after facade finalization, with live root lookup, bare-call
+receiver and ignored-result parity, classic-script-equivalent synchronous error
+reporting, an empty fresh classic runtime, unchanged cached-client fallbacks,
+and an exact 168-run implementation matrix. It adds no compatibility domain or
+browser API and changes no user interface, data, or business behavior.
 
 Use the Node version recorded in
 [`.nvmrc`](.nvmrc), then run:
