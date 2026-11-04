@@ -4,9 +4,7 @@ import { resolve } from 'node:path';
 
 const supportNames = ['exportData', 'handleFileImport', 'exampleData'] as const;
 
-const activeRuntimeFiles = [
-  'start.js',
-] as const;
+const activeRuntimeFiles = [] as const;
 
 const transitionRuntimeFiles = [
   'core.js',

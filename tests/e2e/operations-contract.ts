@@ -37,9 +37,7 @@ export const protectedPosOperationsNames = [
   'submitPosVoidSale',
 ] as const;
 
-export const activeRuntimeFiles = [
-  'start.js',
-] as const;
+export const activeRuntimeFiles = [] as const;
 
 export const transitionRuntimeFiles = [
   'core.js', 'runtime-factories.js', 'state.js', 'costing.js',

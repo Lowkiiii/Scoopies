@@ -317,7 +317,7 @@ test('typed Bootstrap preserves its exact API, registration slot, runtime, cache
     rootToDomain: true,
     runtime: activeRuntimeFiles,
   });
-  expect(runtimeRequests.filter((file) => file === 'start.js')).toHaveLength(1);
+  expect(runtimeRequests.filter((file) => file === 'start.js')).toEqual([]);
   expect(runtimeRequests.filter((file) => file === 'boot.js')).toEqual([]);
   expect(runtimeRequests.filter((file) => file === 'state.js')).toEqual([]);
 
@@ -769,7 +769,7 @@ test('typed Bootstrap preserves connected session extraction, receivers, config,
   ]);
 });
 
-test('classic Start invokes typed Bootstrap once after finalization without delaying facade readiness', async ({ page }) => {
+test('typed Start invokes typed Bootstrap once after finalization without delaying facade readiness', async ({ page }) => {
   const pageErrors: string[] = [];
   const consoleErrors: string[] = [];
   const runtimeRequests: string[] = [];
@@ -916,7 +916,7 @@ test('classic Start invokes typed Bootstrap once after finalization without dela
     guards: { installed: true, fetchCalls: 0 },
     sdk: { queryCalls: 0, rpcCalls: 0, storageCalls: 0 },
   });
-  expect(runtimeRequests).toEqual(['start.js']);
+  expect(runtimeRequests).toEqual([]);
   expect(pageErrors).toEqual([]);
   expect(consoleErrors).toEqual([]);
 });

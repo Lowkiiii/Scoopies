@@ -147,6 +147,10 @@ test('signed-in production reads the POS Stocks and Costing workspaces without m
         .getEntriesByType('resource')
         .map((entry) => entry.name)
         .filter((name) => /\/assets\/js\/boot\.js(?:[?#]|$)/.test(name)),
+      startRequests: performance
+        .getEntriesByType('resource')
+        .map((entry) => entry.name)
+        .filter((name) => /\/assets\/js\/start\.js(?:[?#]|$)/.test(name)),
     };
   });
   expect(workspaceBoundary.contractVersion).toBe(1);
@@ -158,9 +162,10 @@ test('signed-in production reads the POS Stocks and Costing workspaces without m
   );
   expect(workspaceBoundary.stateNames).toEqual(stateBindingNames);
   expect(workspaceBoundary.bootstrapNames).toEqual(['boot']);
-  expect(workspaceBoundary.runtime).toEqual(['start.js']);
+  expect(workspaceBoundary.runtime).toEqual([]);
   expect(workspaceBoundary.stateRequests).toEqual([]);
   expect(workspaceBoundary.bootRequests).toEqual([]);
+  expect(workspaceBoundary.startRequests).toEqual([]);
 
   await page.locator('#authEmail').fill(email);
   await page.locator('#authPass').fill(password);

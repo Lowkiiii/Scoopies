@@ -190,6 +190,9 @@ async function runBranch(context: BrowserContext, branch: Branch): Promise<any> 
       bootRequests: performance.getEntriesByType('resource')
         .map((entry) => entry.name)
         .filter((name) => /\/assets\/js\/boot\.js(?:[?#]|$)/.test(name)),
+      startRequests: performance.getEntriesByType('resource')
+        .map((entry) => entry.name)
+        .filter((name) => /\/assets\/js\/start\.js(?:[?#]|$)/.test(name)),
       stateRequests: performance.getEntriesByType('resource')
         .map((entry) => entry.name)
         .filter((name) => /\/assets\/js\/state\.js(?:[?#]|$)/.test(name)),
@@ -218,8 +221,9 @@ test('Bootstrap Test, offline, and signed-out startup stay deterministic, write-
       settled: true,
     });
     expect(branch.result.bootstrapKeys).toEqual(['boot']);
-    expect(branch.result.runtime).toEqual(['start.js']);
+    expect(branch.result.runtime).toEqual([]);
     expect(branch.result.bootRequests).toEqual([]);
+    expect(branch.result.startRequests).toEqual([]);
     expect(branch.result.stateRequests).toEqual([]);
     expect(branch.result.overflow).toBeLessThanOrEqual(0);
     expect(branch.result.guards.installed).toBe(true);

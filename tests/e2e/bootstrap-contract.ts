@@ -1,6 +1,6 @@
 export const bootstrapNames = ['boot'] as const;
 
-export const activeRuntimeFiles = ['start.js'] as const;
+export const activeRuntimeFiles = [] as const;
 
 export const transitionRuntimeFiles = [
   'core.js',

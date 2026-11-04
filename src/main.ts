@@ -28,6 +28,7 @@ import {
   AFTER_STOCKS_VIEW_BEFORE_EVENTS,
   BEFORE_COSTING,
 } from './legacy/runtime-manifest';
+import { invokeStart } from './start';
 
 const facade = installCompatibilityFacade(window);
 registerCoreModule(facade);
@@ -58,6 +59,7 @@ const ready = (async () => {
   facade.bindClassic('legacy', facade.contractNames);
   facade.finalize();
   await loadClassicScripts(AFTER_COMPATIBILITY);
+  invokeStart(window);
 })();
 
 facade.ready = ready;

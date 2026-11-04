@@ -26,9 +26,7 @@ const posViewNames = [
   'renderPosPreservingInteraction',
 ] as const;
 
-const activeRuntimeFiles = [
-  'start.js',
-] as const;
+const activeRuntimeFiles = [] as const;
 
 const transitionRuntimeFiles = [
   'core.js',

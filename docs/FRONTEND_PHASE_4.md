@@ -70,6 +70,11 @@ that schema, its RPCs, or production data; see
   its bounded implementation merged at
   `24497cdccf42466bbeec0ff449addd81538807b4`. Every applicable gate passed
   and the release evidence is recorded below.
+- **4M — typed Start (implementation candidate):** the frozen private Start
+  contract merged at `86bc198af2c7f20b7e453d3d0ae5aa2883fb5737`.
+  The bounded typed candidate described below removes the final fresh classic
+  request while retaining every cached fallback; it is not released until all
+  implementation and production gates pass.
 - Later slices remain bounded by the migration waves below. Each requires its
   own exact API/parity contract before implementation.
 
@@ -2610,7 +2615,7 @@ State or Start:
    exactly `boot.js`, then `start.js`;
 2. released Phase 4L replaces only `boot.js`, leaving active classic runtime
    exactly `start.js`; and
-3. future Phase 4M will separately contract and replace only `start.js`.
+3. Phase 4M is separately contracted to replace only `start.js`.
 
 Keeping Start separate preserves the real classic invocation oracle and makes
 rollback independent. Phase 4L must not make `MatchaLunaApp.ready` await or
@@ -4110,11 +4115,29 @@ in production smoke. Independent architecture, source-parity, test-strength,
 cache/security, scope, final-diff, documentation, and release-readiness audits
 must find no blocker.
 
-### Phase 4M contract status
+### Phase 4M implementation status (candidate)
 
-This commit freezes documentation only. The executable Start migration has not
-started. The active runtime remains exactly `start.js` until a separate
-implementation pull request satisfies every contract and release gate above.
+- `src/start/index.ts` implements the private Start boundary with one live root
+  read and, after a successful callable lookup, one call with an undefined
+  receiver, zero arguments, and ignored return. A `queueMicrotask` rethrow
+  preserves synchronous classic-script-equivalent browser-error reporting.
+- The module entry retains the final empty loader boundary, then invokes typed
+  Start once after Legacy binding and facade finalization. No Start domain,
+  browser global, protected name, or compatibility-version change was added.
+- Fresh active classic runtime is empty and makes no State, Bootstrap, or Start
+  request. The retained classic Start fallback and every exact 18-script
+  cached/pre-module sequence remain unchanged.
+- Three desktop Start tests plus one cross-project mobile test define the exact
+  168-run matrix: 130 desktop Chromium, 19 Pixel Chrome, and 19 iPhone WebKit.
+  The focused Start slice passes all six runs; the complete 168-run matrix
+  passes locally in 2.2 minutes with the exact 182-test legacy and 175-name
+  compatibility baselines intact. Type-check and the 127-module production
+  build also pass.
+- This candidate changes no UI, backend schema, RPC, RLS/auth policy, table,
+  storage or persistence format, business rule, or production data. It remains
+  unreleased until cross-platform PR and post-merge CI, tested-artifact Pages
+  deployment, byte-for-byte live verification, the 390-pixel probe, guarded
+  signed-in production smoke, and all final independent audits pass.
 
 No later Phase 4 executable slice is released until its exact API and parity
 contract is frozen and all applicable gates have recorded evidence.

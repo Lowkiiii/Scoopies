@@ -22,7 +22,7 @@ export const BEFORE_COMPATIBILITY = Object.freeze([
   ...AFTER_EVENTS_BEFORE_COMPATIBILITY,
 ] as const);
 
-export const AFTER_COMPATIBILITY = Object.freeze(['start.js'] as const);
+export const AFTER_COMPATIBILITY = Object.freeze([] as const);
 
 export const CLASSIC_RUNTIME = Object.freeze([
   ...BEFORE_COMPATIBILITY,
