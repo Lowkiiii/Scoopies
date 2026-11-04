@@ -232,6 +232,54 @@ async function seedPopulatedStocks(page: Page) {
         },
       ],
     };
+    const stocks = app.MatchaLunaApp.domains.stocks as Record<string, any>;
+    app.__stockInlineRpcCalls = [];
+    stocks.loadStocks = async () => true;
+    app.cloud = {
+      connected: true,
+      client: {
+        rpc: async (name: string, args: any) => {
+          app.__stockInlineRpcCalls.push({
+            name,
+            args: app.snapshot(args),
+          });
+          if (name === 'pos_inventory_set_threshold') {
+            return {
+              data: [
+                {
+                  inventory_item_id: args.p_inventory_item_id,
+                  low_stock_threshold_base: args.p_threshold_base,
+                  revision: Number(args.p_expected_revision) + 1,
+                  active: true,
+                },
+              ],
+              error: null,
+            };
+          }
+          const line = args.p_lines[0];
+          const current = app.stockState.items.find(
+            (item: any) => item.id === line.inventoryItemId,
+          );
+          return {
+            data: [
+              {
+                transaction_id: 'inline-mobile-count',
+                inventory_item_id: line.inventoryItemId,
+                item_name: current.name,
+                transaction_type: 'stock_count',
+                quantity_delta_base: Number(line.quantity) - Number(current.balance),
+                balance_before_base: Number(current.balance),
+                balance_after_base: Number(line.quantity),
+                base_unit: current.baseUnit,
+                item_revision: Number(line.expectedRevision) + 1,
+                occurred_at: '2026-11-05T08:00:00.000Z',
+              },
+            ],
+            error: null,
+          };
+        },
+      },
+    };
     app.activateAppTab('stocks', false);
     app.renderStocks();
   });
@@ -242,7 +290,7 @@ test.beforeEach(async ({ page }) => {
   await seedPopulatedStocks(page);
 });
 
-test('populated Stocks filters and modal remain event-driven and mobile safe', async ({
+test('populated Stocks spreadsheet remains event-driven and mobile safe', async ({
   page,
 }) => {
   const mobileLayout = (page.viewportSize()?.width || 0) <= 700;
@@ -262,11 +310,10 @@ test('populated Stocks filters and modal remain event-driven and mobile safe', a
     'On hand',
     'Low-stock alert',
     'Last updated',
-    'Action',
   ]);
   await expect(stockTable.getByRole('row')).toHaveCount(5);
   await expect(stockTable.getByRole('rowheader')).toHaveCount(4);
-  await expect(stockTable.getByRole('cell')).toHaveCount(20);
+  await expect(stockTable.getByRole('cell')).toHaveCount(16);
   await expect(page.locator('.stock-row[data-stock-item]')).toHaveCount(4);
   expect(
     await page.locator('.stock-row').evaluateAll((rows) =>
@@ -283,7 +330,6 @@ test('populated Stocks filters and modal remain event-driven and mobile safe', a
       'on-hand',
       'threshold',
       'updated',
-      'action',
     ]),
   );
   await expect(page.locator('.stock-history-row')).toHaveCount(4);
@@ -320,71 +366,73 @@ test('populated Stocks filters and modal remain event-driven and mobile safe', a
   await page.locator('#stockKindFilter').selectOption('all');
   await expect(page.locator('#stockVisibleCount')).toHaveText('4 of 4 items');
 
-  const updateMatcha = page.locator(
-    '[data-stock-item="inventory-matcha"] [data-act="openStockModal"]',
+  const matchaCount = page.locator(
+    '[data-stock-item="inventory-matcha"] [data-stock-inline-field="count"]',
   );
-  await updateMatcha.focus();
-  await updateMatcha.press('Enter');
-  await expect(page.locator('#stockModal')).toBeVisible();
-  await expect(page.locator('#stockModalTitle')).toContainText(
-    'Organic Ceremonial Matcha',
+  await expect(matchaCount).toHaveValue('500');
+  await expect(matchaCount).toHaveAttribute('inputmode', 'decimal');
+  await matchaCount.fill('475');
+  await matchaCount.press('Escape');
+  await expect(matchaCount).toHaveValue('500');
+  await expect.poll(() =>
+    page.evaluate(() => (window as any).__stockInlineRpcCalls.length),
+  ).toBe(0);
+
+  await matchaCount.fill('-1');
+  await matchaCount.press('Enter');
+  await expect(matchaCount).toHaveAttribute('aria-invalid', 'true');
+  await expect.poll(() =>
+    page.evaluate(() => (window as any).__stockInlineRpcCalls.length),
+  ).toBe(0);
+
+  await matchaCount.fill('475');
+  await matchaCount.press('Enter');
+  await expect(
+    page.locator(
+      '[data-stock-item="inventory-matcha"] [data-stock-inline-field="count"]',
+    ),
+  ).toHaveValue('475');
+  await expect(page.locator('#stockModal')).toBeHidden();
+  await expect.poll(() =>
+    page.evaluate(() => (window as any).__stockInlineRpcCalls.length),
+  ).toBe(1);
+  const inlineRequest = await page.evaluate(() =>
+    (window as any).__stockInlineRpcCalls[0],
   );
-  await expect(page.locator('#stockQuantity')).toBeFocused();
-
-  await page.locator('#stockAction').selectOption('waste');
-  await page.locator('#stockUnit').selectOption('kg');
-  await page.locator('#stockQuantity').fill('0.1');
-  await page.locator('#stockReason').fill('Spilled during preparation');
-  await expect(page.locator('#stockPreviewBefore')).toHaveText('500 g');
-  await expect(page.locator('#stockPreviewAfter')).toHaveText('400 g');
-  await expect(page.locator('[data-act="submitStockModal"]')).toBeEnabled();
-
-  const modalLayout = await page.evaluate(() => {
-    const root = document.documentElement;
-    const modal = document.querySelector('#stockModal .modal') as HTMLElement;
-    const rect = modal.getBoundingClientRect();
-    const controls = Array.from(
-      modal.querySelectorAll('button, input, select, textarea'),
-    ) as HTMLElement[];
-    return {
-      viewportWidth: root.clientWidth,
-      pageWidth: root.scrollWidth,
-      modalClientWidth: modal.clientWidth,
-      modalScrollWidth: modal.scrollWidth,
-      modalContained: rect.left >= -1 && rect.right <= root.clientWidth + 1,
-      controlsHaveSize: controls.every(
-        (control) =>
-          control.getBoundingClientRect().width > 0 &&
-          control.getBoundingClientRect().height > 0,
-      ),
-    };
+  expect(inlineRequest.name).toBe('pos_inventory_record_transaction');
+  expect(inlineRequest.args.p_transaction_type).toBe('stock_count');
+  expect(inlineRequest.args.p_lines[0]).toMatchObject({
+    inventoryItemId: 'inventory-matcha',
+    quantity: 475,
+    unit: 'g',
+    expectedRevision: 4,
   });
-  expect(modalLayout.pageWidth).toBeLessThanOrEqual(
-    modalLayout.viewportWidth + 1,
+
+  const matchaThreshold = page.locator(
+    '[data-stock-item="inventory-matcha"] [data-stock-inline-field="threshold"]',
   );
-  expect(modalLayout.modalScrollWidth).toBeLessThanOrEqual(
-    modalLayout.modalClientWidth + 1,
+  await matchaThreshold.fill('70');
+  await page
+    .locator(
+      '[data-stock-item="inventory-matcha"] [data-stock-field="updated"]',
+    )
+    .click();
+  await expect.poll(() =>
+    page.evaluate(() => (window as any).__stockInlineRpcCalls.length),
+  ).toBe(2);
+  await expect(matchaThreshold).toHaveValue('70');
+  const thresholdRequest = await page.evaluate(() =>
+    (window as any).__stockInlineRpcCalls[1],
   );
-  expect(modalLayout.modalContained).toBe(true);
-  expect(modalLayout.controlsHaveSize).toBe(true);
-
-  const modalClose = page.locator(
-    '#stockModal [data-act="closeStockModal"]',
-  ).first();
-  const modalSubmit = page.locator('#stockModal [data-act="submitStockModal"]');
-  await modalSubmit.focus();
-  await page.keyboard.press('Tab');
-  await expect(modalClose).toBeFocused();
-
-  await page.keyboard.press('Escape');
-  await expect(page.locator('#stockModal')).toBeHidden();
-  await expect(updateMatcha).toBeFocused();
-
-  await updateMatcha.press('Enter');
-  await expect(page.locator('#stockModal')).toBeVisible();
-  await page.locator('#stockModal').click({ position: { x: 2, y: 2 } });
-  await expect(page.locator('#stockModal')).toBeHidden();
-  await expect(updateMatcha).toBeFocused();
+  expect(thresholdRequest).toEqual({
+    name: 'pos_inventory_set_threshold',
+    args: {
+      p_business_id: 'business-mobile',
+      p_inventory_item_id: 'inventory-matcha',
+      p_threshold_base: 70,
+      p_expected_revision: 5,
+    },
+  });
 
   const stocksLayout = await page.evaluate(() => {
     const root = document.documentElement;
@@ -394,10 +442,9 @@ test('populated Stocks filters and modal remain event-driven and mobile safe', a
     const renderedRows = Array.from(
       document.querySelectorAll('.stock-row, .stock-history-row'),
     );
-    const updateButton = document.querySelector(
-      '[data-stock-item="inventory-matcha"] [data-act="openStockModal"]',
-    ) as HTMLElement;
-    const updateRect = updateButton.getBoundingClientRect();
+    const inlineInputs = Array.from(
+      document.querySelectorAll('.stock-inline-input'),
+    ) as HTMLElement[];
     return {
       viewportWidth: root.clientWidth,
       pageWidth: root.scrollWidth,
@@ -410,16 +457,17 @@ test('populated Stocks filters and modal remain event-driven and mobile safe', a
           rect.right <= sectionRect.right + 1
         );
       }),
-      updateButtonWidth: updateRect.width,
-      updateButtonHeight: updateRect.height,
+      inlineInputsHaveTouchSize: inlineInputs.every((input) => {
+        const rect = input.getBoundingClientRect();
+        return rect.width >= 44 && rect.height >= 44;
+      }),
     };
   });
   expect(stocksLayout.pageWidth).toBeLessThanOrEqual(
     stocksLayout.viewportWidth + 1,
   );
   expect(stocksLayout.rowsContained).toBe(true);
-  expect(stocksLayout.updateButtonWidth).toBeGreaterThanOrEqual(44);
-  expect(stocksLayout.updateButtonHeight).toBeGreaterThanOrEqual(44);
+  expect(stocksLayout.inlineInputsHaveTouchSize).toBe(true);
   if (mobileLayout) {
     expect(stocksLayout.inventoryScrollWidth).toBeLessThanOrEqual(
       stocksLayout.inventoryClientWidth + 1,
@@ -458,7 +506,6 @@ test('populated Stocks filters and modal remain event-driven and mobile safe', a
       { label: 'On hand', before: 'On hand' },
       { label: 'Low-stock alert', before: 'Low-stock alert' },
       { label: 'Last updated', before: 'Last updated' },
-      { label: 'Action', before: 'Action' },
     ]);
   } else {
     await expect(stockTable.locator('thead')).toBeVisible();
