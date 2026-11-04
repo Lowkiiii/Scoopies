@@ -65,12 +65,11 @@ that schema, its RPCs, or production data; see
   its bounded implementation merged at
   `be0ce72f3d623fc1ee4173a424c748fe2f19bd58`. Every applicable gate passed
   and the release evidence is recorded below.
-- **4L — typed Bootstrap (implementation candidate):** the frozen one-function
-  Bootstrap surface is implemented by the bounded typed candidate described
-  below. It preserves the exact startup order, live State dependencies,
-  Promise/failure behavior, cached-client transition, and 162-run matrix,
-  changes no backend or business data, and is not released until every gate
-  passes.
+- **4L — typed Bootstrap (released):** the frozen one-function Bootstrap
+  contract merged at `2b5c9fc136d2b260a8a52d6160696252d0115bb1`;
+  its bounded implementation merged at
+  `24497cdccf42466bbeec0ff449addd81538807b4`. Every applicable gate passed
+  and the release evidence is recorded below.
 - Later slices remain bounded by the migration waves below. Each requires its
   own exact API/parity contract before implementation.
 
@@ -2609,8 +2608,8 @@ State or Start:
 
 1. released Phase 4K owns typed State while active classic runtime remains
    exactly `boot.js`, then `start.js`;
-2. the Phase 4L candidate replaces only `boot.js`, leaving active classic
-   runtime exactly `start.js`; and
+2. released Phase 4L replaces only `boot.js`, leaving active classic runtime
+   exactly `start.js`; and
 3. future Phase 4M will separately contract and replace only `start.js`.
 
 Keeping Start separate preserves the real classic invocation oracle and makes
@@ -2852,7 +2851,7 @@ Workspace 18 key assertions, preserve compatibility version 1 with exactly 175
 protected names, and retain all existing real POS, Stocks, Ingredients,
 Recipes, and Pricing reads with no escaped business-data write.
 
-### Phase 4L implementation status (candidate)
+### Phase 4L implementation status (released)
 
 - Four responsibility-focused modules under `src/bootstrap` and
   `src/compatibility/register-bootstrap.ts` implement and register the exact
@@ -2871,11 +2870,10 @@ Recipes, and Pricing reads with no escaped business-data write.
   the 126-module production build, all 11 focused runs, and the complete 162-run
   matrix pass locally, including the exact 182-test legacy and 175-name
   compatibility baselines.
-- This candidate changes no UI, backend schema, RPC, RLS/auth policy, table,
-  storage or persistence format, business rule, or production data. It is not
-  released until every universal gate, cross-platform PR and post-merge CI
-  run, tested-artifact Pages deployment, live verification, and guarded
-  production smoke pass.
+- This released slice changes no UI, backend schema, RPC, RLS/auth policy,
+  table, storage or persistence format, business rule, or production data. All
+  universal gates, cross-platform PR and post-merge CI, tested-artifact Pages
+  deployment, live verification, and guarded production smoke passed.
 
 ## Universal executable-slice gates
 
@@ -3804,6 +3802,91 @@ Every Phase 4K gate above passed before the phase was marked released.
   compatibility registration and manifest slot, exact tests, matrix
   configuration, candidate documentation, and guarded read-only smoke; the
   retained classic fallback remained byte-identical.
+
+## Phase 4L exit gates (complete)
+
+- The exact Bootstrap API contains one function, `boot`. It registers after
+  Events and the retained empty loader boundary, before Legacy/finalization and
+  classic Start. Browser-root and Bootstrap-domain assignments remain
+  bidirectionally live; the compatibility contract remains version 1 with
+  exactly 175 protected names.
+- Typed-versus-classic parity preserves exact Test, offline, connected,
+  recovery, rejection, Promise, readiness, receiver, live-dependency,
+  repeated-call, and overlapping-call behavior.
+- The active classic runtime is exactly `start.js` and no longer requests
+  `state.js` or `boot.js`. The cached/pre-module transition remains exactly 18
+  scripts; the retained Bootstrap and Start fallbacks remain unchanged at Git
+  blobs `79ece45aad9b175fe026296bf8d6552dc9900c05` and
+  `2ec5d4cd26b3cbeb5e10d8f0a5cd8eb129acbace`.
+- The exact 182-test legacy and 175-name compatibility baselines pass; all 162
+  matrix cases complete successfully locally and in Ubuntu and Windows CI.
+- The tested `main` artifact is live, matches all 22 GitHub Pages files byte-
+  for-byte, passes fresh 390-pixel browser verification, and passes the guarded
+  signed-in production smoke.
+- Independent architecture, source-parity, test-strength, scope/security,
+  cached-client, final-diff, documentation, and release-readiness audits found
+  no blocker. No auth policy, Supabase schema, RPC, table, storage or
+  persistence format, UI, business rule, or production-data behavior changed.
+
+Every Phase 4L gate above passed before the phase was marked released.
+
+## Phase 4L release record
+
+- Contract pull request: [#50](https://github.com/Lowkiiii/Scoopies/pull/50)
+- Contract commit: `02159352d53c6a2c6baefad8bc5ada8927bca9a5`
+- Contract merge commit: `2b5c9fc136d2b260a8a52d6160696252d0115bb1`
+- Contract PR CI:
+  [41818642832](https://github.com/Lowkiiii/Scoopies/actions/runs/41818642832)
+- Contract main CI and Pages deployment:
+  [41819025243](https://github.com/Lowkiiii/Scoopies/actions/runs/41819025243)
+- Implementation pull request:
+  [#51](https://github.com/Lowkiiii/Scoopies/pull/51)
+- Implementation commit: `426e8febdf8783c78bfa514c8f0426d1beef27bf`
+- Implementation merge commit:
+  `24497cdccf42466bbeec0ff449addd81538807b4`
+- Implementation PR CI:
+  [41825845873](https://github.com/Lowkiiii/Scoopies/actions/runs/41825845873)
+- Main CI and Pages deployment:
+  [41826381600](https://github.com/Lowkiiii/Scoopies/actions/runs/41826381600)
+- Signed-in production smoke:
+  [41827709303](https://github.com/Lowkiiii/Scoopies/actions/runs/41827709303)
+- Local verification: Node `24.22.2`; clean `npm ci`; zero audit
+  vulnerabilities; strict type-check and 126-module production build passed;
+  the focused Bootstrap slice passed all 11 runs and all 162 matrix cases
+  completed successfully in 1.8 minutes (126 desktop Chromium, 18 Pixel Chrome,
+  and 18 iPhone WebKit), including the exact 182-test legacy and 175-name
+  compatibility baselines.
+- Runtime verification: the Bootstrap domain contains exactly `boot`; typed
+  domain order is Core, Runtime, State, Costing, Catalog, Stocks, Workspace,
+  POS, Publication, Modals, Support, Events, Bootstrap, Legacy. State retains
+  141 bindings, POS 79, and Workspace 18; the fresh active runtime is exactly
+  `start.js`, with no `state.js` or `boot.js` request.
+- Cross-platform evidence: implementation PR CI passed on Ubuntu in 3m05s and
+  Windows in 3m03s. Post-merge CI passed on Ubuntu in 2m55s and Windows in
+  2m59s; Pages packaging took 8s and deployment took 9s. Pages packaged only
+  the verified Ubuntu `dist/` after both operating-system jobs passed.
+- Production artifact verification: all 22 files in downloaded artifact
+  `verified-pages-dist-24497cdccf42466bbeec0ff449addd81538807b4` returned HTTP
+  success from GitHub Pages and matched live SHA-256 bytes exactly. Pages served
+  `index-sr1tgyZq.js` and `index-B0B7i9SZ.css`; the exact one-script active
+  runtime requested only Start, while the exact 18-script cached transition and
+  unchanged Bootstrap/Start fallbacks matched the tested artifact.
+- Production browser verification: a fresh 390-pixel Chromium session loaded
+  the exact active order, finalized the version-1 175-name contract, exposed
+  the one-function Bootstrap domain in the exact domain order, retained State
+  141, POS 79, and Workspace 18, displayed at 390/390 width, and reported zero
+  page errors, console errors, failed requests, server errors, State requests,
+  or Bootstrap requests.
+- Signed-in verification: the protected main-only smoke passed in 50s while
+  loading the real POS, Stocks, Ingredients, Recipes, and Pricing views. Client
+  and network guards allowed no business-data write to escape and retained no
+  credentials, screenshots, traces, videos, or business-data artifacts.
+- Review evidence: independent architecture, source-parity, test-strength,
+  scope/security, cached-client, final-diff, documentation, and release-
+  readiness audits found no blocker. The 28-file implementation changed only
+  the typed Bootstrap boundary, compatibility registration and manifest slot,
+  exact tests, matrix configuration, candidate documentation, and guarded
+  read-only smoke; the retained classic fallbacks remained byte-identical.
 
 No later Phase 4 executable slice is released until its exact API and parity
 contract is frozen and all applicable gates have recorded evidence.
