@@ -581,6 +581,7 @@ test('the compatibility facade exactly protects the legacy browser contract', as
   expect(contract.domainOrder).toEqual([
     'core',
     'runtime',
+    'state',
     'costing',
     'catalog',
     'stocks',

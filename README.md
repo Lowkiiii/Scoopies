@@ -15,27 +15,29 @@ preserving its established browser contract:
 
 - [`index.html`](index.html) contains the document structure and UI markup.
 - [`assets/styles.css`](assets/styles.css) contains the application styles.
-- [`assets/js`](assets/js) contains responsibility-focused application scripts:
-  state and persistence, POS catalog and operations, stocks, publication,
-  rendering, events, support tools, and startup. The former classic Core,
-  Runtime factories, Costing, Costing presentation (`render-costing.js`),
-  POS catalog (`pos-catalog.js`), POS presentation (`render-pos.js`),
-  POS operations (`pos-operations.js`), Publication (`publication.js`),
-  Stocks domain, Stocks view, Support
+- [`assets/js`](assets/js) contains the remaining classic Bootstrap and Start
+  scripts plus compatibility fallbacks for cached clients. The former classic
+  State and persistence (`state.js`), Core, Runtime factories, Costing,
+  Costing presentation (`render-costing.js`), POS catalog (`pos-catalog.js`),
+  POS presentation (`render-pos.js`), POS operations (`pos-operations.js`),
+  Publication (`publication.js`), Stocks domain, Stocks view, Support
   (`support.js`), Events (`events.js`), Workspace synchronization
   (`workspace-sync.js`), and compatibility files are retained as unreferenced
   fallbacks for browsers holding an older module entry or pre-3B0 HTML.
 - [`src/main.ts`](src/main.ts) is the Vite module entry. It installs the typed
-  compatibility facade, registers typed Core, Runtime factories, Costing,
-  Catalog, Costing presentation, Stocks domain, Workspace synchronization,
-  POS operations, Publication, POS presentation, Stocks view/controller,
-  Support, and Events modules at their established runtime positions, with
-  Workspace after Stocks and before POS operations, and loads the remaining
-  classic runtime in order.
+  compatibility facade, registers typed Core, Runtime factories, State,
+  Costing, Catalog, Costing presentation, Stocks domain, Workspace
+  synchronization, POS operations, Publication, POS presentation, Stocks
+  view/controller, Support, and Events modules at their established runtime
+  positions, with State after Runtime and before Costing, and loads the
+  remaining classic runtime in order.
 - [`src/core`](src/core) contains the typed unit, money, identity, and stable
   serialization helpers introduced by Phase 3B1.
 - [`src/runtime`](src/runtime) contains the typed fresh-state factories
   introduced by Phase 4B.
+- [`src/state`](src/state) contains the typed application-state cells,
+  normalization, reconciliation, persistence, cloud/realtime, history, and
+  authentication responsibilities implemented by the Phase 4K candidate.
 - [`src/costing`](src/costing) contains typed ingredient, mixture, recipe,
   packaging, product, publication snapshot, validation, shared view-helper,
   and costing-page rendering logic introduced by Phases 3B2 and 4D.
@@ -77,9 +79,8 @@ preserving its established browser contract:
   release gates, rollback, and typed Runtime-factory, Support,
   Costing-presentation, POS-presentation, Publication, and Modal-workflow
   released slices plus the released Phase 4H POS-catalog boundary and the
-  released Phase 4I Workspace boundary and the released Phase 4J POS-
-  operations boundary. It also freezes the documentation-only Phase 4K State-
-  hub contract; that executable migration has not started.
+  released Phase 4I Workspace and Phase 4J POS-operations boundaries, plus the
+  Phase 4K typed State-hub implementation candidate.
 
 The remaining JavaScript runtime files are intentionally loaded as ordered
 classic scripts by the module bootstrap. Do not independently add `async`,
@@ -128,11 +129,12 @@ cached clients. Its exact classic parity, recovery, mobile safety, cross-
 platform CI, Pages artifact, live-browser, and guarded signed-in production
 gates all passed.
 
-Phase 4K currently changes documentation only. It freezes the complete
-87-value and 54-function State surface, its one-time initialization and live-
-binding rules, its two-script active-runtime target, and the exact 151-run
-implementation matrix. Bootstrap and start remain separately reversible future
-Phases 4L and 4M.
+Phase 4K implements the frozen 87-value and 54-function State surface as one
+141-binding typed domain while retaining the unchanged classic State fallback
+for cached clients. Fresh startup now loads only classic `boot.js` and
+`start.js`; Bootstrap and Start remain separately reversible future Phases 4L
+and 4M. This implementation remains a candidate until every release gate
+passes.
 
 Use the Node version recorded in
 [`.nvmrc`](.nvmrc), then run:
@@ -145,9 +147,10 @@ npm test
 ```
 
 `npm test` first creates a fresh `dist/`, then previews and exercises that
-artifact. The released Phase 4J boundary runs the protected 182-test legacy
-browser suite inside an exact 129-run matrix: 99 desktop Chromium, 15 Pixel
-Chrome, and 15 iPhone WebKit runs.
+artifact. The Phase 4K candidate runs the protected 182-test legacy browser
+suite inside an exact 151-run matrix: 117 desktop Chromium, 17 Pixel Chrome,
+and 17 iPhone WebKit runs while preserving the exact 175-name compatibility
+contract.
 Pull requests and pushes to `main` run the same type-check, build, and browser
 checks on both Ubuntu and Windows through
 [`.github/workflows/ci.yml`](.github/workflows/ci.yml). A passing `main` run

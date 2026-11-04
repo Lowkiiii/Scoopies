@@ -5,7 +5,6 @@ import { resolve } from 'node:path';
 const supportNames = ['exportData', 'handleFileImport', 'exampleData'] as const;
 
 const activeRuntimeFiles = [
-  'state.js',
   'boot.js',
   'start.js',
 ] as const;

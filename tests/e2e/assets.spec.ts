@@ -3,7 +3,6 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 const expectedRuntimeFiles = [
-  'state.js',
   'boot.js',
   'start.js',
 ];
@@ -92,6 +91,7 @@ test('the module bootstrap loads the classic runtime without changing the app co
   [...stylesheets, ...moduleEntries, ...expectedRuntimePaths].forEach((path) => {
     expect(assetResponses.get(path), `${path} must load exactly once with HTTP 200`).toEqual([200]);
   });
+  expect(assetResponses.has('/Scoopies/assets/js/state.js')).toBe(false);
   expect(assetResponses.has('/Scoopies/assets/js/core.js')).toBe(false);
   expect(assetResponses.has('/Scoopies/assets/js/runtime-factories.js')).toBe(false);
   expect(assetResponses.has('/Scoopies/assets/js/costing.js')).toBe(false);
@@ -141,6 +141,7 @@ test('the module bootstrap loads the classic runtime without changing the app co
 
 test('the transition asset keeps pre-module cached HTML usable', async ({ page }) => {
   const pageErrors: string[] = [];
+  const consoleErrors: string[] = [];
   const transitionAssetResponses = new Map<string, number[]>();
   const builtHtml = readFileSync(resolve(process.cwd(), 'dist/index.html'), 'utf8');
   const classicScripts = transitionRuntimeFiles
@@ -151,6 +152,9 @@ test('the transition asset keeps pre-module cached HTML usable', async ({ page }
     .replace('</body>', `${classicScripts}\n</body>`);
 
   page.on('pageerror', (error) => pageErrors.push(error.message));
+  page.on('console', (message) => {
+    if (message.type() === 'error') consoleErrors.push(message.text());
+  });
   page.on('response', (response) => {
     const pathname = new URL(response.url()).pathname;
     if (!pathname.startsWith('/Scoopies/assets/js/')) return;
@@ -193,4 +197,5 @@ test('the transition asset keeps pre-module cached HTML usable', async ({ page }
   });
   expect(facade).toEqual({ contractCount: 175, finalized: true });
   expect(pageErrors).toEqual([]);
+  expect(consoleErrors).toEqual([]);
 });

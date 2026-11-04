@@ -10,7 +10,6 @@ const runtimeFactoryNames = [
 ];
 
 const activeRuntimeFiles = [
-  'state.js',
   'boot.js',
   'start.js',
 ];
@@ -237,26 +236,41 @@ test('typed Runtime factories match the retained classic asset', async ({ page, 
 
 test('Runtime registers before state and preserves startup replacement paths', async ({ page }) => {
   await stubSupabase(page);
-  let registrationProbe: unknown;
-  await page.route('**/assets/js/state.js*', async (route) => {
-    registrationProbe = await page.evaluate((names) => {
-      const root = window as typeof window & Record<string, any>;
-      const runtime = root.MatchaLunaApp.domains.runtime as Record<string, () => Record<string, any>>;
-      const originals = Object.fromEntries(names.map((name) => [name, runtime[name]]));
-      runtime.freshPosOpsModal = () => ({ ...originals.freshPosOpsModal(), startupSource: 'runtime' });
-      root.freshPosSalesHistory = () => ({
-        ...originals.freshPosSalesHistory(),
-        startupSource: 'root',
-      });
-      runtime.freshStockState = () => ({ ...originals.freshStockState(), startupSource: 'runtime' });
-      root.freshStockModal = () => ({ ...originals.freshStockModal(), startupSource: 'root' });
-      return {
-        order: Object.keys(runtime),
-        rootMatches: names.map((name) => root[name] === runtime[name]),
-      };
-    }, runtimeFactoryNames);
-    await route.continue();
-  });
+  await page.addInitScript((names) => {
+    let facade: any;
+    Object.defineProperty(window, 'MatchaLunaApp', {
+      configurable: true,
+      enumerable: true,
+      get: () => facade,
+      set: (value) => {
+        facade = value;
+        const registerModule = value.registerModule;
+        value.registerModule = function wrappedRegisterModule(
+          this: any,
+          domain: string,
+          descriptors: Record<string, PropertyDescriptor>,
+        ) {
+          const namespace = registerModule.call(this, domain, descriptors);
+          if (domain !== 'runtime') return namespace;
+          const root = window as typeof window & Record<string, any>;
+          const runtime = namespace as Record<string, () => Record<string, any>>;
+          const originals = Object.fromEntries(names.map((name) => [name, runtime[name]]));
+          runtime.freshPosOpsModal = () => ({ ...originals.freshPosOpsModal(), startupSource: 'runtime' });
+          root.freshPosSalesHistory = () => ({
+            ...originals.freshPosSalesHistory(),
+            startupSource: 'root',
+          });
+          runtime.freshStockState = () => ({ ...originals.freshStockState(), startupSource: 'runtime' });
+          root.freshStockModal = () => ({ ...originals.freshStockModal(), startupSource: 'root' });
+          root.__phase4kRuntimeRegistrationProbe = {
+            order: Object.keys(runtime),
+            rootMatches: names.map((name) => root[name] === runtime[name]),
+          };
+          return namespace;
+        };
+      },
+    });
+  }, runtimeFactoryNames);
   await page.goto('index.html?test=1', { waitUntil: 'load' });
   await page.evaluate(() =>
     (
@@ -266,6 +280,10 @@ test('Runtime registers before state and preserves startup replacement paths', a
     ).MatchaLunaApp.ready,
   );
   await expect(page.locator('#syncStatus')).toHaveText('Test mode');
+  const registrationProbe = await page.evaluate(() => {
+    const root = window as typeof window & Record<string, any>;
+    return root.__phase4kRuntimeRegistrationProbe;
+  });
   const initialized = await page.evaluate(() => {
     const root = window as typeof window & Record<string, any>;
     return {

@@ -42,7 +42,7 @@ export default defineConfig({
     {
       name: 'mobile-chrome',
       testMatch:
-        /(?:smoke|stocks-mobile|events-mobile|costing-view-mobile|pos-view-mobile|publication-mobile|modals-mobile|catalog-mobile|workspace-mobile|operations-mobile)\.spec\.ts/,
+        /(?:smoke|stocks-mobile|events-mobile|costing-view-mobile|pos-view-mobile|publication-mobile|modals-mobile|catalog-mobile|workspace-mobile|operations-mobile|state-mobile)\.spec\.ts/,
       use: {
         ...devices['Pixel 5'],
         channel: chromiumChannel,
@@ -51,7 +51,7 @@ export default defineConfig({
     {
       name: 'mobile-safari',
       testMatch:
-        /(?:smoke|stocks-mobile|events-mobile|costing-view-mobile|pos-view-mobile|publication-mobile|modals-mobile|catalog-mobile|workspace-mobile|operations-mobile)\.spec\.ts/,
+        /(?:smoke|stocks-mobile|events-mobile|costing-view-mobile|pos-view-mobile|publication-mobile|modals-mobile|catalog-mobile|workspace-mobile|operations-mobile|state-mobile)\.spec\.ts/,
       use: {
         ...devices['iPhone 13'],
         browserName: 'webkit',

@@ -60,11 +60,11 @@ that schema, its RPCs, or production data; see
   `6e73cb2ed543db70fe1aa06737b7c6a7defe2b9b`; its bounded implementation merged
   at `fe4a77b27b02e5d6812e645991d45d66e8a99e76`. Every applicable gate passed
   and the release evidence is recorded below.
-- **4K — typed State hub (contract frozen; implementation not started):** this
-  documentation-only boundary freezes the complete 87-value and 54-function
-  State surface, its exact registration slot, live-binding and initialization
-  rules, active/fallback runtime transition, and 151-run implementation matrix.
-  It changes no executable source or production behavior.
+- **4K — typed State hub (implementation candidate):** the frozen 87-value and
+  54-function State surface is implemented by the bounded typed candidate
+  described below. It preserves the exact registration, initialization, live-
+  binding, fallback, and 151-run contracts, changes no backend or business
+  data, and is not released until every gate passes.
 - Later slices remain bounded by the migration waves below. Each requires its
   own exact API/parity contract before implementation.
 
@@ -2561,9 +2561,32 @@ screenshots, traces, videos, or business data. Phase 4K changes no UI, backend
 schema, RLS/auth policy, RPC, table, storage format, business rule, or
 production data.
 
-No Phase 4K implementation may begin until this documentation-only contract
-passes independent source-inventory, architecture, test-strength, security,
-cached-client, and final-diff review plus all current release gates.
+### Phase 4K implementation status (candidate)
+
+- Eleven responsibility-focused modules under `src/state` implement the exact
+  ordered 87-value and 54-function State surface. Registration installs the
+  complete 141-binding `state` domain atomically after Runtime and before
+  Costing, initializes every value once in classic source order, and keeps all
+  browser-root bindings bidirectionally live. Contract version 1 retains
+  exactly 175 protected names, including this slice's exact 50 protected
+  bindings.
+- The active classic runtime is reduced from three scripts to exactly two:
+  `boot.js`, then `start.js`. The exact 18-script cached/pre-module transition
+  remains available.
+- The retained `state.js` fallback is unchanged at Git blob
+  `c62c1b4754296e68e4817d4ecaa2089cc45e894d` and canonical LF SHA-256
+  `0FBB22C6437EC9B19CAC4C00AA4A58D51A6ABE63089825CE0875E2B77DCA36E0`.
+- Sixteen desktop State parity/safety tests and two cross-project mobile State
+  tests define the exact 151-run matrix: 117 desktop Chromium, 17 Pixel Chrome,
+  and 17 iPhone WebKit runs. The focused State slice contains exactly 22 runs;
+  strict type-check and the 121-module production build pass locally. The full
+  matrix and remaining release gates must pass before release, including the
+  exact 182-test legacy and 175-name compatibility baselines.
+- This candidate changes no UI, backend schema, RPC, RLS/auth policy, table,
+  storage or persistence format, business rule, or production data. It is not
+  released until every universal gate, cross-platform PR and post-merge CI
+  run, tested-artifact Pages deployment, live verification, and guarded
+  production smoke pass.
 
 ## Universal executable-slice gates
 

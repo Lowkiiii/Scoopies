@@ -27,7 +27,6 @@ const posViewNames = [
 ] as const;
 
 const activeRuntimeFiles = [
-  'state.js',
   'boot.js',
   'start.js',
 ] as const;
@@ -680,8 +679,8 @@ test('typed POS view keeps its registration slot, runtime, and fallback', async 
   expect(contract).toMatchObject({
     version: 1,
     contractLength: 175,
-    domainOrder: ['core', 'runtime', 'costing', 'catalog', 'stocks', 'workspace', 'pos', 'publication', 'modals', 'support', 'events', 'legacy'],
-    domainSizes: { core: 15, runtime: 4, costing: 37, catalog: 81, stocks: 63, workspace: 18, publication: 10, modals: 46, pos: 79, support: 3, events: 1 },
+    domainOrder: ['core', 'runtime', 'state', 'costing', 'catalog', 'stocks', 'workspace', 'pos', 'publication', 'modals', 'support', 'events', 'legacy'],
+    domainSizes: { core: 15, runtime: 4, state: 141, costing: 37, catalog: 81, stocks: 63, workspace: 18, publication: 10, modals: 46, pos: 79, support: 3, events: 1 },
     posOrder: [...posOperationsNames, ...posViewNames],
     protectedNames: [],
     activeRuntime: activeRuntimeFiles,
