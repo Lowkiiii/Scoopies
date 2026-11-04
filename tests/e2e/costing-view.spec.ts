@@ -20,7 +20,6 @@ const costingViewNames = [
 ] as const;
 
 const activeRuntimeFiles = [
-  'state.js',
   'boot.js',
   'start.js',
 ] as const;
@@ -771,6 +770,7 @@ test('typed Costing view exposes the exact API and retained fallback', async ({
   expect(contract.domainOrder).toEqual([
     'core',
     'runtime',
+    'state',
     'costing',
     'catalog',
     'stocks',

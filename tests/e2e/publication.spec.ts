@@ -24,7 +24,6 @@ const protectedPublicationNames = [
 ] as const;
 
 const activeRuntimeFiles = [
-  'state.js',
   'boot.js',
   'start.js',
 ] as const;
@@ -1268,12 +1267,40 @@ test('typed Publication keeps its registration boundary, slot, runtime, and fall
   context,
 }) => {
   await stubSupabase(page);
-  await page.route(/\/assets\/js\/state\.js(?:\?|$)/, async (route) => {
-    const response = await route.fetch();
-    const source = await response.text();
-    const probe = `\nwindow.__publicationBoundaryBefore={domain:Object.prototype.hasOwnProperty.call(window.MatchaLunaApp.domains,'publication'),root:${JSON.stringify(publicationNames)}.map(function(name){return typeof window[name];}),scripts:Array.from(document.querySelectorAll('script[data-matcha-luna-runtime]')).map(function(script){return script.dataset.matchaLunaRuntime;})};\n`;
-    await route.fulfill({ response, body: source + probe });
-  });
+  await page.addInitScript((names) => {
+    const root = window as typeof window & Record<string, any>;
+    let facade: any;
+    Object.defineProperty(root, 'MatchaLunaApp', {
+      configurable: true,
+      get: () => facade,
+      set: (next) => {
+        facade = next;
+        const register = next.registerModule;
+        next.registerModule = function (
+          this: any,
+          domain: string,
+          descriptors: Record<string, PropertyDescriptor>,
+        ) {
+          if (domain === 'publication') {
+            root.__publicationBoundaryBefore = {
+              domain: Object.prototype.hasOwnProperty.call(
+                next.domains,
+                'publication',
+              ),
+              root: names.map((name) => typeof root[name]),
+              scripts: Array.from(
+                document.querySelectorAll<HTMLScriptElement>(
+                  'script[data-matcha-luna-runtime]',
+                ),
+                (script) => script.dataset.matchaLunaRuntime,
+              ),
+            };
+          }
+          return register.call(this, domain, descriptors);
+        };
+      },
+    });
+  }, [...publicationNames]);
   await page.goto('index.html?test=1', { waitUntil: 'load' });
   await page.evaluate(() =>
     (window as typeof window & { MatchaLunaApp: { ready: Promise<void> } })
@@ -1381,11 +1408,11 @@ test('typed Publication keeps its registration boundary, slot, runtime, and fall
     version: 1,
     contractLength: 175,
     domainOrder: [
-      'core', 'runtime', 'costing', 'catalog', 'stocks', 'workspace', 'pos',
+      'core', 'runtime', 'state', 'costing', 'catalog', 'stocks', 'workspace', 'pos',
       'publication', 'modals', 'support', 'events', 'legacy',
     ],
     domainSizes: {
-      core: 15, runtime: 4, costing: 37, catalog: 81, stocks: 63, workspace: 18,
+      core: 15, runtime: 4, state: 141, costing: 37, catalog: 81, stocks: 63, workspace: 18,
       publication: 10, modals: 46, pos: 79, support: 3, events: 1,
     },
     publicationOrder: publicationNames,
@@ -1414,7 +1441,7 @@ test('typed Publication keeps its registration boundary, slot, runtime, and fall
   expect(contract.before).toEqual({
     domain: false,
     root: publicationNames.map(() => 'undefined'),
-    scripts: ['state.js'],
+    scripts: [],
   });
   expect(classicRuntime).toEqual({
     modules: 0,

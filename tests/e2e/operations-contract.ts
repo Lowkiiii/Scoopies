@@ -38,7 +38,7 @@ export const protectedPosOperationsNames = [
 ] as const;
 
 export const activeRuntimeFiles = [
-  'state.js', 'boot.js', 'start.js',
+  'boot.js', 'start.js',
 ] as const;
 
 export const transitionRuntimeFiles = [

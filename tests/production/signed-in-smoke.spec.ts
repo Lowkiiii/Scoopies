@@ -1,5 +1,6 @@
 import { expect, test, type Request } from '@playwright/test';
 import { posOperationsNames } from '../e2e/operations-contract';
+import { stateBindingNames } from '../e2e/state-contract';
 
 const READ_ONLY_RPC_NAMES = new Set([
   'pos_get_catalog_v2',
@@ -126,12 +127,17 @@ test('signed-in production reads the POS Stocks and Costing workspaces without m
     return {
       names: Object.keys(root.MatchaLunaApp.domains.workspace || {}),
       posNames: Object.keys(root.MatchaLunaApp.domains.pos || {}),
+      stateNames: Object.keys(root.MatchaLunaApp.domains.state || {}),
       runtime: Array.from(
         document.querySelectorAll<HTMLScriptElement>(
           'script[data-matcha-luna-runtime]',
         ),
         (script) => script.dataset.matchaLunaRuntime,
       ),
+      stateRequests: performance
+        .getEntriesByType('resource')
+        .map((entry) => entry.name)
+        .filter((name) => /\/assets\/js\/state\.js(?:[?#]|$)/.test(name)),
     };
   });
   expect(workspaceBoundary.names).toHaveLength(18);
@@ -139,11 +145,9 @@ test('signed-in production reads the POS Stocks and Costing workspaces without m
   expect(workspaceBoundary.posNames.slice(0, posOperationsNames.length)).toEqual(
     posOperationsNames,
   );
-  expect(workspaceBoundary.runtime).toEqual([
-    'state.js',
-    'boot.js',
-    'start.js',
-  ]);
+  expect(workspaceBoundary.stateNames).toEqual(stateBindingNames);
+  expect(workspaceBoundary.runtime).toEqual(['boot.js', 'start.js']);
+  expect(workspaceBoundary.stateRequests).toEqual([]);
 
   await page.locator('#authEmail').fill(email);
   await page.locator('#authPass').fill(password);

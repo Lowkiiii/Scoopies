@@ -1,5 +1,4 @@
 export const BEFORE_COSTING = Object.freeze([
-  'state.js',
 ] as const);
 
 export const AFTER_COSTING_BEFORE_STOCKS = Object.freeze([
