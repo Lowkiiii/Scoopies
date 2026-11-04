@@ -126,11 +126,14 @@ export function stockSummaryHtml(): string {
     value: LegacyValue,
     cls: LegacyValue,
   ): string {
+    const active = runtimeValue('stockState').status === key;
     return (
       '<button class="metric' +
-      (runtimeValue('stockState').status === key ? ' active' : '') +
+      (active ? ' active' : '') +
       '" data-act="setStockStatus" data-status="' +
       key +
+      '" aria-pressed="' +
+      (active ? 'true' : 'false') +
       '"><div class="lbl">' +
       label +
       '</div><div class="val ' +

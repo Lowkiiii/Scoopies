@@ -245,20 +245,68 @@ test.beforeEach(async ({ page }) => {
 test('populated Stocks filters and modal remain event-driven and mobile safe', async ({
   page,
 }) => {
+  const mobileLayout = (page.viewportSize()?.width || 0) <= 700;
   await expect(page.locator('section#stocks')).toHaveClass(/active/);
   await expect(page.locator('#stockVisibleCount')).toHaveText('4 of 4 items');
-  await expect(page.locator('.stock-grid .stock-card')).toHaveCount(4);
+  await expect(page.locator('#stockVisibleCount')).toHaveAttribute(
+    'aria-live',
+    'polite',
+  );
+  const stockTable = page.getByRole('table', {
+    name: 'Physical ingredient and prepared mixture inventory',
+  });
+  await expect(stockTable).toBeVisible();
+  await expect(stockTable.getByRole('columnheader')).toHaveText([
+    'Item',
+    'Status',
+    'On hand',
+    'Low-stock alert',
+    'Last updated',
+    'Action',
+  ]);
+  await expect(stockTable.getByRole('row')).toHaveCount(5);
+  await expect(stockTable.getByRole('rowheader')).toHaveCount(4);
+  await expect(stockTable.getByRole('cell')).toHaveCount(20);
+  await expect(page.locator('.stock-row[data-stock-item]')).toHaveCount(4);
+  expect(
+    await page.locator('.stock-row').evaluateAll((rows) =>
+      rows.map((row) =>
+        Array.from(row.querySelectorAll<HTMLElement>('[data-stock-field]')).map(
+          (cell) => cell.dataset.stockField,
+        ),
+      ),
+    ),
+  ).toEqual(
+    Array.from({ length: 4 }, () => [
+      'item',
+      'status',
+      'on-hand',
+      'threshold',
+      'updated',
+      'action',
+    ]),
+  );
   await expect(page.locator('.stock-history-row')).toHaveCount(4);
 
-  await page
-    .locator('.stock-summary [data-act="setStockStatus"][data-status="low"]')
-    .click();
+  const summaryLow = page.locator(
+    '.stock-summary [data-act="setStockStatus"][data-status="low"]',
+  );
+  const summaryAll = page.locator(
+    '.stock-summary [data-act="setStockStatus"][data-status="all"]',
+  );
+  await expect(summaryLow).toHaveAttribute('aria-pressed', 'false');
+  await expect(summaryAll).toHaveAttribute('aria-pressed', 'true');
+  await summaryLow.click();
   await expect(page.locator('#stockVisibleCount')).toHaveText('1 of 4 items');
   await expect(page.locator('[data-stock-item="inventory-oat-milk"]')).toBeVisible();
+  await expect(summaryLow).toHaveAttribute('aria-pressed', 'true');
+  await expect(summaryAll).toHaveAttribute('aria-pressed', 'false');
 
-  await page
-    .locator('.stock-filter-bar [data-act="setStockStatus"][data-status="all"]')
-    .click();
+  const filterAll = page.locator(
+    '.stock-filter-bar [data-act="setStockStatus"][data-status="all"]',
+  );
+  await filterAll.click();
+  await expect(filterAll).toHaveAttribute('aria-pressed', 'true');
   await page.locator('#stockSearch').fill('vanilla');
   await expect(page.locator('#stockVisibleCount')).toHaveText('1 of 4 items');
   await expect(page.locator('[data-stock-item="inventory-vanilla"]')).toBeVisible();
@@ -341,13 +389,20 @@ test('populated Stocks filters and modal remain event-driven and mobile safe', a
   const stocksLayout = await page.evaluate(() => {
     const root = document.documentElement;
     const section = document.getElementById('stocks') as HTMLElement;
+    const inventory = document.querySelector('.stock-inventory') as HTMLElement;
     const sectionRect = section.getBoundingClientRect();
     const renderedRows = Array.from(
-      document.querySelectorAll('.stock-card, .stock-history-row'),
+      document.querySelectorAll('.stock-row, .stock-history-row'),
     );
+    const updateButton = document.querySelector(
+      '[data-stock-item="inventory-matcha"] [data-act="openStockModal"]',
+    ) as HTMLElement;
+    const updateRect = updateButton.getBoundingClientRect();
     return {
       viewportWidth: root.clientWidth,
       pageWidth: root.scrollWidth,
+      inventoryClientWidth: inventory.clientWidth,
+      inventoryScrollWidth: inventory.scrollWidth,
       rowsContained: renderedRows.every((element) => {
         const rect = element.getBoundingClientRect();
         return (
@@ -355,16 +410,57 @@ test('populated Stocks filters and modal remain event-driven and mobile safe', a
           rect.right <= sectionRect.right + 1
         );
       }),
-      updateButtonWidth: (
-        document.querySelector(
-          '[data-stock-item="inventory-matcha"] [data-act="openStockModal"]',
-        ) as HTMLElement
-      ).getBoundingClientRect().width,
+      updateButtonWidth: updateRect.width,
+      updateButtonHeight: updateRect.height,
     };
   });
   expect(stocksLayout.pageWidth).toBeLessThanOrEqual(
     stocksLayout.viewportWidth + 1,
   );
   expect(stocksLayout.rowsContained).toBe(true);
-  expect(stocksLayout.updateButtonWidth).toBeGreaterThan(0);
+  expect(stocksLayout.updateButtonWidth).toBeGreaterThanOrEqual(44);
+  expect(stocksLayout.updateButtonHeight).toBeGreaterThanOrEqual(44);
+  if (mobileLayout) {
+    expect(stocksLayout.inventoryScrollWidth).toBeLessThanOrEqual(
+      stocksLayout.inventoryClientWidth + 1,
+    );
+    const mobileControlSizes = await page
+      .locator(
+        '#stocks [data-act="refreshStocks"], #stockSearch, #stockKindFilter, .stock-filter-bar [data-act="setStockStatus"]',
+      )
+      .evaluateAll((controls) =>
+        controls.map((control) => {
+          const rect = control.getBoundingClientRect();
+          return { width: rect.width, height: rect.height };
+        }),
+      );
+    expect(mobileControlSizes.length).toBeGreaterThan(0);
+    expect(
+      mobileControlSizes.every(
+        ({ width, height }) => width >= 44 && height >= 44,
+      ),
+    ).toBe(true);
+    const responsiveLabels = await page
+      .locator('.stock-row')
+      .first()
+      .locator('[data-stock-field]:not([data-stock-field="item"])')
+      .evaluateAll((cells) =>
+        cells.map((cell) => ({
+          label: (cell as HTMLElement).dataset.label,
+          before: getComputedStyle(cell, '::before').content.replace(
+            /^["']|["']$/g,
+            '',
+          ),
+        })),
+      );
+    expect(responsiveLabels).toEqual([
+      { label: 'Status', before: 'Status' },
+      { label: 'On hand', before: 'On hand' },
+      { label: 'Low-stock alert', before: 'Low-stock alert' },
+      { label: 'Last updated', before: 'Last updated' },
+      { label: 'Action', before: 'Action' },
+    ]);
+  } else {
+    await expect(stockTable.locator('thead')).toBeVisible();
+  }
 });

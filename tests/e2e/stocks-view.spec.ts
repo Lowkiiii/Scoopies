@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
@@ -52,6 +53,25 @@ const stocksViewNames = [
   'renderPos',
   'renderAll',
 ];
+
+function classicStocksViewHashes() {
+  const normalizedSource = readFileSync(
+    resolve(process.cwd(), 'assets/js/render-stocks.js'),
+    'utf8',
+  ).replace(/\r\n/g, '\n');
+  const bytes = Buffer.from(normalizedSource, 'utf8');
+  return {
+    blob: createHash('sha1')
+      .update(`blob ${bytes.length}\0`)
+      .update(bytes)
+      .digest('hex'),
+    sha256: createHash('sha256').update(bytes).digest('hex'),
+  };
+}
+
+function withoutAriaPressed(html: string) {
+  return html.replace(/ aria-pressed="(?:true|false)"/g, '');
+}
 
 async function stubSupabase(page: Page) {
   await page.route(
@@ -120,6 +140,8 @@ async function collectStocksViewFingerprint() {
   const focuses: string[] = [];
   const modalClasses: boolean[] = [];
   const renderAllOrder: string[] = [];
+  const originalRenderPos = api.renderPos;
+  const originalRenderStocks = api.renderStocks;
 
   const clearPendingStorage = () => {
     const prefixes = [
@@ -349,6 +371,12 @@ async function collectStocksViewFingerprint() {
   const resultsSnapshot = {
     count: document.getElementById('stockVisibleCount')?.textContent || '',
     text: document.getElementById('stockResults')?.textContent || '',
+    itemIds: Array.from(
+      document.querySelectorAll<HTMLElement>(
+        '#stockResults [data-stock-item]',
+      ),
+      (item) => item.dataset.stockItem || '',
+    ),
     activeStatuses: Array.from(
       document.querySelectorAll('#stocks [data-act="setStockStatus"].active'),
     ).map((button: any) => button.dataset.status),
@@ -504,6 +532,8 @@ async function collectStocksViewFingerprint() {
   app.renderRecipes = () => renderAllOrder.push('renderRecipes');
   app.renderProducts = () => renderAllOrder.push('renderProducts');
   await invoke('renderAll');
+  api.renderPos = originalRenderPos;
+  api.renderStocks = originalRenderStocks;
 
   clearPendingStorage();
   return {
@@ -729,6 +759,11 @@ test('typed Stocks view exposes the exact ordered 27-function API', async ({
 
   expect(result.viewOrder).toEqual(stocksViewNames);
   expect(result.rootMatches).toBe(true);
+  expect(classicStocksViewHashes()).toEqual({
+    blob: 'd734b8c5b0ebb4d60916e42561083db80b2f0ec8',
+    sha256:
+      '1bb2a3c272b8473b63a6ff41c88500ec370a130960cd087882a8de65e32fb754',
+  });
 });
 
 test('typed Stocks view matches the retained classic view fingerprint', async ({
@@ -748,7 +783,41 @@ test('typed Stocks view matches the retained classic view fingerprint', async ({
     });
     expect(provenance).toEqual({ modules: 0, hasTypedStocks: false });
     const classic = await classicPage.evaluate(collectStocksViewFingerprint);
-    expect(typed).toEqual(classic);
+    const {
+      summaryHtml: typedSummaryHtml,
+      filterBarHtml: typedFilterBarHtml,
+      cardsHtml: _typedCardsHtml,
+      resultsSnapshot: typedResultsSnapshot,
+      renderedStocksHtml: _typedRenderedStocksHtml,
+      ...typedUnchanged
+    } = typed;
+    const {
+      summaryHtml: classicSummaryHtml,
+      filterBarHtml: classicFilterBarHtml,
+      cardsHtml: _classicCardsHtml,
+      resultsSnapshot: classicResultsSnapshot,
+      renderedStocksHtml: _classicRenderedStocksHtml,
+      ...classicUnchanged
+    } = classic;
+    expect(typedUnchanged).toEqual(classicUnchanged);
+    expect(withoutAriaPressed(typedSummaryHtml)).toBe(classicSummaryHtml);
+    expect(withoutAriaPressed(typedFilterBarHtml)).toBe(classicFilterBarHtml);
+    expect({
+      count: typedResultsSnapshot.count,
+      itemIds: typedResultsSnapshot.itemIds,
+      activeStatuses: typedResultsSnapshot.activeStatuses,
+    }).toEqual({
+      count: classicResultsSnapshot.count,
+      itemIds: classicResultsSnapshot.itemIds,
+      activeStatuses: classicResultsSnapshot.activeStatuses,
+    });
+    expect(typedResultsSnapshot.text).toContain(
+      'Physical ingredient and prepared mixture inventory',
+    );
+    expect(typedResultsSnapshot.text).toContain('Zeta milk');
+    expect(typedResultsSnapshot.text).not.toContain('A removed <source>');
+    expect(typedResultsSnapshot.text).not.toContain('Oat <Milk>');
+    expect(typedResultsSnapshot.text).not.toContain('Matcha');
   } finally {
     await classicPage.close();
   }
@@ -787,6 +856,175 @@ test('typed Stocks view matches the retained classic view fingerprint', async ({
     'renderRecipes',
     'renderProducts',
   ]);
+
+  await page.evaluate(() => {
+    const app = window as typeof window & Record<string, any>;
+    app.activateAppTab('stocks', false);
+  });
+
+  const stockTable = page.getByRole('table', {
+    name: 'Physical ingredient and prepared mixture inventory',
+  });
+  await expect(stockTable).toBeVisible();
+  await expect(stockTable.getByRole('columnheader')).toHaveText([
+    'Item',
+    'Status',
+    'On hand',
+    'Low-stock alert',
+    'Last updated',
+    'Action',
+  ]);
+  expect(
+    await page.locator('.stock-row[data-stock-item]').evaluateAll((rows) =>
+      rows.map((row) => (row as HTMLElement).dataset.stockItem),
+    ),
+  ).toEqual(['out', 'low', 'uncounted', 'good']);
+  await expect(page.locator('.stock-row [data-stock-field]')).toHaveCount(24);
+  await expect(page.locator('#stockVisibleCount')).toHaveAttribute(
+    'aria-live',
+    'polite',
+  );
+  await expect(
+    page.locator(
+      '.stock-summary [data-act="setStockStatus"][data-status="all"]',
+    ),
+  ).toHaveAttribute('aria-pressed', 'true');
+  await expect(
+    page.locator(
+      '.stock-filter-bar [data-act="setStockStatus"][data-status="low"]',
+    ),
+  ).toHaveAttribute('aria-pressed', 'false');
+
+  const removedRow = page.locator('.stock-row[data-stock-item="out"]');
+  await expect(removedRow.getByRole('rowheader')).toContainText(
+    'A removed <source>',
+  );
+  await expect(removedRow).toContainText('Prepared mixture');
+  await expect(removedRow).toContainText('Removed from costing');
+  await expect(
+    removedRow.locator('[data-stock-field="status"]'),
+  ).toHaveText('Out of stock');
+  await expect(
+    removedRow.locator('[data-stock-field="on-hand"]'),
+  ).toHaveText('0 ml');
+  await expect(
+    removedRow.locator('[data-stock-field="threshold"]'),
+  ).toHaveText('100 ml');
+  await expect(
+    removedRow.locator('[data-stock-field="updated"]'),
+  ).toContainText('Oct 2');
+
+  const uncountedRow = page.locator(
+    '.stock-row[data-stock-item="uncounted"]',
+  );
+  await expect(
+    uncountedRow.locator('[data-stock-field="status"]'),
+  ).toHaveText('Not counted');
+  await expect(
+    uncountedRow.locator('[data-stock-field="on-hand"]'),
+  ).toHaveText('Not counted');
+  await expect(
+    uncountedRow.locator('[data-stock-field="threshold"]'),
+  ).toHaveText('Disabled');
+  await expect(
+    uncountedRow.locator('[data-stock-field="updated"]'),
+  ).toHaveText('No count yet');
+  await expect(
+    page.locator('.stock-row [data-act="openStockModal"]'),
+  ).toHaveCount(4);
+  await expect(page.locator('#stockRoot')).toContainText(
+    'Inventory notice <safe>',
+  );
+
+  await page.evaluate(() => {
+    const app = window as typeof window & Record<string, any>;
+    const stocks = app.MatchaLunaApp.domains.stocks as Record<string, any>;
+    app.stockState.sourceConflict = 'Fixture identity conflict';
+    stocks.renderStocks();
+  });
+  await expect(page.locator('#stockRoot')).toContainText(
+    'Stock updates locked.',
+  );
+  await expect(page.locator('#stockRoot')).toContainText(
+    'Fixture identity conflict',
+  );
+  await expect(
+    page.locator('.stock-row [data-act="openStockModal"]'),
+  ).toHaveCount(4);
+  expect(
+    await page
+      .locator('.stock-row [data-act="openStockModal"]')
+      .evaluateAll((buttons) =>
+        buttons.every((button) => (button as HTMLButtonElement).disabled),
+      ),
+  ).toBe(true);
+  await expect(
+    page.locator('.stock-row [data-act="openStockModal"]').first(),
+  ).toHaveAttribute(
+    'title',
+    'Resolve the costing and stock identity conflict first',
+  );
+
+  await page.evaluate(() => {
+    const app = window as typeof window & Record<string, any>;
+    const stocks = app.MatchaLunaApp.domains.stocks as Record<string, any>;
+    app.stockState.sourceConflict = '';
+    app.__phase5bStockStoredPending = stocks.stockStoredPending;
+    stocks.stockStoredPending = () => ({ id: 'fixture-pending' });
+    stocks.renderStocks();
+  });
+  await expect(page.locator('#stockRoot')).toContainText(
+    'Exact retry protected.',
+  );
+  expect(
+    await page
+      .locator('.stock-row [data-act="openStockModal"]')
+      .evaluateAll((buttons) =>
+        buttons.every((button) => (button as HTMLButtonElement).disabled),
+      ),
+  ).toBe(true);
+  await expect(
+    page.locator('.stock-row [data-act="openStockModal"]').first(),
+  ).toHaveAttribute('title', 'Recover the pending stock update first');
+  await page.evaluate(() => {
+    const app = window as typeof window & Record<string, any>;
+    const stocks = app.MatchaLunaApp.domains.stocks as Record<string, any>;
+    stocks.stockStoredPending = app.__phase5bStockStoredPending;
+    delete app.__phase5bStockStoredPending;
+    stocks.renderStocks();
+  });
+
+  await page.evaluate(() => {
+    const app = window as typeof window & Record<string, any>;
+    const stocks = app.MatchaLunaApp.domains.stocks as Record<string, any>;
+    app.stockCanManage = () => false;
+    stocks.renderStocks();
+  });
+  await expect(page.locator('.stock-row .stock-read-only')).toHaveCount(4);
+  await expect(
+    page.locator('.stock-row [data-act="openStockModal"]'),
+  ).toHaveCount(0);
+
+  await page.evaluate(() => {
+    const app = window as typeof window & Record<string, any>;
+    const stocks = app.MatchaLunaApp.domains.stocks as Record<string, any>;
+    app.stockCanManage = () => true;
+    app.stockState.search = 'no matching inventory item';
+    stocks.renderStockResults();
+  });
+  await expect(page.locator('#stockResults')).toHaveText(
+    'No stock items match these filters.',
+  );
+  await page.evaluate(() => {
+    const app = window as typeof window & Record<string, any>;
+    const stocks = app.MatchaLunaApp.domains.stocks as Record<string, any>;
+    app.stockState.search = '';
+    app.stockState.items = [];
+    stocks.renderStockResults();
+  });
+  await expect(page.locator('#stockResults')).toContainText(
+    'No ingredients are tracked yet.',
+  );
 });
 
 test('typed Stocks submission matches classic success and error behavior', async ({

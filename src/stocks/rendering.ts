@@ -11,11 +11,14 @@ import type { LegacyValue } from './types';
 
 export function stockFilterBarHtml(): string {
   function chip(key: LegacyValue, label: LegacyValue): string {
+    const active = runtimeValue('stockState').status === key;
     return (
       '<button class="category-chip' +
-      (runtimeValue('stockState').status === key ? ' active' : '') +
+      (active ? ' active' : '') +
       '" data-act="setStockStatus" data-status="' +
       key +
+      '" aria-pressed="' +
+      (active ? 'true' : 'false') +
       '">' +
       label +
       '</button>'
@@ -51,7 +54,9 @@ export function stockItemCardsHtml(): string {
   )();
   const sourceConflict = !!runtimeValue('stockState').sourceConflict;
   return (
-    '<div class="stock-grid">' +
+    '<div class="stock-inventory"><table class="stock-table"><caption class="stock-table-caption">Physical ingredient and prepared mixture inventory</caption><thead><tr>' +
+    '<th scope="col" data-stock-field="item">Item</th><th scope="col" data-stock-field="status">Status</th><th scope="col" data-stock-field="on-hand">On hand</th><th scope="col" data-stock-field="threshold">Low-stock alert</th><th scope="col" data-stock-field="updated">Last updated</th><th scope="col" data-stock-field="action">Action</th>' +
+    '</tr></thead><tbody>' +
     items
       .map(function (item: LegacyValue) {
         const status = readStocksBinding('stockStatus', stockStatus)(item);
@@ -61,40 +66,46 @@ export function stockItemCardsHtml(): string {
         )(item);
         const threshold =
           item.threshold == null
-            ? 'Alert disabled'
-            : 'Alert at ' +
-              readStocksBinding(
+            ? 'Disabled'
+            : readStocksBinding(
                 'stockFormatQuantity',
                 stockFormatQuantity,
               )(item.threshold, item.baseUnit, false);
         const last = item.lastMovementAt
-          ? 'Last updated ' +
-            new Date(item.lastMovementAt).toLocaleString('en-PH', {
+          ? new Date(item.lastMovementAt).toLocaleString('en-PH', {
               month: 'short',
               day: 'numeric',
               hour: 'numeric',
               minute: '2-digit',
             })
-          : 'No physical count recorded yet';
+          : 'No count yet';
+        const disabledReason = pendingRecovery
+          ? 'Recover the pending stock update first'
+          : 'Resolve the costing and stock identity conflict first';
+        // `stock-card` is a selector-only compatibility alias for the protected
+        // legacy browser baseline; the element remains one semantic table row.
         return (
-          '<article class="stock-card" data-stock-item="' +
+          '<tr class="stock-row stock-card" data-stock-item="' +
           runtimeValue('escapeHtml')(item.id) +
-          '"><div class="stock-card-head"><div class="stock-card-title">' +
+          '"><th scope="row" class="stock-item-cell" data-stock-field="item" data-label="Item"><div class="stock-item-name">' +
           runtimeValue('escapeHtml')(item.name) +
-          '<div class="stock-badges"><span class="stock-badge ' +
+          '</div><div class="stock-item-category">' +
+          runtimeValue('escapeHtml')(item.categoryName) +
+          '</div><div class="stock-badges"><span class="stock-badge ' +
           (item.kind === 'mixture' ? 'mixture' : '') +
           '">' +
           (item.kind === 'mixture' ? 'Prepared mixture' : 'Purchased') +
-          '</span><span class="stock-badge ' +
-          status.cls +
-          '">' +
-          status.label +
           '</span>' +
           (!source
             ? '<span class="stock-badge warn">Removed from costing</span>'
             : '') +
-          '</div></div></div>' +
-          '<div class="stock-on-hand ' +
+          '</div></th>' +
+          '<td class="stock-status-cell" data-stock-field="status" data-label="Status"><span class="stock-badge ' +
+          status.cls +
+          '">' +
+          runtimeValue('escapeHtml')(status.label) +
+          '</span></td>' +
+          '<td class="stock-on-hand-cell" data-stock-field="on-hand" data-label="On hand"><span class="stock-on-hand ' +
           (status.key === 'out' ? 'bad' : '') +
           '">' +
           (item.initialized
@@ -103,34 +114,29 @@ export function stockItemCardsHtml(): string {
                 stockFormatQuantity,
               )(item.balance, item.baseUnit, false)
             : 'Not counted') +
-          '</div>' +
-          '<div class="stock-card-meta">' +
-          runtimeValue('escapeHtml')(item.categoryName) +
-          ' &middot; ' +
+          '</span></td>' +
+          '<td class="stock-threshold-cell" data-stock-field="threshold" data-label="Low-stock alert">' +
           runtimeValue('escapeHtml')(threshold) +
-          '<br>' +
+          '</td>' +
+          '<td class="stock-updated-cell" data-stock-field="updated" data-label="Last updated">' +
           runtimeValue('escapeHtml')(last) +
-          '</div>' +
+          '</td><td class="stock-action-cell" data-stock-field="action" data-label="Action">' +
           (runtimeValue('stockCanManage')()
-            ? '<button class="btn secondary" data-act="openStockModal" data-id="' +
+            ? '<button class="btn small secondary stock-update-button" data-act="openStockModal" data-id="' +
               runtimeValue('escapeHtml')(item.id) +
               '"' +
               (pendingRecovery || sourceConflict
                 ? ' disabled title="' +
-                  runtimeValue('escapeHtml')(
-                    pendingRecovery
-                      ? 'Recover the pending stock update first'
-                      : 'Resolve the costing and stock identity conflict first',
-                  ) +
+                  runtimeValue('escapeHtml')(disabledReason) +
                   '"'
                 : '') +
               '>Update stock</button>'
-            : '') +
-          '</article>'
+            : '<span class="stock-read-only">Read only</span>') +
+          '</td></tr>'
         );
       })
       .join('') +
-    '</div>'
+    '</tbody></table></div>'
   );
 }
 
@@ -220,11 +226,11 @@ export function renderStockResults(): void {
     .querySelectorAll('#stocks [data-act="setStockStatus"]')
     .forEach(function (button) {
       const element = button as HTMLElement;
-      element.classList.toggle(
-        'active',
+      const active =
         String(element.dataset.status) ===
-          String(runtimeValue('stockState').status),
-      );
+        String(runtimeValue('stockState').status);
+      element.classList.toggle('active', active);
+      element.setAttribute('aria-pressed', active ? 'true' : 'false');
     });
 }
 
@@ -317,7 +323,7 @@ export function renderStocks(): void {
     (runtimeValue('stockState').kind === 'mixture' ? ' selected' : '') +
     '>Prepared mixtures</option></select></div></div>' +
     readStocksBinding('stockFilterBarHtml', stockFilterBarHtml)() +
-    '<div id="stockVisibleCount" class="search-status">' +
+    '<div id="stockVisibleCount" class="search-status" role="status" aria-live="polite" aria-atomic="true">' +
     readStocksBinding('stockFilteredItems', stockFilteredItems)().length +
     ' of ' +
     runtimeValue('stockState').items.length +
