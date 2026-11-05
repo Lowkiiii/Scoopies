@@ -106,6 +106,11 @@ async function seedPopulatedStocks(page: Page) {
           name: ingredients[0].name,
           kind: 'purchased',
           baseUnit: 'g',
+          preferredUnit: 'kg',
+          brand: 'Uji Reserve',
+          purchasedFrom: 'Tea supplier',
+          lastStockedOn: '2026-11-01',
+          notes: 'Keep sealed and dry',
           balance: 500,
           threshold: 100,
           revision: 4,
@@ -256,10 +261,24 @@ async function seedPopulatedStocks(page: Page) {
               error: null,
             };
           }
+          if (name === 'pos_inventory_update_item_details') {
+            return {
+              data: [
+                {
+                  inventory_item_id: args.p_inventory_item_id,
+                  revision: Number(args.p_expected_revision) + 1,
+                },
+              ],
+              error: null,
+            };
+          }
           const line = args.p_lines[0];
           const current = app.stockState.items.find(
             (item: any) => item.id === line.inventoryItemId,
           );
+          const factor =
+            line.unit === 'kg' || line.unit === 'l' ? 1000 : 1;
+          const balanceAfter = Number(line.quantity) * factor;
           return {
             data: [
               {
@@ -267,9 +286,9 @@ async function seedPopulatedStocks(page: Page) {
                 inventory_item_id: line.inventoryItemId,
                 item_name: current.name,
                 transaction_type: 'stock_count',
-                quantity_delta_base: Number(line.quantity) - Number(current.balance),
+                quantity_delta_base: balanceAfter - Number(current.balance),
                 balance_before_base: Number(current.balance),
-                balance_after_base: Number(line.quantity),
+                balance_after_base: balanceAfter,
                 base_unit: current.baseUnit,
                 item_revision: Number(line.expectedRevision) + 1,
                 occurred_at: '2026-11-05T08:00:00.000Z',
@@ -305,15 +324,21 @@ test('populated Stocks spreadsheet remains event-driven and mobile safe', async 
   });
   await expect(stockTable).toBeVisible();
   await expect(stockTable.getByRole('columnheader')).toHaveText([
-    'Item',
-    'Status',
+    'Item name',
+    'Brand',
+    'Purchased from',
+    'Date purchased',
     'On hand',
+    'Unit',
     'Low-stock alert',
+    'Status',
+    'Notes',
     'Last updated',
+    'Actions / history',
   ]);
   await expect(stockTable.getByRole('row')).toHaveCount(5);
   await expect(stockTable.getByRole('rowheader')).toHaveCount(4);
-  await expect(stockTable.getByRole('cell')).toHaveCount(16);
+  await expect(stockTable.getByRole('cell')).toHaveCount(40);
   await expect(page.locator('.stock-row[data-stock-item]')).toHaveCount(4);
   expect(
     await page.locator('.stock-row').evaluateAll((rows) =>
@@ -326,10 +351,16 @@ test('populated Stocks spreadsheet remains event-driven and mobile safe', async 
   ).toEqual(
     Array.from({ length: 4 }, () => [
       'item',
-      'status',
+      'brand',
+      'purchased-from',
+      'stocked-on',
       'on-hand',
+      'unit',
       'threshold',
+      'status',
+      'notes',
       'updated',
+      'actions',
     ]),
   );
   await expect(page.locator('.stock-history-row')).toHaveCount(4);
@@ -369,11 +400,11 @@ test('populated Stocks spreadsheet remains event-driven and mobile safe', async 
   const matchaCount = page.locator(
     '[data-stock-item="inventory-matcha"] [data-stock-inline-field="count"]',
   );
-  await expect(matchaCount).toHaveValue('500');
+  await expect(matchaCount).toHaveValue('0.5');
   await expect(matchaCount).toHaveAttribute('inputmode', 'decimal');
-  await matchaCount.fill('475');
+  await matchaCount.fill('0.475');
   await matchaCount.press('Escape');
-  await expect(matchaCount).toHaveValue('500');
+  await expect(matchaCount).toHaveValue('0.5');
   await expect.poll(() =>
     page.evaluate(() => (window as any).__stockInlineRpcCalls.length),
   ).toBe(0);
@@ -385,13 +416,13 @@ test('populated Stocks spreadsheet remains event-driven and mobile safe', async 
     page.evaluate(() => (window as any).__stockInlineRpcCalls.length),
   ).toBe(0);
 
-  await matchaCount.fill('475');
+  await matchaCount.fill('0.475');
   await matchaCount.press('Enter');
   await expect(
     page.locator(
       '[data-stock-item="inventory-matcha"] [data-stock-inline-field="count"]',
     ),
-  ).toHaveValue('475');
+  ).toHaveValue('0.475');
   await expect(page.locator('#stockModal')).toBeHidden();
   await expect.poll(() =>
     page.evaluate(() => (window as any).__stockInlineRpcCalls.length),
@@ -403,15 +434,15 @@ test('populated Stocks spreadsheet remains event-driven and mobile safe', async 
   expect(inlineRequest.args.p_transaction_type).toBe('stock_count');
   expect(inlineRequest.args.p_lines[0]).toMatchObject({
     inventoryItemId: 'inventory-matcha',
-    quantity: 475,
-    unit: 'g',
+    quantity: 0.475,
+    unit: 'kg',
     expectedRevision: 4,
   });
 
   const matchaThreshold = page.locator(
     '[data-stock-item="inventory-matcha"] [data-stock-inline-field="threshold"]',
   );
-  await matchaThreshold.fill('70');
+  await matchaThreshold.fill('0.07');
   await page
     .locator(
       '[data-stock-item="inventory-matcha"] [data-stock-field="updated"]',
@@ -420,7 +451,7 @@ test('populated Stocks spreadsheet remains event-driven and mobile safe', async 
   await expect.poll(() =>
     page.evaluate(() => (window as any).__stockInlineRpcCalls.length),
   ).toBe(2);
-  await expect(matchaThreshold).toHaveValue('70');
+  await expect(matchaThreshold).toHaveValue('0.07');
   const thresholdRequest = await page.evaluate(() =>
     (window as any).__stockInlineRpcCalls[1],
   );
@@ -434,14 +465,58 @@ test('populated Stocks spreadsheet remains event-driven and mobile safe', async 
     },
   });
 
+  await expect(
+    page.locator(
+      '[data-stock-item="inventory-matcha"] [data-stock-field="brand"]',
+    ),
+  ).toHaveText('Uji Reserve');
+  await page
+    .locator('[data-stock-item="inventory-matcha"] [data-stock-preferred-unit]')
+    .selectOption('g');
+  await expect(page.locator('#stockModal')).toBeVisible();
+  await page.getByRole('button', { name: 'Cancel' }).click();
+  await expect(page.locator('#stockModal')).toBeHidden();
+  await expect(
+    page.locator(
+      '[data-stock-item="inventory-matcha"] [data-stock-preferred-unit]',
+    ),
+  ).toHaveValue('kg');
+  await page
+    .locator('[data-stock-item="inventory-matcha"] [data-stock-preferred-unit]')
+    .selectOption('g');
+  await expect(page.locator('#stockModal')).toBeVisible();
+  await expect(page.locator('#stockModalTitle')).toContainText(
+    'Organic Ceremonial Matcha',
+  );
+  await expect(page.locator('#stockDetailUnit')).toHaveValue('g');
+  await page.locator('#stockDetailBrand').fill('Matcha Luna Reserve');
+  await page.getByRole('button', { name: 'Save details' }).click();
+  await expect(page.locator('#stockModal')).toBeHidden();
+  await expect.poll(() =>
+    page.evaluate(() => (window as any).__stockInlineRpcCalls.length),
+  ).toBe(3);
+  const detailsRequest = await page.evaluate(() =>
+    (window as any).__stockInlineRpcCalls[2],
+  );
+  expect(detailsRequest).toEqual({
+    name: 'pos_inventory_update_item_details',
+    args: {
+      p_business_id: 'business-mobile',
+      p_inventory_item_id: 'inventory-matcha',
+      p_brand: 'Matcha Luna Reserve',
+      p_purchased_from: 'Tea supplier',
+      p_last_stocked_on: '2026-11-01',
+      p_notes: 'Keep sealed and dry',
+      p_preferred_unit: 'g',
+      p_expected_revision: 6,
+    },
+  });
+
   const stocksLayout = await page.evaluate(() => {
     const root = document.documentElement;
     const section = document.getElementById('stocks') as HTMLElement;
     const inventory = document.querySelector('.stock-inventory') as HTMLElement;
     const sectionRect = section.getBoundingClientRect();
-    const renderedRows = Array.from(
-      document.querySelectorAll('.stock-row, .stock-history-row'),
-    );
     const inlineInputs = Array.from(
       document.querySelectorAll('.stock-inline-input'),
     ) as HTMLElement[];
@@ -450,13 +525,16 @@ test('populated Stocks spreadsheet remains event-driven and mobile safe', async 
       pageWidth: root.scrollWidth,
       inventoryClientWidth: inventory.clientWidth,
       inventoryScrollWidth: inventory.scrollWidth,
-      rowsContained: renderedRows.every((element) => {
-        const rect = element.getBoundingClientRect();
+      inventoryContained: (() => {
+        const rect = inventory.getBoundingClientRect();
         return (
           rect.left >= sectionRect.left - 1 &&
           rect.right <= sectionRect.right + 1
         );
-      }),
+      })(),
+      headerVisible:
+        getComputedStyle(document.querySelector('.stock-table thead') as Element)
+          .display !== 'none',
       inlineInputsHaveTouchSize: inlineInputs.every((input) => {
         const rect = input.getBoundingClientRect();
         return rect.width >= 44 && rect.height >= 44;
@@ -466,10 +544,11 @@ test('populated Stocks spreadsheet remains event-driven and mobile safe', async 
   expect(stocksLayout.pageWidth).toBeLessThanOrEqual(
     stocksLayout.viewportWidth + 1,
   );
-  expect(stocksLayout.rowsContained).toBe(true);
-  expect(stocksLayout.inlineInputsHaveTouchSize).toBe(true);
+  expect(stocksLayout.inventoryContained).toBe(true);
+  expect(stocksLayout.headerVisible).toBe(true);
   if (mobileLayout) {
-    expect(stocksLayout.inventoryScrollWidth).toBeLessThanOrEqual(
+    expect(stocksLayout.inlineInputsHaveTouchSize).toBe(true);
+    expect(stocksLayout.inventoryScrollWidth).toBeGreaterThan(
       stocksLayout.inventoryClientWidth + 1,
     );
     const mobileControlSizes = await page
@@ -488,25 +567,8 @@ test('populated Stocks spreadsheet remains event-driven and mobile safe', async 
         ({ width, height }) => width >= 44 && height >= 44,
       ),
     ).toBe(true);
-    const responsiveLabels = await page
-      .locator('.stock-row')
-      .first()
-      .locator('[data-stock-field]:not([data-stock-field="item"])')
-      .evaluateAll((cells) =>
-        cells.map((cell) => ({
-          label: (cell as HTMLElement).dataset.label,
-          before: getComputedStyle(cell, '::before').content.replace(
-            /^["']|["']$/g,
-            '',
-          ),
-        })),
-      );
-    expect(responsiveLabels).toEqual([
-      { label: 'Status', before: 'Status' },
-      { label: 'On hand', before: 'On hand' },
-      { label: 'Low-stock alert', before: 'Low-stock alert' },
-      { label: 'Last updated', before: 'Last updated' },
-    ]);
+    await expect(stockTable.locator('thead')).toBeVisible();
+    await expect(stockTable).toHaveCSS('min-width', '1480px');
   } else {
     await expect(stockTable.locator('thead')).toBeVisible();
   }

@@ -88,6 +88,11 @@ export interface StockModalState {
   notice: string;
   uncertain: boolean;
   pendingRpc: unknown | null;
+  brand: string;
+  purchasedFrom: string;
+  lastStockedOn: string;
+  detailsNotes: string;
+  preferredUnit: string;
 }
 
 export function freshPosOpsModal(): PosOpsModalState {
@@ -186,5 +191,10 @@ export function freshStockModal(): StockModalState {
     notice: '',
     uncertain: false,
     pendingRpc: null,
+    brand: '',
+    purchasedFrom: '',
+    lastStockedOn: '',
+    detailsNotes: '',
+    preferredUnit: '',
   };
 }

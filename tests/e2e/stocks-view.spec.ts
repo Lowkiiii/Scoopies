@@ -867,18 +867,24 @@ test('typed Stocks view matches the retained classic view fingerprint', async ({
   });
   await expect(stockTable).toBeVisible();
   await expect(stockTable.getByRole('columnheader')).toHaveText([
-    'Item',
-    'Status',
+    'Item name',
+    'Brand',
+    'Purchased from',
+    'Date purchased',
     'On hand',
+    'Unit',
     'Low-stock alert',
+    'Status',
+    'Notes',
     'Last updated',
+    'Actions / history',
   ]);
   expect(
     await page.locator('.stock-row[data-stock-item]').evaluateAll((rows) =>
       rows.map((row) => (row as HTMLElement).dataset.stockItem),
     ),
   ).toEqual(['out', 'low', 'uncounted', 'good']);
-  await expect(page.locator('.stock-row [data-stock-field]')).toHaveCount(20);
+  await expect(page.locator('.stock-row [data-stock-field]')).toHaveCount(44);
   await expect(page.locator('#stockVisibleCount')).toHaveAttribute(
     'aria-live',
     'polite',
@@ -898,7 +904,10 @@ test('typed Stocks view matches the retained classic view fingerprint', async ({
   await expect(removedRow.getByRole('rowheader')).toContainText(
     'A removed <source>',
   );
-  await expect(removedRow).toContainText('Prepared mixture');
+  await expect(removedRow.locator('.stock-kind-marker')).toHaveAttribute(
+    'title',
+    'Prepared mixture',
+  );
   await expect(removedRow).toContainText('Removed from costing');
   await expect(
     removedRow.locator('[data-stock-field="status"]'),
@@ -929,9 +938,15 @@ test('typed Stocks view matches the retained classic view fingerprint', async ({
     uncountedRow.locator('[data-stock-field="updated"]'),
   ).toHaveText('No count yet');
   await expect(page.locator('.stock-row .stock-inline-input')).toHaveCount(8);
+  await expect(page.locator('.stock-row [data-stock-preferred-unit]')).toHaveCount(
+    4,
+  );
   await expect(
-    page.locator('.stock-row [data-act="openStockModal"]'),
-  ).toHaveCount(0);
+    page.locator('.stock-row [data-act="openStockModal"]:not([data-mode])'),
+  ).toHaveCount(4);
+  await expect(
+    page.locator('.stock-row [data-act="openStockModal"][data-mode="details"]'),
+  ).toHaveCount(4);
   await expect(page.locator('#stockRoot')).toContainText(
     'Inventory notice <safe>',
   );
@@ -983,6 +998,26 @@ test('typed Stocks view matches the retained classic view fingerprint', async ({
   await expect(
     page.locator('.stock-row .stock-inline-input').first(),
   ).toHaveAttribute('title', 'Recover the pending stock update first');
+  await expect(
+    page.locator(
+      '.stock-row [data-act="openStockModal"][data-mode="details"]',
+    ).first(),
+  ).toBeDisabled();
+  await expect(
+    page.locator(
+      '.stock-row [data-act="openStockModal"][data-mode="details"]',
+    ).first(),
+  ).toHaveAttribute('title', 'Recover the pending stock update first');
+  expect(
+    await page.evaluate(() => {
+      const app = window as typeof window & Record<string, any>;
+      const stocks = app.MatchaLunaApp.domains.stocks as Record<string, any>;
+      return {
+        opened: stocks.openStockModal('out', 'details'),
+        modalOpen: app.stockModal.open,
+      };
+    }),
+  ).toEqual({ opened: false, modalOpen: false });
   await page.evaluate(() => {
     const app = window as typeof window & Record<string, any>;
     const stocks = app.MatchaLunaApp.domains.stocks as Record<string, any>;

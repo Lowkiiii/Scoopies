@@ -513,15 +513,21 @@ test('authenticated data-heavy Stocks view stays usable at a mobile width', asyn
   });
   await expect(stockTable).toBeVisible();
   await expect(stockTable.getByRole('columnheader')).toHaveText([
-    'Item',
-    'Status',
+    'Item name',
+    'Brand',
+    'Purchased from',
+    'Date purchased',
     'On hand',
+    'Unit',
     'Low-stock alert',
+    'Status',
+    'Notes',
     'Last updated',
+    'Actions / history',
   ]);
   await expect(stockTable.getByRole('row')).toHaveCount(9);
   await expect(stockTable.getByRole('rowheader')).toHaveCount(8);
-  await expect(stockTable.getByRole('cell')).toHaveCount(32);
+  await expect(stockTable.getByRole('cell')).toHaveCount(80);
   await expect(page.locator('.stock-row[data-stock-item]')).toHaveCount(8);
   await expect(page.locator('.stock-history-row')).toHaveCount(12);
   await expect(
@@ -534,8 +540,11 @@ test('authenticated data-heavy Stocks view stays usable at a mobile width', asyn
   ).toBeVisible();
   await expect(page.locator('.stock-row .stock-inline-input')).toHaveCount(16);
   await expect(
-    page.locator('.stock-row [data-act="openStockModal"]'),
-  ).toHaveCount(0);
+    page.locator('.stock-row [data-act="openStockModal"]:not([data-mode])'),
+  ).toHaveCount(8);
+  await expect(
+    page.locator('.stock-row [data-act="openStockModal"][data-mode="details"]'),
+  ).toHaveCount(8);
 
   const layout = await page.evaluate(() => {
     const section = document.getElementById('stocks') as HTMLElement;
@@ -543,15 +552,13 @@ test('authenticated data-heavy Stocks view stays usable at a mobile width', asyn
     const table = document.querySelector('.stock-table') as HTMLElement;
     const firstRow = document.querySelector('.stock-row') as HTMLElement;
     const sectionRect = section.getBoundingClientRect();
-    const contained = Array.from(
-      document.querySelectorAll('.stock-row, .stock-history-row'),
-    ).every((element) => {
-      const rect = element.getBoundingClientRect();
+    const contained = (() => {
+      const rect = inventory.getBoundingClientRect();
       return (
         rect.left >= sectionRect.left - 1 &&
         rect.right <= sectionRect.right + 1
       );
-    });
+    })();
     return {
       viewportWidth: document.documentElement.clientWidth,
       pageWidth: document.documentElement.scrollWidth,
@@ -564,41 +571,33 @@ test('authenticated data-heavy Stocks view stays usable at a mobile width', asyn
   });
 
   expect(layout.pageWidth).toBeLessThanOrEqual(layout.viewportWidth + 1);
-  expect(layout.inventoryScrollWidth).toBeLessThanOrEqual(
+  expect(layout.inventoryScrollWidth).toBeGreaterThan(
     layout.inventoryClientWidth + 1,
   );
-  expect(layout.tableWidth).toBeLessThanOrEqual(
+  expect(layout.tableWidth).toBeGreaterThan(
     layout.inventoryClientWidth + 1,
   );
-  expect(layout.rowDisplay).toBe('grid');
+  expect(layout.rowDisplay).toBe('table-row');
   expect(layout.contained).toBe(true);
 
   const firstRowLabels = await page
     .locator('.stock-row')
     .first()
-    .locator('[data-stock-field]:not([data-stock-field="item"])')
+    .locator('[data-stock-field]')
     .evaluateAll((cells) =>
-      cells.map((cell) => ({
-        field: (cell as HTMLElement).dataset.stockField,
-        label: (cell as HTMLElement).dataset.label,
-        before: getComputedStyle(cell, '::before').content.replace(
-          /^["']|["']$/g,
-          '',
-        ),
-      })),
+      cells.map((cell) => (cell as HTMLElement).dataset.stockField),
     );
   expect(firstRowLabels).toEqual([
-    { field: 'status', label: 'Status', before: 'Status' },
-    { field: 'on-hand', label: 'On hand', before: 'On hand' },
-    {
-      field: 'threshold',
-      label: 'Low-stock alert',
-      before: 'Low-stock alert',
-    },
-    {
-      field: 'updated',
-      label: 'Last updated',
-      before: 'Last updated',
-    },
+    'item',
+    'brand',
+    'purchased-from',
+    'stocked-on',
+    'on-hand',
+    'unit',
+    'threshold',
+    'status',
+    'notes',
+    'updated',
+    'actions',
   ]);
 });

@@ -14,5 +14,6 @@ function freshStockState(){
   return {loaded:false,loading:false,refreshing:false,error:'',notice:'',sourceConflict:'',items:[],transactions:[],search:'',status:'all',kind:'all',lastUpdatedAt:0};
 }
 function freshStockModal(){
-  return {open:false,itemId:'',action:'',quantity:'',unit:'',reason:'',note:'',submitting:false,error:'',notice:'',uncertain:false,pendingRpc:null};
+  return {open:false,itemId:'',action:'',quantity:'',unit:'',reason:'',note:'',submitting:false,error:'',notice:'',uncertain:false,pendingRpc:null,
+    brand:'',purchasedFrom:'',lastStockedOn:'',detailsNotes:'',preferredUnit:''};
 }
