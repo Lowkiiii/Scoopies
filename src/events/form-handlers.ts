@@ -1,4 +1,8 @@
-import { readEventsBinding, runtimeValue } from './bindings';
+import {
+  readEventsBinding,
+  runtimeValue,
+  writeRuntimeBinding,
+} from './bindings';
 import { activateAppTab } from './navigation';
 import {
   stockInlineCommitElement,
@@ -39,6 +43,15 @@ export function handleBodyInput(event: LegacyValue): void {
   if (element.id === 'stockSearch') {
     runtimeValue('stockState').search = element.value || '';
     runtimeValue('renderStockResults')();
+    return;
+  }
+  if (
+    runtimeValue('stockModal').open &&
+    element.dataset.stockDetailField
+  ) {
+    runtimeValue('stockModal')[element.dataset.stockDetailField] =
+      element.value || '';
+    runtimeValue('stockModal').error = '';
     return;
   }
   if (runtimeValue('stockModal').open && element.dataset.stockField) {
@@ -152,6 +165,31 @@ export function handleBodyChange(event: LegacyValue): void {
   const element = event.target;
   if (element && element.dataset.stockInlineField) {
     stockInlineCommitElement(element, false).catch(function () {});
+    return;
+  }
+  if (
+    element &&
+    element.dataset &&
+    Object.prototype.hasOwnProperty.call(
+      element.dataset,
+      'stockPreferredUnit',
+    )
+  ) {
+    if (runtimeValue('openStockModal')(element.dataset.id, 'details')) {
+      writeRuntimeBinding('stockModalReturnFocus', element);
+      runtimeValue('stockModal').preferredUnit = element.value || '';
+      runtimeValue('renderStockModal')();
+      runtimeValue('focusSoon')('#stockDetailUnit');
+    }
+    return;
+  }
+  if (
+    runtimeValue('stockModal').open &&
+    element.dataset.stockDetailField
+  ) {
+    runtimeValue('stockModal')[element.dataset.stockDetailField] =
+      element.value || '';
+    runtimeValue('stockModal').error = '';
     return;
   }
   if (element.dataset.posImageProduct) {

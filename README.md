@@ -91,6 +91,11 @@ preserving its established browser contract:
   Shopify-inspired Stocks presentation: a semantic desktop inventory table,
   responsive labeled mobile rows, unchanged inventory behavior and backend,
   exact compatibility limits, test and production evidence, and rollback.
+- [`docs/INVENTORY_PHASE_1.md`](docs/INVENTORY_PHASE_1.md) defines the
+  append-only manual physical-stock ledger and canonical quantity rules.
+- [`docs/INVENTORY_PHASE_2A.md`](docs/INVENTORY_PHASE_2A.md) defines the
+  compact per-item spreadsheet, descriptive details, compatible unit
+  selection, database contract, verification gates, and safe rollback.
 
 The retained JavaScript fallback files intentionally remain ordered classic
 scripts for cached/pre-module clients. Do not independently add `async`,
@@ -253,6 +258,20 @@ the original receipt without creating a duplicate sale.
 - [Phase 4 live access checks](supabase/tests/pos_phase_4_live_access_checks.sql)
 - [Phase 4 concurrency checks](supabase/tests/pos_phase_4_concurrency_checks.sql)
 - [Phase 4 deployment record](docs/POS_PHASE_4_DEPLOYMENT.md)
+
+Inventory artifacts:
+
+- [Inventory Phase 1 guide](docs/INVENTORY_PHASE_1.md)
+- [Inventory Phase 1 migration](supabase/migrations/202609290005_inventory_phase_1_foundation.sql)
+- [Inventory Phase 2A guide](docs/INVENTORY_PHASE_2A.md)
+- [Inventory Phase 2A migration](supabase/migrations/202611050010_inventory_phase_2a_item_details.sql)
+- [Inventory Phase 2A rollback](supabase/rollback/202611050010_inventory_phase_2a_item_details.rollback.sql)
+- [Inventory Phase 2A schema checks](supabase/tests/inventory_phase_2a_schema_checks.sql)
+- [Inventory Phase 2A behavior checks](supabase/tests/inventory_phase_2a_behavior_checks.sql)
+- [Inventory Phase 2A timezone migration](supabase/migrations/202611050011_inventory_phase_2a_timezone_safe_dates.sql)
+- [Inventory Phase 2A timezone rollback](supabase/rollback/202611050011_inventory_phase_2a_timezone_safe_dates.rollback.sql)
+- [Inventory Phase 2A timezone schema checks](supabase/tests/inventory_phase_2a_timezone_schema_checks.sql)
+- [Inventory Phase 2A timezone behavior checks](supabase/tests/inventory_phase_2a_timezone_behavior_checks.sql)
 
 Never commit a Supabase service-role key or database password. The web app uses
 only the public project URL and publishable key; authorization is enforced by

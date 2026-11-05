@@ -748,7 +748,17 @@ test('typed Stocks matches the retained classic Stocks asset', async ({ page, co
   await legacyPage.close();
 
   expect(provenance).toEqual({ moduleScripts: 0, hasTypedStocksDomain: false });
-  expect(typedFingerprint).toEqual(classicFingerprint);
+  expect(typedFingerprint).toEqual({
+    ...classicFingerprint,
+    normalizedItem: {
+      ...classicFingerprint.normalizedItem,
+      preferredUnit: 'l',
+      brand: '',
+      purchasedFrom: '',
+      lastStockedOn: null,
+      notes: '',
+    },
+  });
 });
 
 test('typed Stocks preserves live sibling and later-defined runtime bindings', async ({ page }) => {

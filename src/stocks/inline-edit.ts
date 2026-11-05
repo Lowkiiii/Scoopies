@@ -35,6 +35,18 @@ export interface StockInlineFieldState {
   itemRevision: number;
   pendingRpc: LegacyValue | null;
   uncertainAt: number;
+  unit: string;
+}
+
+function stockInlineUnit(item: LegacyValue): string {
+  const unit = String((item && item.preferredUnit) || (item && item.baseUnit) || '');
+  return runtimeValue('UNIT_TYPE')[unit] === runtimeValue('UNIT_TYPE')[item.baseUnit]
+    ? unit
+    : item.baseUnit;
+}
+
+function stockInlineFromBase(value: LegacyValue, item: LegacyValue): number {
+  return Number(value || 0) / (runtimeValue('UNIT_FACTOR')[stockInlineUnit(item)] || 1);
 }
 
 function stockInlineEdits(): Record<
@@ -54,9 +66,11 @@ function stockInlineAuthoritativeValue(
 ): string {
   if (!item) return '';
   if (field === 'count') {
-    return item.initialized ? String(Number(item.balance || 0)) : '';
+    return item.initialized ? String(stockInlineFromBase(item.balance, item)) : '';
   }
-  return item.threshold == null ? '' : String(Number(item.threshold));
+  return item.threshold == null
+    ? ''
+    : String(stockInlineFromBase(item.threshold, item));
 }
 
 function stockInlineSameValue(
@@ -92,9 +106,25 @@ export function stockInlineFieldState(
       itemRevision: Number(item.revision || 0),
       pendingRpc: null,
       uncertainAt: 0,
+      unit: stockInlineUnit(item),
     };
   }
   if (!entry) return null;
+
+  const currentUnit = stockInlineUnit(item);
+  if (
+    entry.unit !== currentUnit &&
+    entry.status !== 'saving' &&
+    entry.status !== 'uncertain'
+  ) {
+    entry.unit = currentUnit;
+    entry.value = authoritative;
+    entry.confirmed = authoritative;
+    entry.itemRevision = Number(item.revision || 0);
+    entry.status = 'idle';
+    entry.error = '';
+    entry.pendingRpc = null;
+  }
 
   const refreshedAfterUncertain =
     entry.status === 'uncertain' &&
@@ -189,15 +219,24 @@ function stockInlineValidate(
   item: LegacyValue,
   field: StockInlineField,
   rawValue: string,
-): { valid: boolean; value: number | null; error: string } {
+): {
+  valid: boolean;
+  value: number | null;
+  baseValue: number | null;
+  unit: string;
+  error: string;
+} {
+  const unit = stockInlineUnit(item);
   const trimmed = String(rawValue == null ? '' : rawValue).trim();
   if (field === 'threshold' && trimmed === '') {
-    return { valid: true, value: null, error: '' };
+    return { valid: true, value: null, baseValue: null, unit, error: '' };
   }
   if (trimmed === '') {
     return {
       valid: false,
       value: null,
+      baseValue: null,
+      unit,
       error: 'Enter the exact physical amount currently on hand.',
     };
   }
@@ -206,13 +245,18 @@ function stockInlineValidate(
     return {
       valid: false,
       value: null,
+      baseValue: null,
+      unit,
       error: 'Enter zero or a positive number.',
     };
   }
-  if (value > 1e12) {
+  const baseValue = value * (runtimeValue('UNIT_FACTOR')[unit] || 1);
+  if (baseValue > 1e12) {
     return {
       valid: false,
       value: null,
+      baseValue: null,
+      unit,
       error: 'Enter an amount no greater than 1,000,000,000,000.',
     };
   }
@@ -220,10 +264,12 @@ function stockInlineValidate(
     return {
       valid: false,
       value: null,
+      baseValue: null,
+      unit,
       error: 'This stock item has no valid base unit. Refresh Stocks.',
     };
   }
-  return { valid: true, value, error: '' };
+  return { valid: true, value, baseValue, unit, error: '' };
 }
 
 export function stockInlineHandleInput(element: LegacyValue): boolean {
@@ -333,7 +379,7 @@ export async function stockInlineCommit(
       args: {
         p_business_id: String(runtimeValue('posContext').businessId),
         p_inventory_item_id: item.id,
-        p_threshold_base: validation.value,
+        p_threshold_base: validation.baseValue,
         p_expected_revision: item.revision,
       },
     };
@@ -348,7 +394,7 @@ export async function stockInlineCommit(
           {
             inventoryItemId: item.id,
             quantity: validation.value,
-            unit: item.baseUnit,
+            unit: validation.unit,
             expectedRevision: item.revision,
           },
         ],

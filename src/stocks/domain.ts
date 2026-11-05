@@ -203,6 +203,18 @@ export function stockNormalizeItem(row: LegacyValue): LegacyValue {
     runtimeValue('state').ingredients || [],
     sourceId,
   );
+  const baseUnit = String(row.base_unit || row.baseUnit || 'g');
+  const requestedUnit = String(
+    row.preferred_unit ||
+      row.preferredUnit ||
+      (source && source.unit) ||
+      baseUnit,
+  ).toLowerCase();
+  const preferredUnit =
+    runtimeValue('UNIT_TYPE')[requestedUnit] ===
+    runtimeValue('UNIT_TYPE')[baseUnit]
+      ? requestedUnit
+      : baseUnit;
   return {
     id: String(row.inventory_item_id || row.id || ''),
     sourceId,
@@ -211,7 +223,12 @@ export function stockNormalizeItem(row: LegacyValue): LegacyValue {
       String(row.item_kind || row.kind || 'purchased') === 'mixture'
         ? 'mixture'
         : 'purchased',
-    baseUnit: String(row.base_unit || row.baseUnit || 'g'),
+    baseUnit,
+    preferredUnit,
+    brand: String(row.brand || ''),
+    purchasedFrom: String(row.purchased_from || row.purchasedFrom || ''),
+    lastStockedOn: row.last_stocked_on || row.lastStockedOn || null,
+    notes: String(row.notes || ''),
     balance: Number(
       row.current_balance_base == null ? 0 : row.current_balance_base,
     ),

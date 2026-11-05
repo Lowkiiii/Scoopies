@@ -15,6 +15,96 @@ concurrency:
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
+  database-tests:
+    name: PostgreSQL 17 migration and behavior tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: matcha_luna_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d matcha_luna_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: matcha_luna_ci
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Install Supabase-compatible local stubs
+        run: |
+          psql -v ON_ERROR_STOP=1 -f supabase/tests/local_supabase_auth_stub.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/tests/local_supabase_storage_stub.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/tests/local_scoopies_costing_stub.sql
+
+      - name: Apply and verify every database phase in order
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          run_sql() {
+            psql -v ON_ERROR_STOP=1 -f "$1"
+          }
+
+          run_sql supabase/migrations/202609270001_pos_phase_1_foundation.sql
+          run_sql supabase/tests/pos_phase_1_schema_checks.sql
+          run_sql supabase/tests/pos_phase_1_behavior_checks.sql
+
+          run_sql supabase/migrations/202609270002_pos_phase_2_catalog_publication.sql
+          run_sql supabase/tests/pos_phase_2_schema_checks.sql
+          run_sql supabase/tests/pos_phase_2_behavior_checks.sql
+
+          run_sql supabase/migrations/202609270003_pos_phase_3_checkout_reporting.sql
+          run_sql supabase/tests/pos_phase_3_schema_checks.sql
+          run_sql supabase/tests/pos_phase_3_behavior_checks.sql
+
+          run_sql supabase/migrations/202609280004_pos_phase_4_operations.sql
+          run_sql supabase/tests/pos_phase_4_schema_checks.sql
+          run_sql supabase/tests/pos_phase_4_behavior_checks.sql
+
+          run_sql supabase/migrations/202609290005_inventory_phase_1_foundation.sql
+          run_sql supabase/tests/inventory_phase_1_schema_checks.sql
+          run_sql supabase/tests/inventory_phase_1_behavior_checks.sql
+
+          run_sql supabase/migrations/202610020006_pos_sales_history_pagination.sql
+          run_sql supabase/tests/pos_sales_history_pagination_schema_checks.sql
+          run_sql supabase/tests/pos_sales_history_pagination_behavior_checks.sql
+
+          run_sql supabase/migrations/202610030007_pos_sales_product_tally.sql
+          run_sql supabase/tests/pos_sales_product_tally_schema_checks.sql
+          run_sql supabase/tests/pos_sales_product_tally_behavior_checks.sql
+
+          run_sql supabase/migrations/202610030008_pos_shift_history_and_filtered_tally.sql
+          run_sql supabase/tests/pos_shift_history_schema_checks.sql
+          run_sql supabase/tests/pos_shift_history_behavior_checks.sql
+
+          run_sql supabase/migrations/202610100009_pos_matcha_upgrades_and_product_media.sql
+          run_sql supabase/tests/pos_matcha_upgrades_and_product_media_schema_checks.sql
+          run_sql supabase/tests/pos_matcha_upgrades_and_product_media_behavior_checks.sql
+
+          run_sql supabase/migrations/202611050010_inventory_phase_2a_item_details.sql
+          run_sql supabase/tests/inventory_phase_2a_schema_checks.sql
+          run_sql supabase/tests/inventory_phase_2a_behavior_checks.sql
+
+          run_sql supabase/migrations/202611050011_inventory_phase_2a_timezone_safe_dates.sql
+          run_sql supabase/tests/inventory_phase_2a_timezone_schema_checks.sql
+          run_sql supabase/tests/inventory_phase_2a_timezone_behavior_checks.sql
+
   browser-tests:
     name: Browser tests
     runs-on: ubuntu-latest
@@ -119,7 +209,7 @@ jobs:
   package-pages:
     name: Package verified Pages artifact
     if: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
-    needs: [browser-tests, windows-browser-tests]
+    needs: [database-tests, browser-tests, windows-browser-tests]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:

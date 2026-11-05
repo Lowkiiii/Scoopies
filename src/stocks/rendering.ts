@@ -67,6 +67,7 @@ function stockInlineEditorHtml(
     'stockInlineFeedback-' + safeId + '-' + String(field);
   const fieldLabel = field === 'count' ? 'on hand' : 'low-stock alert';
   const placeholder = field === 'count' ? 'Enter count' : 'Disabled';
+  const preferredUnit = String(item.preferredUnit || item.baseUnit || '');
   return (
     '<div class="stock-inline-editor" data-stock-inline-cell data-stock-inline-state="' +
     runtimeValue('escapeHtml')(state) +
@@ -84,7 +85,7 @@ function stockInlineEditorHtml(
         ' ' +
         fieldLabel +
         ' in ' +
-        String(item.baseUnit || ''),
+        preferredUnit,
     ) +
     '" aria-describedby="' +
     feedbackId +
@@ -94,9 +95,7 @@ function stockInlineEditorHtml(
     (locked
       ? ' disabled title="' + runtimeValue('escapeHtml')(lockReason) + '"'
       : '') +
-    '><span class="stock-inline-unit" aria-hidden="true">' +
-    runtimeValue('escapeHtml')(item.baseUnit) +
-    '</span></div><div id="' +
+    '></div><div id="' +
     feedbackId +
     '" class="stock-inline-feedback ' +
     (invalid ? 'bad' : state === 'saved' ? 'good' : '') +
@@ -106,6 +105,48 @@ function stockInlineEditorHtml(
     runtimeValue('escapeHtml')(message) +
     '</div></div>'
   );
+}
+
+function stockPreferredQuantity(
+  value: LegacyValue,
+  item: LegacyValue,
+  signed = false,
+): string {
+  const unit = String(item.preferredUnit || item.baseUnit || '');
+  const amount = Number(value || 0) / (runtimeValue('UNIT_FACTOR')[unit] || 1);
+  const prefix = signed && amount > 0 ? '+' : '';
+  const label = unit === 'l' ? 'L' : unit === 'piece' && amount !== 1 ? 'pieces' : unit;
+  return (
+    prefix +
+    amount.toLocaleString('en-PH', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 3,
+    }) +
+    ' ' +
+    label
+  );
+}
+
+function stockPreferredUnitOptions(item: LegacyValue): string {
+  const choices =
+    item.baseUnit === 'g'
+      ? ['g', 'kg']
+      : item.baseUnit === 'ml'
+        ? ['ml', 'l']
+        : ['piece'];
+  return choices
+    .map(function (unit) {
+      return (
+        '<option value="' +
+        unit +
+        '"' +
+        (unit === item.preferredUnit ? ' selected' : '') +
+        '>' +
+        (unit === 'l' ? 'L' : unit) +
+        '</option>'
+      );
+    })
+    .join('');
 }
 
 export function stockItemCardsHtml(): string {
@@ -143,7 +184,7 @@ export function stockItemCardsHtml(): string {
           : '';
   return (
     '<div class="stock-inventory"><table class="stock-table"><caption class="stock-table-caption">Physical ingredient and prepared mixture inventory</caption><thead><tr>' +
-    '<th scope="col" data-stock-field="item">Item</th><th scope="col" data-stock-field="status">Status</th><th scope="col" data-stock-field="on-hand">On hand</th><th scope="col" data-stock-field="threshold">Low-stock alert</th><th scope="col" data-stock-field="updated">Last updated</th>' +
+    '<th scope="col" data-stock-field="item">Item name</th><th scope="col" data-stock-field="brand">Brand</th><th scope="col" data-stock-field="purchased-from">Purchased from</th><th scope="col" data-stock-field="stocked-on">Date purchased</th><th scope="col" data-stock-field="on-hand">On hand</th><th scope="col" data-stock-field="unit">Unit</th><th scope="col" data-stock-field="threshold">Low-stock alert</th><th scope="col" data-stock-field="status">Status</th><th scope="col" data-stock-field="notes">Notes</th><th scope="col" data-stock-field="updated">Last updated</th><th scope="col" data-stock-field="actions">Actions / history</th>' +
     '</tr></thead><tbody>' +
     items
       .map(function (item: LegacyValue) {
@@ -155,10 +196,7 @@ export function stockItemCardsHtml(): string {
         const threshold =
           item.threshold == null
             ? 'Disabled'
-            : readStocksBinding(
-                'stockFormatQuantity',
-                stockFormatQuantity,
-              )(item.threshold, item.baseUnit, false);
+            : stockPreferredQuantity(item.threshold, item);
         const last = item.lastMovementAt
           ? new Date(item.lastMovementAt).toLocaleString('en-PH', {
               month: 'short',
@@ -172,24 +210,41 @@ export function stockItemCardsHtml(): string {
         return (
           '<tr class="stock-row stock-card" data-stock-item="' +
           runtimeValue('escapeHtml')(item.id) +
-          '"><th scope="row" class="stock-item-cell" data-stock-field="item" data-label="Item"><div class="stock-item-name">' +
+          '"><th scope="row" class="stock-item-cell" data-stock-field="item" data-label="Item name"><div class="stock-item-line"><span class="stock-item-name">' +
           runtimeValue('escapeHtml')(item.name) +
-          '</div><div class="stock-item-category">' +
-          runtimeValue('escapeHtml')(item.categoryName) +
-          '</div><div class="stock-badges"><span class="stock-badge ' +
-          (item.kind === 'mixture' ? 'mixture' : '') +
+          '</span><span class="stock-kind-marker' +
+          (item.kind === 'mixture' ? ' mixture' : '') +
+          '" title="' +
+          (item.kind === 'mixture'
+            ? 'Prepared mixture'
+            : 'Purchased ingredient') +
           '">' +
-          (item.kind === 'mixture' ? 'Prepared mixture' : 'Purchased') +
-          '</span>' +
+          (item.kind === 'mixture' ? 'Mix' : 'Item') +
+          '</span></div>' +
           (!source
-            ? '<span class="stock-badge warn">Removed from costing</span>'
+            ? '<span class="stock-source-warning">Removed from costing</span>'
             : '') +
-          '</div></th>' +
-          '<td class="stock-status-cell" data-stock-field="status" data-label="Status"><span class="stock-badge ' +
-          status.cls +
+          '</th><td data-stock-field="brand" data-label="Brand" title="' +
+          runtimeValue('escapeHtml')(item.brand || '') +
           '">' +
-          runtimeValue('escapeHtml')(status.label) +
-          '</span></td>' +
+          runtimeValue('escapeHtml')(item.brand || '\u2014') +
+          '</td><td data-stock-field="purchased-from" data-label="Purchased from" title="' +
+          runtimeValue('escapeHtml')(
+            item.kind === 'mixture'
+              ? 'Prepared in-house'
+              : item.purchasedFrom || '',
+          ) +
+          '">' +
+          runtimeValue('escapeHtml')(
+            item.kind === 'mixture'
+              ? 'Prepared in-house'
+              : item.purchasedFrom || '\u2014',
+          ) +
+          '</td><td data-stock-field="stocked-on" data-label="' +
+          (item.kind === 'mixture' ? 'Last batch made' : 'Date purchased') +
+          '">' +
+          runtimeValue('escapeHtml')(item.lastStockedOn || '\u2014') +
+          '</td>' +
           '<td class="stock-on-hand-cell" data-stock-field="on-hand" data-label="On hand">' +
           (canManage
             ? stockInlineEditorHtml(item, 'count', inlineLocked, lockReason)
@@ -197,12 +252,28 @@ export function stockItemCardsHtml(): string {
               (status.key === 'out' ? 'bad' : '') +
               '">' +
               (item.initialized
-                ? readStocksBinding(
-                    'stockFormatQuantity',
-                    stockFormatQuantity,
-                  )(item.balance, item.baseUnit, false)
+                ? stockPreferredQuantity(item.balance, item)
                 : 'Not counted') +
               '</span>') +
+          '</td>' +
+          '<td class="stock-unit-cell" data-stock-field="unit" data-label="Unit">' +
+          (canManage
+            ? '<select data-stock-preferred-unit data-id="' +
+              runtimeValue('escapeHtml')(item.id) +
+              '" aria-label="' +
+              runtimeValue('escapeHtml')(item.name + ' measurement unit') +
+              '"' +
+              (inlineLocked
+                ? ' disabled title="' +
+                  runtimeValue('escapeHtml')(lockReason) +
+                  '"'
+                : '') +
+              '>' +
+              stockPreferredUnitOptions(item) +
+              '</select>'
+            : runtimeValue('escapeHtml')(
+                item.preferredUnit === 'l' ? 'L' : item.preferredUnit,
+              )) +
           '</td>' +
           '<td class="stock-threshold-cell" data-stock-field="threshold" data-label="Low-stock alert">' +
           (canManage
@@ -213,9 +284,37 @@ export function stockItemCardsHtml(): string {
                 lockReason,
               )
             : runtimeValue('escapeHtml')(threshold)) +
+          '</td><td class="stock-status-cell" data-stock-field="status" data-label="Status"><span class="stock-badge ' +
+          status.cls +
+          '">' +
+          runtimeValue('escapeHtml')(status.label) +
+          '</span></td><td class="stock-notes-cell" data-stock-field="notes" data-label="Notes" title="' +
+          runtimeValue('escapeHtml')(item.notes || '') +
+          '">' +
+          runtimeValue('escapeHtml')(item.notes || '\u2014') +
           '</td>' +
           '<td class="stock-updated-cell" data-stock-field="updated" data-label="Last updated">' +
           runtimeValue('escapeHtml')(last) +
+          '</td><td class="stock-actions-cell" data-stock-field="actions" data-label="Actions / history">' +
+          (canManage
+            ? '<button class="btn small secondary" data-act="openStockModal" data-mode="details" data-id="' +
+              runtimeValue('escapeHtml')(item.id) +
+              '"' +
+              (inlineLocked
+                ? ' disabled title="' +
+                  runtimeValue('escapeHtml')(lockReason) +
+                  '"'
+                : '') +
+              '>Edit</button><button class="btn small secondary" data-act="openStockModal" data-id="' +
+              runtimeValue('escapeHtml')(item.id) +
+              '"' +
+              (inlineLocked
+                ? ' disabled title="' +
+                  runtimeValue('escapeHtml')(lockReason) +
+                  '"'
+                : '') +
+              '>Adjust</button>'
+            : '<span class="hint">Read only</span>') +
           '</td></tr>'
         );
       })
@@ -399,7 +498,7 @@ export function renderStocks(): void {
     readStocksBinding('stockSummaryHtml', stockSummaryHtml)() +
     '<div class="stock-toolbar"><div><label class="fld" for="stockSearch">Search ingredients and mixtures</label><input id="stockSearch" type="search" value="' +
     runtimeValue('escapeHtml')(runtimeValue('stockState').search) +
-    '" placeholder="Search by name or category..." autocomplete="off"></div><div><label class="fld" for="stockKindFilter">Item type</label><select id="stockKindFilter"><option value="all"' +
+    '" placeholder="Search name, brand, supplier, or notes..." autocomplete="off"></div><div><label class="fld" for="stockKindFilter">Item type</label><select id="stockKindFilter"><option value="all"' +
     (runtimeValue('stockState').kind === 'all' ? ' selected' : '') +
     '>All types</option><option value="purchased"' +
     (runtimeValue('stockState').kind === 'purchased' ? ' selected' : '') +

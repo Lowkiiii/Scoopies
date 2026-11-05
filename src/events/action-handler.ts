@@ -41,7 +41,7 @@ export function handleActionClick(event: LegacyValue): void {
       runtimeValue('renderStocks')();
       return;
     case 'openStockModal':
-      runtimeValue('openStockModal')(id);
+      runtimeValue('openStockModal')(id, button.dataset.mode);
       return;
     case 'closeStockModal':
       runtimeValue('closeStockModal')(false);

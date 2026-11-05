@@ -119,6 +119,11 @@ const expectedValues = {
     notice: '',
     uncertain: false,
     pendingRpc: null,
+    brand: '',
+    purchasedFrom: '',
+    lastStockedOn: '',
+    detailsNotes: '',
+    preferredUnit: '',
   },
 };
 

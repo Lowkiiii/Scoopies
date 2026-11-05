@@ -187,7 +187,11 @@ export function stockValidateModal(): LegacyValue {
   };
 }
 
-export function openStockModal(itemId: LegacyValue): boolean {
+export function openStockModal(
+  itemId: LegacyValue,
+  mode?: LegacyValue,
+): boolean {
+  if (mode === 'details') return openStockItemDetails(itemId);
   if (
     !runtimeValue('stockCanManage')() ||
     runtimeValue('stockState').loading ||
@@ -208,12 +212,92 @@ export function openStockModal(itemId: LegacyValue): boolean {
   runtimeValue('stockModal').open = true;
   runtimeValue('stockModal').itemId = item.id;
   runtimeValue('stockModal').action = actions[0].key;
-  runtimeValue('stockModal').unit = item.baseUnit;
+  runtimeValue('stockModal').unit = item.preferredUnit || item.baseUnit;
   const modal = document.getElementById('stockModal');
   if (modal) modal.hidden = false;
   runtimeValue('refreshModalBodyClass')();
   readStocksBinding('renderStockModal', renderStockModal)();
   runtimeValue('focusSoon')('#stockQuantity');
+  return true;
+}
+
+function stockDetailsValidation(item: LegacyValue): LegacyValue {
+  if (!item) {
+    return { valid: false, error: 'This stock item is no longer available.' };
+  }
+  const brand = String(runtimeValue('stockModal').brand || '').trim();
+  const purchasedFrom = String(
+    runtimeValue('stockModal').purchasedFrom || '',
+  ).trim();
+  const lastStockedOn = String(
+    runtimeValue('stockModal').lastStockedOn || '',
+  ).trim();
+  const notes = String(runtimeValue('stockModal').detailsNotes || '').trim();
+  const preferredUnit = String(
+    runtimeValue('stockModal').preferredUnit || item.baseUnit,
+  ).toLowerCase();
+  if (brand.length > 120) {
+    return { valid: false, error: 'Keep the brand under 120 characters.' };
+  }
+  if (purchasedFrom.length > 160) {
+    return {
+      valid: false,
+      error: 'Keep Purchased From under 160 characters.',
+    };
+  }
+  if (notes.length > 1000) {
+    return { valid: false, error: 'Keep notes under 1,000 characters.' };
+  }
+  if (lastStockedOn && !/^\d{4}-\d{2}-\d{2}$/.test(lastStockedOn)) {
+    return { valid: false, error: 'Choose a valid purchase date.' };
+  }
+  if (
+    readStocksBinding('stockUnitChoices', stockUnitChoices)(item).indexOf(
+      preferredUnit,
+    ) < 0
+  ) {
+    return { valid: false, error: 'Choose a compatible measurement unit.' };
+  }
+  return {
+    valid: true,
+    item,
+    brand: brand || null,
+    purchasedFrom: purchasedFrom || null,
+    lastStockedOn: lastStockedOn || null,
+    notes: notes || null,
+    preferredUnit,
+  };
+}
+
+function openStockItemDetails(itemId: LegacyValue): boolean {
+  if (
+    !runtimeValue('stockCanManage')() ||
+    runtimeValue('stockState').loading ||
+    runtimeValue('stockState').refreshing ||
+    runtimeValue('stockState').sourceConflict ||
+    readStocksBinding('stockStoredPending', stockStoredPending)() ||
+    runtimeValue('stockModal').submitting
+  ) {
+    return false;
+  }
+  const item = readStocksBinding('stockItemById', stockItemById)(itemId);
+  if (!item) return false;
+  writeRuntimeBinding('stockModalReturnFocus', document.activeElement);
+  writeRuntimeBinding('stockModal', runtimeValue('freshStockModal')());
+  runtimeValue('stockModal').open = true;
+  runtimeValue('stockModal').itemId = item.id;
+  runtimeValue('stockModal').action = 'details';
+  runtimeValue('stockModal').brand = item.brand || '';
+  runtimeValue('stockModal').purchasedFrom = item.purchasedFrom || '';
+  runtimeValue('stockModal').lastStockedOn = item.lastStockedOn || '';
+  runtimeValue('stockModal').detailsNotes = item.notes || '';
+  runtimeValue('stockModal').preferredUnit =
+    item.preferredUnit || item.baseUnit;
+  const modal = document.getElementById('stockModal');
+  if (modal) modal.hidden = false;
+  runtimeValue('refreshModalBodyClass')();
+  readStocksBinding('renderStockModal', renderStockModal)();
+  runtimeValue('focusSoon')('#stockDetailBrand');
   return true;
 }
 
@@ -225,6 +309,13 @@ export function closeStockModal(force: LegacyValue): boolean {
   ) {
     return false;
   }
+  const closingDetailsItem =
+    !force && runtimeValue('stockModal').action === 'details'
+      ? readStocksBinding(
+          'stockItemById',
+          stockItemById,
+        )(runtimeValue('stockModal').itemId)
+      : null;
   writeRuntimeBinding('stockModal', runtimeValue('freshStockModal')());
   const modal = document.getElementById('stockModal');
   if (modal) modal.hidden = true;
@@ -232,7 +323,20 @@ export function closeStockModal(force: LegacyValue): boolean {
   const target = runtimeValue('stockModalReturnFocus');
   writeRuntimeBinding('stockModalReturnFocus', null);
   setTimeout(function () {
-    if (target && document.contains(target)) target.focus();
+    if (target && document.contains(target)) {
+      if (
+        closingDetailsItem &&
+        target.dataset &&
+        Object.prototype.hasOwnProperty.call(
+          target.dataset,
+          'stockPreferredUnit',
+        )
+      ) {
+        target.value =
+          closingDetailsItem.preferredUnit || closingDetailsItem.baseUnit;
+      }
+      target.focus();
+    }
   }, 0);
   return true;
 }
@@ -260,14 +364,17 @@ export function setStockModalAction(action: LegacyValue): boolean {
     return false;
   }
   runtimeValue('stockModal').action = action;
-  runtimeValue('stockModal').unit = item.baseUnit;
+  runtimeValue('stockModal').unit = item.preferredUnit || item.baseUnit;
   runtimeValue('stockModal').reason = '';
   runtimeValue('stockModal').note = '';
   runtimeValue('stockModal').error = '';
   runtimeValue('stockModal').pendingRpc = null;
   runtimeValue('stockModal').quantity =
     action === 'threshold' && item.threshold != null
-      ? String(item.threshold)
+      ? String(
+          Number(item.threshold) /
+            (runtimeValue('UNIT_FACTOR')[runtimeValue('stockModal').unit] || 1),
+        )
       : '';
   readStocksBinding('renderStockModal', renderStockModal)();
   runtimeValue('focusSoon')('#stockQuantity');
@@ -313,6 +420,65 @@ export function stockPreviewHtml(
   );
 }
 
+function renderStockDetailsModal(item: LegacyValue, content: HTMLElement): void {
+  const locked = runtimeValue('stockModal').submitting;
+  const options = readStocksBinding('stockUnitChoices', stockUnitChoices)(item)
+    .map(function (unit: string) {
+      return (
+        '<option value="' +
+        unit +
+        '"' +
+        (unit === runtimeValue('stockModal').preferredUnit
+          ? ' selected'
+          : '') +
+        '>' +
+        (unit === 'l' ? 'L' : unit) +
+        '</option>'
+      );
+    })
+    .join('');
+  content.setAttribute('aria-busy', locked ? 'true' : 'false');
+  content.innerHTML =
+    '<div class="modal-head"><div style="flex:1"><h2 id="stockModalTitle">Edit ' +
+    runtimeValue('escapeHtml')(item.name) +
+    '</h2><p class="hint">Basic inventory details. Counts and movements remain in History.</p></div><button class="modal-close" data-act="closeStockModal" aria-label="Close stock details"' +
+    (locked ? ' disabled' : '') +
+    '>x</button></div>' +
+    '<div class="grid2"><div><label class="fld" for="stockDetailBrand">Brand</label><input id="stockDetailBrand" data-stock-detail-field="brand" maxlength="120" value="' +
+    runtimeValue('escapeHtml')(runtimeValue('stockModal').brand) +
+    '" placeholder="Optional"' +
+    (locked ? ' disabled' : '') +
+    '></div><div><label class="fld" for="stockDetailPurchasedFrom">Purchased from</label><input id="stockDetailPurchasedFrom" data-stock-detail-field="purchasedFrom" maxlength="160" value="' +
+    runtimeValue('escapeHtml')(runtimeValue('stockModal').purchasedFrom) +
+    '" placeholder="Supplier or store"' +
+    (locked ? ' disabled' : '') +
+    '></div></div>' +
+    '<div class="grid2" style="margin-top:10px"><div><label class="fld" for="stockDetailPurchasedOn">' +
+    (item.kind === 'mixture' ? 'Last batch made' : 'Date purchased') +
+    '</label><input id="stockDetailPurchasedOn" data-stock-detail-field="lastStockedOn" type="date" value="' +
+    runtimeValue('escapeHtml')(runtimeValue('stockModal').lastStockedOn) +
+    '"' +
+    (locked ? ' disabled' : '') +
+    '></div><div><label class="fld" for="stockDetailUnit">Measurement unit</label><select id="stockDetailUnit" data-stock-detail-field="preferredUnit"' +
+    (locked ? ' disabled' : '') +
+    '>' +
+    options +
+    '</select></div></div>' +
+    '<label class="fld" for="stockDetailNotes" style="margin-top:10px">Notes</label><textarea id="stockDetailNotes" data-stock-detail-field="detailsNotes" maxlength="1000" placeholder="Optional inventory note"' +
+    (locked ? ' disabled' : '') +
+    '>' +
+    runtimeValue('escapeHtml')(runtimeValue('stockModal').detailsNotes) +
+    '</textarea><div id="stockModalError" class="modal-error" aria-live="assertive">' +
+    runtimeValue('escapeHtml')(runtimeValue('stockModal').error) +
+    '</div><div class="modal-actions"><button class="btn secondary" data-act="closeStockModal"' +
+    (locked ? ' disabled' : '') +
+    '>Cancel</button><button class="btn" data-act="submitStockModal"' +
+    (locked ? ' disabled' : '') +
+    '>' +
+    (locked ? 'Saving...' : 'Save details') +
+    '</button></div>';
+}
+
 export function renderStockModal(): void {
   if (!runtimeValue('stockModal').open) return;
   const item = readStocksBinding(
@@ -322,6 +488,10 @@ export function renderStockModal(): void {
   const content = document.getElementById('stockModalContent');
   if (!item || !content) {
     readStocksBinding('closeStockModal', closeStockModal)(true);
+    return;
+  }
+  if (runtimeValue('stockModal').action === 'details') {
+    renderStockDetailsModal(item, content);
     return;
   }
   const actions = readStocksBinding(
@@ -465,6 +635,87 @@ export function renderStockModal(): void {
     '</button></div>';
 }
 
+async function updateStockItemDetails(
+  item: LegacyValue,
+  values: LegacyValue,
+): Promise<boolean> {
+  const generation = incrementRuntimeBinding('stockMutationGeneration');
+  const userId = String(runtimeValue('session').user.id || '');
+  const businessId = String(runtimeValue('posContext').businessId || '');
+  const rows = runtimeValue('rpcRows')(
+    await runtimeValue('cloud').client.rpc(
+      'pos_inventory_update_item_details',
+      {
+        p_business_id: businessId,
+        p_inventory_item_id: item.id,
+        p_brand: values.brand,
+        p_purchased_from: values.purchasedFrom,
+        p_last_stocked_on: values.lastStockedOn,
+        p_notes: values.notes,
+        p_preferred_unit: values.preferredUnit,
+        p_expected_revision: item.revision,
+      },
+    ),
+  );
+  if (
+    generation !== runtimeValue('stockMutationGeneration') ||
+    !runtimeValue('session') ||
+    String(runtimeValue('session').user.id || '') !== userId ||
+    String(runtimeValue('posContext').businessId || '') !== businessId
+  ) {
+    return false;
+  }
+  if (!rows.length) {
+    throw new Error('Missing authoritative inventory response');
+  }
+  return true;
+}
+
+async function submitStockItemDetails(): Promise<boolean> {
+  if (
+    !runtimeValue('stockModal').open ||
+    runtimeValue('stockModal').action !== 'details' ||
+    runtimeValue('stockModal').submitting ||
+    !runtimeValue('stockCanManage')() ||
+    !runtimeValue('cloud').client
+  ) {
+    return false;
+  }
+  const item = readStocksBinding(
+    'stockItemById',
+    stockItemById,
+  )(runtimeValue('stockModal').itemId);
+  const validation = stockDetailsValidation(item);
+  if (!validation.valid) {
+    runtimeValue('stockModal').error = validation.error;
+    readStocksBinding('renderStockModal', renderStockModal)();
+    return false;
+  }
+  runtimeValue('stockModal').submitting = true;
+  runtimeValue('stockModal').error = '';
+  readStocksBinding('renderStockModal', renderStockModal)();
+  try {
+    if (!(await updateStockItemDetails(item, validation))) return false;
+    readStocksBinding('closeStockModal', closeStockModal)(true);
+    const refreshed = await readStocksBinding('loadStocks', loadStocks)({
+      background: true,
+    });
+    runtimeValue('stockState').notice = refreshed
+      ? 'Inventory details saved.'
+      : 'Inventory details were saved, but the full list could not refresh. Use Refresh.';
+    readStocksBinding('renderStocks', renderStocks)();
+    return true;
+  } catch (error) {
+    runtimeValue('stockModal').submitting = false;
+    runtimeValue('stockModal').error = readStocksBinding(
+      'stockErrorText',
+      stockErrorText,
+    )(error);
+    readStocksBinding('renderStockModal', renderStockModal)();
+    return false;
+  }
+}
+
 export function updateStockModalPreview(): void {
   if (!runtimeValue('stockModal').open) return;
   const item = readStocksBinding(
@@ -504,6 +755,12 @@ export function updateStockModalPreview(): void {
 }
 
 export async function submitStockModal(): Promise<boolean> {
+  if (
+    runtimeValue('stockModal').open &&
+    runtimeValue('stockModal').action === 'details'
+  ) {
+    return submitStockItemDetails();
+  }
   if (
     !runtimeValue('stockModal').open ||
     runtimeValue('stockModal').submitting ||

@@ -90,7 +90,15 @@ export function stockFilteredItems(): LegacyValue[] {
       }
       if (
         query &&
-        (item.name + ' ' + item.categoryName)
+        [
+          item.name,
+          item.categoryName,
+          item.brand,
+          item.purchasedFrom,
+          item.notes,
+          item.kind === 'mixture' ? 'prepared in-house' : '',
+        ]
+          .join(' ')
           .toLowerCase()
           .indexOf(query) < 0
       ) {
