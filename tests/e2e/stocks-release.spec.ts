@@ -523,11 +523,10 @@ test('authenticated data-heavy Stocks view stays usable at a mobile width', asyn
     'Status',
     'Notes',
     'Last updated',
-    'Actions / history',
   ]);
   await expect(stockTable.getByRole('row')).toHaveCount(9);
   await expect(stockTable.getByRole('rowheader')).toHaveCount(8);
-  await expect(stockTable.getByRole('cell')).toHaveCount(80);
+  await expect(stockTable.getByRole('cell')).toHaveCount(72);
   await expect(page.locator('.stock-row[data-stock-item]')).toHaveCount(8);
   await expect(page.locator('.stock-history-row')).toHaveCount(12);
   await expect(
@@ -544,7 +543,7 @@ test('authenticated data-heavy Stocks view stays usable at a mobile width', asyn
   ).toHaveCount(8);
   await expect(
     page.locator('.stock-row [data-act="openStockModal"][data-mode="details"]'),
-  ).toHaveCount(8);
+  ).toHaveCount(0);
 
   const layout = await page.evaluate(() => {
     const section = document.getElementById('stocks') as HTMLElement;
@@ -598,6 +597,5 @@ test('authenticated data-heavy Stocks view stays usable at a mobile width', asyn
     'status',
     'notes',
     'updated',
-    'actions',
   ]);
 });

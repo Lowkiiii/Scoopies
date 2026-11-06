@@ -6,6 +6,10 @@ import {
   stockStatus,
   stockSummaryHtml,
 } from './formatting';
+import {
+  stockCellFieldState,
+  type StockCellField,
+} from './cell-edit';
 import { stockInlineFieldState, stockInlineLocked } from './inline-edit';
 import { stockStoredPending } from './storage';
 import type { LegacyValue } from './types';
@@ -107,6 +111,98 @@ function stockInlineEditorHtml(
   );
 }
 
+function stockCellEditorHtml(
+  item: LegacyValue,
+  field: StockCellField,
+  locked: boolean,
+  lockReason: string,
+): string {
+  const edit = stockCellFieldState(item, field);
+  const value = String((edit && edit.value) || '');
+  const state = String((edit && edit.status) || 'idle');
+  const message = String(
+    (edit && edit.error) ||
+      (state === 'saving' ? 'Saving...' : state === 'saved' ? 'Saved' : ''),
+  );
+  const invalid = state === 'error' || state === 'uncertain';
+  const safeId = String(item.id || '').replace(/[^a-zA-Z0-9_-]/g, '-');
+  const feedbackId = 'stockCellFeedback-' + safeId + '-' + field;
+  const labels: Record<StockCellField, string> = {
+    brand: 'brand',
+    purchasedFrom: 'purchased from',
+    lastStockedOn:
+      item.kind === 'mixture' ? 'last batch made date' : 'date purchased',
+    notes: 'notes',
+    preferredUnit: 'measurement unit',
+  };
+  const disabled = locked
+    ? ' disabled title="' + runtimeValue('escapeHtml')(lockReason) + '"'
+    : '';
+  let control: string;
+  if (field === 'preferredUnit') {
+    control =
+      '<select class="stock-cell-control stock-cell-select" data-stock-cell-field="preferredUnit" data-id="' +
+      runtimeValue('escapeHtml')(item.id) +
+      '" aria-label="' +
+      runtimeValue('escapeHtml')(item.name + ' ' + labels[field]) +
+      '" aria-describedby="' +
+      feedbackId +
+      '" aria-invalid="' +
+      (invalid ? 'true' : 'false') +
+      '"' +
+      disabled +
+      '>' +
+      stockPreferredUnitOptions(item, value) +
+      '</select>';
+  } else {
+    const maxLength =
+      field === 'brand' ? 120 : field === 'purchasedFrom' ? 160 : 1000;
+    const placeholder =
+      field === 'brand'
+        ? 'Brand'
+        : field === 'purchasedFrom'
+          ? 'Supplier'
+          : field === 'notes'
+            ? 'Notes'
+            : '';
+    control =
+      '<input class="stock-cell-control stock-cell-input" type="' +
+      (field === 'lastStockedOn' ? 'date' : 'text') +
+      '" data-stock-cell-field="' +
+      field +
+      '" data-id="' +
+      runtimeValue('escapeHtml')(item.id) +
+      '" value="' +
+      runtimeValue('escapeHtml')(value) +
+      '"' +
+      (field === 'lastStockedOn'
+        ? ''
+        : ' maxlength="' + maxLength + '" placeholder="' + placeholder + '"') +
+      ' autocomplete="off" aria-label="' +
+      runtimeValue('escapeHtml')(item.name + ' ' + labels[field]) +
+      '" aria-describedby="' +
+      feedbackId +
+      '" aria-invalid="' +
+      (invalid ? 'true' : 'false') +
+      '"' +
+      disabled +
+      '>';
+  }
+  return (
+    '<div class="stock-cell-editor" data-stock-cell-editor data-stock-cell-state="' +
+    runtimeValue('escapeHtml')(state) +
+    '">' +
+    control +
+    '<div id="' +
+    feedbackId +
+    '" class="stock-cell-feedback ' +
+    (invalid ? 'bad' : state === 'saved' ? 'good' : '') +
+    '" data-stock-cell-feedback aria-live="polite">' +
+    runtimeValue('escapeHtml')(message) +
+    '</div></div>'
+  );
+}
+
 function stockPreferredQuantity(
   value: LegacyValue,
   item: LegacyValue,
@@ -127,7 +223,10 @@ function stockPreferredQuantity(
   );
 }
 
-function stockPreferredUnitOptions(item: LegacyValue): string {
+function stockPreferredUnitOptions(
+  item: LegacyValue,
+  selectedValue?: LegacyValue,
+): string {
   const choices =
     item.baseUnit === 'g'
       ? ['g', 'kg']
@@ -140,7 +239,7 @@ function stockPreferredUnitOptions(item: LegacyValue): string {
         '<option value="' +
         unit +
         '"' +
-        (unit === item.preferredUnit ? ' selected' : '') +
+        (unit === String(selectedValue || item.preferredUnit) ? ' selected' : '') +
         '>' +
         (unit === 'l' ? 'L' : unit) +
         '</option>'
@@ -184,7 +283,7 @@ export function stockItemCardsHtml(): string {
           : '';
   return (
     '<div class="stock-inventory"><table class="stock-table"><caption class="stock-table-caption">Physical ingredient and prepared mixture inventory</caption><thead><tr>' +
-    '<th scope="col" data-stock-field="item">Item name</th><th scope="col" data-stock-field="brand">Brand</th><th scope="col" data-stock-field="purchased-from">Purchased from</th><th scope="col" data-stock-field="stocked-on">Date purchased</th><th scope="col" data-stock-field="on-hand">On hand</th><th scope="col" data-stock-field="unit">Unit</th><th scope="col" data-stock-field="threshold">Low-stock alert</th><th scope="col" data-stock-field="status">Status</th><th scope="col" data-stock-field="notes">Notes</th><th scope="col" data-stock-field="updated">Last updated</th><th scope="col" data-stock-field="actions">Actions / history</th>' +
+    '<th scope="col" data-stock-field="item">Item name</th><th scope="col" data-stock-field="brand">Brand</th><th scope="col" data-stock-field="purchased-from">Purchased from</th><th scope="col" data-stock-field="stocked-on">Date purchased</th><th scope="col" data-stock-field="on-hand">On hand</th><th scope="col" data-stock-field="unit">Unit</th><th scope="col" data-stock-field="threshold">Low-stock alert</th><th scope="col" data-stock-field="status">Status</th><th scope="col" data-stock-field="notes">Notes</th><th scope="col" data-stock-field="updated">Last updated</th>' +
     '</tr></thead><tbody>' +
     items
       .map(function (item: LegacyValue) {
@@ -220,30 +319,52 @@ export function stockItemCardsHtml(): string {
             : 'Purchased ingredient') +
           '">' +
           (item.kind === 'mixture' ? 'Mix' : 'Item') +
-          '</span></div>' +
+          '</span>' +
+          (canManage
+            ? '<button class="stock-row-menu" type="button" data-act="openStockModal" data-id="' +
+              runtimeValue('escapeHtml')(item.id) +
+              '" aria-label="Record a stock movement for ' +
+              runtimeValue('escapeHtml')(item.name) +
+              '" title="' +
+              runtimeValue('escapeHtml')(
+                inlineLocked
+                  ? lockReason
+                  : 'Record received stock, waste, or a correction',
+              ) +
+              '"' +
+              (inlineLocked ? ' disabled' : '') +
+              '>&#8942;</button>'
+            : '') +
+          '</div>' +
           (!source
             ? '<span class="stock-source-warning">Removed from costing</span>'
             : '') +
-          '</th><td data-stock-field="brand" data-label="Brand" title="' +
-          runtimeValue('escapeHtml')(item.brand || '') +
-          '">' +
-          runtimeValue('escapeHtml')(item.brand || '\u2014') +
-          '</td><td data-stock-field="purchased-from" data-label="Purchased from" title="' +
-          runtimeValue('escapeHtml')(
-            item.kind === 'mixture'
-              ? 'Prepared in-house'
-              : item.purchasedFrom || '',
-          ) +
-          '">' +
-          runtimeValue('escapeHtml')(
-            item.kind === 'mixture'
-              ? 'Prepared in-house'
-              : item.purchasedFrom || '\u2014',
-          ) +
+          '</th><td data-stock-field="brand" data-label="Brand">' +
+          (canManage
+            ? stockCellEditorHtml(item, 'brand', inlineLocked, lockReason)
+            : runtimeValue('escapeHtml')(item.brand || '\u2014')) +
+          '</td><td data-stock-field="purchased-from" data-label="Purchased from">' +
+          (item.kind === 'mixture'
+            ? 'Prepared in-house'
+            : canManage
+              ? stockCellEditorHtml(
+                  item,
+                  'purchasedFrom',
+                  inlineLocked,
+                  lockReason,
+                )
+              : runtimeValue('escapeHtml')(item.purchasedFrom || '\u2014')) +
           '</td><td data-stock-field="stocked-on" data-label="' +
           (item.kind === 'mixture' ? 'Last batch made' : 'Date purchased') +
           '">' +
-          runtimeValue('escapeHtml')(item.lastStockedOn || '\u2014') +
+          (canManage
+            ? stockCellEditorHtml(
+                item,
+                'lastStockedOn',
+                inlineLocked,
+                lockReason,
+              )
+            : runtimeValue('escapeHtml')(item.lastStockedOn || '\u2014')) +
           '</td>' +
           '<td class="stock-on-hand-cell" data-stock-field="on-hand" data-label="On hand">' +
           (canManage
@@ -258,19 +379,12 @@ export function stockItemCardsHtml(): string {
           '</td>' +
           '<td class="stock-unit-cell" data-stock-field="unit" data-label="Unit">' +
           (canManage
-            ? '<select data-stock-preferred-unit data-id="' +
-              runtimeValue('escapeHtml')(item.id) +
-              '" aria-label="' +
-              runtimeValue('escapeHtml')(item.name + ' measurement unit') +
-              '"' +
-              (inlineLocked
-                ? ' disabled title="' +
-                  runtimeValue('escapeHtml')(lockReason) +
-                  '"'
-                : '') +
-              '>' +
-              stockPreferredUnitOptions(item) +
-              '</select>'
+            ? stockCellEditorHtml(
+                item,
+                'preferredUnit',
+                inlineLocked,
+                lockReason,
+              )
             : runtimeValue('escapeHtml')(
                 item.preferredUnit === 'l' ? 'L' : item.preferredUnit,
               )) +
@@ -288,33 +402,13 @@ export function stockItemCardsHtml(): string {
           status.cls +
           '">' +
           runtimeValue('escapeHtml')(status.label) +
-          '</span></td><td class="stock-notes-cell" data-stock-field="notes" data-label="Notes" title="' +
-          runtimeValue('escapeHtml')(item.notes || '') +
-          '">' +
-          runtimeValue('escapeHtml')(item.notes || '\u2014') +
+          '</span></td><td class="stock-notes-cell" data-stock-field="notes" data-label="Notes">' +
+          (canManage
+            ? stockCellEditorHtml(item, 'notes', inlineLocked, lockReason)
+            : runtimeValue('escapeHtml')(item.notes || '\u2014')) +
           '</td>' +
           '<td class="stock-updated-cell" data-stock-field="updated" data-label="Last updated">' +
           runtimeValue('escapeHtml')(last) +
-          '</td><td class="stock-actions-cell" data-stock-field="actions" data-label="Actions / history">' +
-          (canManage
-            ? '<button class="btn small secondary" data-act="openStockModal" data-mode="details" data-id="' +
-              runtimeValue('escapeHtml')(item.id) +
-              '"' +
-              (inlineLocked
-                ? ' disabled title="' +
-                  runtimeValue('escapeHtml')(lockReason) +
-                  '"'
-                : '') +
-              '>Edit</button><button class="btn small secondary" data-act="openStockModal" data-id="' +
-              runtimeValue('escapeHtml')(item.id) +
-              '"' +
-              (inlineLocked
-                ? ' disabled title="' +
-                  runtimeValue('escapeHtml')(lockReason) +
-                  '"'
-                : '') +
-              '>Adjust</button>'
-            : '<span class="hint">Read only</span>') +
           '</td></tr>'
         );
       })
@@ -492,7 +586,7 @@ export function renderStocks(): void {
     return;
   }
   const note =
-    '<div class="note stock-phase-note"><strong>Spreadsheet-style inventory.</strong> Click an On hand or Low-stock alert box, type the amount, then press Enter or tap away to save. On hand is the exact physical amount you counted; leave the alert blank to disable it. POS sales do not subtract stock yet.</div>';
+    '<div class="note stock-phase-note"><strong>Spreadsheet-style inventory.</strong> Type directly in a cell, then press Enter, Tab, or tap away to save; press Escape to undo the current edit. On hand is the exact physical amount counted, and a blank low-stock alert disables it. Use the three-dot item menu only for received stock, waste, or corrections. POS sales do not subtract stock yet.</div>';
   const toolbar =
     '<div class="card">' +
     readStocksBinding('stockSummaryHtml', stockSummaryHtml)() +

@@ -3,7 +3,41 @@ import {
   stockInlineCommitElement,
   stockInlineResetElement,
 } from '../stocks/inline-edit';
+import {
+  stockCellCommitElement,
+  stockCellResetElement,
+} from '../stocks/cell-edit';
 import type { LegacyValue } from './types';
+
+function stockKeyboardSelector(element: LegacyValue): string {
+  const attribute = element.dataset.stockCellField
+    ? 'stock-cell-field'
+    : 'stock-inline-field';
+  const field = String(
+    element.dataset.stockCellField || element.dataset.stockInlineField || '',
+  ).replace(/"/g, '\\"');
+  const id = String(element.dataset.id || '')
+    .replace(/\\/g, '\\\\')
+    .replace(/"/g, '\\"');
+  return (
+    '[data-' + attribute + '="' + field + '"][data-id="' + id + '"]'
+  );
+}
+
+function stockKeyboardNextElement(
+  element: LegacyValue,
+  backwards: boolean,
+): LegacyValue | null {
+  const document = runtimeValue<Document>('document');
+  const editable = Array.from(
+    document.querySelectorAll(
+      '#stockResults [data-stock-cell-field]:not([disabled]),#stockResults [data-stock-inline-field]:not([disabled])',
+    ),
+  ) as LegacyValue[];
+  const index = editable.indexOf(element);
+  if (index < 0) return null;
+  return editable[index + (backwards ? -1 : 1)] || null;
+}
 
 export function handleBackdropClick(event: LegacyValue): void {
   if (event.target && event.target.id === 'categoryModal') {
@@ -37,6 +71,31 @@ export function handleBackdropClick(event: LegacyValue): void {
 }
 
 export function handleBodyKeydown(event: LegacyValue): void {
+  if (event.target && event.target.dataset.stockCellField) {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      stockCellCommitElement(event.target).catch(function () {});
+      return;
+    }
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      stockCellResetElement(event.target);
+      return;
+    }
+    if (event.key === 'Tab') {
+      const nextCell = stockKeyboardNextElement(event.target, event.shiftKey);
+      if (nextCell) {
+        event.preventDefault();
+        const selector = stockKeyboardSelector(nextCell);
+        stockCellCommitElement(event.target, false)
+          .then(function () {
+            runtimeValue('focusSoon')(selector);
+          })
+          .catch(function () {});
+        return;
+      }
+    }
+  }
   if (event.target && event.target.dataset.stockInlineField) {
     if (event.key === 'Enter') {
       event.preventDefault();
@@ -47,6 +106,19 @@ export function handleBodyKeydown(event: LegacyValue): void {
       event.preventDefault();
       stockInlineResetElement(event.target);
       return;
+    }
+    if (event.key === 'Tab') {
+      const nextCell = stockKeyboardNextElement(event.target, event.shiftKey);
+      if (nextCell) {
+        event.preventDefault();
+        const selector = stockKeyboardSelector(nextCell);
+        stockInlineCommitElement(event.target, false)
+          .then(function () {
+            runtimeValue('focusSoon')(selector);
+          })
+          .catch(function () {});
+        return;
+      }
     }
   }
   if (event.target && event.target.id === 'posPhotoCropCanvas') {

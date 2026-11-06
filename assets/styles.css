@@ -16,7 +16,7 @@
   .hwrap{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
   header h1{margin:0;font-size:20px;letter-spacing:.3px}
   header p{margin:4px 0 0;font-size:13px;opacity:.85}
-  .wrap{width:100%;max-width:1000px;min-width:0;margin:0 auto;padding:0 14px 60px}
+  .wrap{width:calc(100% - 24px);max-width:1540px;min-width:0;margin:0 auto;padding:0 0 60px}
   nav{display:flex;flex-wrap:wrap;gap:6px;position:sticky;top:0;background:var(--forest);
     padding:10px 0;z-index:5;border-bottom:1px solid rgba(255,208,219,.45)}
   nav button{flex:1 1 auto;min-width:96px;padding:10px 8px;border:1px solid var(--control-line);
@@ -337,29 +337,30 @@
   .stock-card .btn{width:100%;min-height:44px;margin-top:10px}
   .stock-inventory{max-width:100%;min-width:0;margin-top:8px;overflow-x:auto;-webkit-overflow-scrolling:touch;
     border:1px solid var(--line);border-radius:10px;background:var(--card);scrollbar-width:thin}
-  .stock-table{width:100%;min-width:1480px;table-layout:fixed;border-collapse:collapse;background:var(--card)}
+  .stock-table{width:100%;min-width:1160px;table-layout:fixed;border-collapse:collapse;background:var(--card)}
   .stock-table-caption{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;
     clip:rect(0,0,0,0);white-space:nowrap;border:0}
   .stock-table thead{background:var(--cream)}
   .stock-table thead th{position:sticky;top:0;z-index:3;padding:8px;border-bottom:1px solid var(--line);background:var(--cream);color:var(--ink-soft);
     font-size:11px;font-weight:750;letter-spacing:.045em;white-space:nowrap}
-  .stock-table [data-stock-field='item']{width:185px}
+  .stock-table thead th:not(:last-child){border-right:1px solid var(--line)}
+  .stock-table [data-stock-field='item']{width:195px}
   .stock-table [data-stock-field='brand']{width:105px}
-  .stock-table [data-stock-field='purchased-from']{width:145px}
-  .stock-table [data-stock-field='stocked-on']{width:112px}
-  .stock-table [data-stock-field='on-hand']{width:125px}
-  .stock-table [data-stock-field='unit']{width:75px}
-  .stock-table [data-stock-field='threshold']{width:130px}
-  .stock-table [data-stock-field='status']{width:105px}
-  .stock-table [data-stock-field='notes']{width:170px}
-  .stock-table [data-stock-field='updated']{width:125px}
-  .stock-table [data-stock-field='actions']{width:150px}
+  .stock-table [data-stock-field='purchased-from']{width:135px}
+  .stock-table [data-stock-field='stocked-on']{width:110px}
+  .stock-table [data-stock-field='on-hand']{width:105px}
+  .stock-table [data-stock-field='unit']{width:65px}
+  .stock-table [data-stock-field='threshold']{width:110px}
+  .stock-table [data-stock-field='status']{width:95px}
+  .stock-table [data-stock-field='notes']{width:130px}
+  .stock-table [data-stock-field='updated']{width:110px}
   .stock-table thead [data-stock-field='item']{left:0;z-index:5}
   .stock-row{transition:background-color .12s ease,box-shadow .12s ease}
   .stock-row:hover{background:var(--pink-soft)}
   .stock-row:focus-within{background:var(--pink-soft);box-shadow:inset 3px 0 0 var(--focus)}
-  .stock-row>th,.stock-row>td{min-width:0;height:48px;padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:middle;
+  .stock-row>th,.stock-row>td{min-width:0;height:42px;padding:4px 6px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);vertical-align:middle;
     color:var(--ink-soft);font-size:12px;line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .stock-row>th:last-child,.stock-row>td:last-child{border-right:0}
   .stock-table tbody .stock-row:last-child>th,.stock-table tbody .stock-row:last-child>td{border-bottom:0}
   .stock-table tbody th[data-stock-field='item']{position:sticky;left:0;z-index:2;background:var(--card);text-align:left;
     text-transform:none;letter-spacing:normal;color:var(--ink);box-shadow:1px 0 0 var(--line)}
@@ -370,6 +371,9 @@
   .stock-kind-marker{flex:0 0 auto;border:1px solid var(--line);border-radius:999px;padding:1px 5px;background:var(--cream);
     color:var(--muted);font-size:9px;font-weight:750;text-transform:uppercase}
   .stock-kind-marker.mixture{background:#eef5ff;color:#315b8a;border-color:#cfdef0}
+  .stock-row-menu{display:inline-flex;align-items:center;justify-content:center;flex:0 0 30px;width:30px;height:30px;margin-left:auto;padding:0;border:1px solid transparent;border-radius:5px;background:transparent;color:var(--brown);font-size:18px;font-weight:800;line-height:1;cursor:pointer}
+  .stock-row-menu:hover{border-color:var(--line);background:var(--pink-soft)}
+  .stock-row-menu:disabled{cursor:not-allowed;color:var(--muted);background:var(--cream)}
   .stock-source-warning{display:block;margin-top:2px;color:var(--bad);font-size:10px;font-weight:700}
   .stock-status-cell .stock-badge{white-space:normal;text-align:center;line-height:1.25}
   .stock-table .stock-on-hand{margin:0;color:var(--brown);font-size:17px;font-weight:850;line-height:1.25;
@@ -380,11 +384,13 @@
   .stock-table .stock-threshold-cell{color:var(--ink-soft);font-size:13px;line-height:1.35;overflow-wrap:anywhere}
   .stock-table .stock-updated-cell{color:var(--muted);font-size:12px;line-height:1.4;overflow-wrap:anywhere}
   .stock-inline-editor{min-width:0}
-  .stock-inline-control{display:flex;align-items:stretch;min-width:0;border:1px solid var(--control-line);border-radius:9px;background:var(--card);overflow:hidden;
+  .stock-inline-control{display:flex;align-items:stretch;min-width:0;border:0;border-radius:0;background:transparent;overflow:hidden;
     transition:border-color .12s ease,box-shadow .12s ease,background-color .12s ease}
-  .stock-inline-control:focus-within{border-color:var(--focus);box-shadow:0 0 0 3px rgba(0,56,127,.13)}
-  .stock-inline-input{width:100%;min-width:0;min-height:34px;margin:0;padding:5px 7px;border:0;border-radius:0;background:transparent;color:var(--ink);font:inherit;font-weight:750;
+  .stock-inline-control:focus-within{background:var(--card);box-shadow:inset 0 0 0 2px var(--focus)}
+  .stock-inline-input{width:100%;min-width:0;min-height:32px;margin:0;padding:4px 5px;border:0;border-radius:0;background:transparent;color:var(--ink);font:inherit;font-weight:750;
     font-variant-numeric:tabular-nums;box-shadow:none;outline:0}
+  .stock-table input.stock-inline-input{width:100%}
+  .stock-inline-input:focus-visible{outline:0;outline-offset:0}
   .stock-inline-input::placeholder{color:var(--muted);font-weight:500;opacity:.85}
   .stock-inline-input:disabled{cursor:not-allowed;color:var(--muted);background:var(--cream)}
   .stock-inline-unit{display:flex;align-items:center;justify-content:center;flex:0 0 auto;min-width:38px;padding:0 8px;border-left:1px solid var(--line);background:var(--cream);
@@ -392,15 +398,29 @@
   .stock-inline-editor[data-stock-inline-state='saving'] .stock-inline-control{background:var(--cream)}
   .stock-inline-editor[data-stock-inline-state='error'] .stock-inline-control,
   .stock-inline-editor[data-stock-inline-state='retry'] .stock-inline-control,
-  .stock-inline-editor[data-stock-inline-state='uncertain'] .stock-inline-control{border-color:var(--bad)}
+  .stock-inline-editor[data-stock-inline-state='uncertain'] .stock-inline-control{box-shadow:inset 0 0 0 2px var(--bad)}
   .stock-inline-feedback:empty{display:none}
   .stock-inline-feedback:not(:empty){display:block;margin-top:2px;color:var(--muted);font-size:10px;line-height:1.2;white-space:normal}
   .stock-inline-feedback.good{color:var(--good);font-weight:700}
   .stock-inline-feedback.bad{color:var(--bad);font-weight:700}
-  .stock-unit-cell select{min-height:34px;padding:5px 22px 5px 7px;font-size:12px}
+  .stock-unit-cell select{min-height:32px;padding:4px 19px 4px 5px;border:0;border-radius:0;background-color:transparent;font-size:12px;box-shadow:none}
+  .stock-unit-cell select:focus-visible{outline:0;outline-offset:0;box-shadow:inset 0 0 0 2px var(--focus)}
+  .stock-cell-editor{position:relative;min-width:0}
+  .stock-cell-control{width:100%;min-width:0;min-height:32px;margin:0;padding:4px 5px;border:0;border-radius:0;background:transparent;color:var(--ink);font:inherit;font-size:12px;box-shadow:none;outline:0;
+    transition:background-color .12s ease,box-shadow .12s ease}
+  .stock-cell-control:hover:not(:disabled){background:rgba(255,208,219,.22)}
+  .stock-cell-control:focus{background:var(--card);box-shadow:inset 0 0 0 2px var(--focus)}
+  .stock-cell-control:focus-visible{outline:0;outline-offset:0}
+  .stock-cell-control:disabled{cursor:not-allowed;color:var(--muted);background:var(--cream)}
+  .stock-cell-editor[data-stock-cell-state='saving'] .stock-cell-control{background:var(--cream)}
+  .stock-cell-editor[data-stock-cell-state='error'] .stock-cell-control,
+  .stock-cell-editor[data-stock-cell-state='retry'] .stock-cell-control,
+  .stock-cell-editor[data-stock-cell-state='uncertain'] .stock-cell-control{box-shadow:inset 0 0 0 2px var(--bad)}
+  .stock-cell-feedback:empty{display:none}
+  .stock-cell-feedback:not(:empty){position:absolute;right:3px;bottom:1px;z-index:1;max-width:calc(100% - 6px);overflow:hidden;color:var(--muted);font-size:9px;font-weight:700;line-height:1;text-overflow:ellipsis;white-space:nowrap;pointer-events:none}
+  .stock-cell-feedback.good{color:var(--good)}
+  .stock-cell-feedback.bad{color:var(--bad)}
   .stock-notes-cell{color:var(--muted)}
-  .stock-actions-cell{overflow:visible!important;white-space:nowrap!important}
-  .stock-actions-cell .btn{min-height:32px;margin:0 4px 0 0;padding:5px 8px;font-size:11px;white-space:nowrap}
   .stock-history{display:grid;gap:0;margin-top:8px}
   .stock-history-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);align-items:start}
   .stock-history-row:last-child{border-bottom:0}
@@ -531,20 +551,21 @@
     #stocks .stock-filter-bar .category-chip{min-width:44px;min-height:44px}
     .stock-grid{grid-template-columns:1fr}
     .stock-inventory{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--card)}
-    .stock-table{display:table;width:100%;min-width:1480px;table-layout:fixed;border-collapse:collapse;background:var(--card)}
+    .stock-table{display:table;width:100%;min-width:1160px;table-layout:fixed;border-collapse:collapse;background:var(--card)}
     .stock-table thead{position:static;width:auto;height:auto;padding:0;margin:0;overflow:visible;clip:auto;clip-path:none;
       white-space:normal;border:0}
     .stock-table tbody{display:table-row-group;width:auto}
     .stock-table .stock-row{display:table-row;width:auto;min-width:0;padding:0;border:0;border-radius:0;background:var(--card);
       box-shadow:none}
-    .stock-table .stock-row>[data-stock-field]{display:table-cell;width:auto;min-width:0;padding:6px 8px;border:0;
-      border-bottom:1px solid var(--line);text-align:left}
+    .stock-table .stock-row>[data-stock-field]{display:table-cell;width:auto;min-width:0;padding:4px 6px;border:0;
+      border-right:1px solid var(--line);border-bottom:1px solid var(--line);text-align:left}
+    .stock-table .stock-row>[data-stock-field]:last-child{border-right:0}
     .stock-table .stock-row>[data-stock-field]::before{content:none}
-    .stock-table .stock-row>[data-stock-field='item']{display:table-cell;padding:6px 8px}
+    .stock-table .stock-row>[data-stock-field='item']{display:table-cell;padding:4px 6px}
     .stock-table .stock-inline-editor{width:100%;max-width:none}
-    .stock-table .stock-inline-input{min-height:44px}
-    .stock-table .stock-unit-cell select,.stock-table .stock-actions-cell .btn{min-height:44px}
-    .stock-actions-cell{display:table-cell!important}
+    .stock-table .stock-inline-input,.stock-table .stock-cell-control{min-height:44px}
+    .stock-table .stock-unit-cell select{min-height:44px}
+    .stock-row-menu{flex-basis:44px;width:44px;height:44px}
   }
   @media(max-width:560px){
     nav{display:grid;grid-template-columns:repeat(4,minmax(0,1fr))}
