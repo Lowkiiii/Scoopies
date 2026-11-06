@@ -181,6 +181,31 @@ export function stockInlineLocked(): boolean {
   );
 }
 
+export function stockQueueInlineMutation(
+  task: () => Promise<boolean>,
+): Promise<boolean> {
+  const state = runtimeValue('stockState');
+  const previous: Promise<LegacyValue> =
+    state.inlineMutationChain || Promise.resolve(true);
+  const next = previous
+    .catch(function () {
+      return false;
+    })
+    .then(task);
+  const tail = next
+    .catch(function () {
+      return false;
+    })
+    .then(function (result) {
+      if (state.inlineMutationChain === tail) {
+        delete state.inlineMutationChain;
+      }
+      return result;
+    });
+  state.inlineMutationChain = tail;
+  return next;
+}
+
 function stockInlineItem(itemId: LegacyValue): LegacyValue {
   return runtimeValue('stockState').items.find(function (item: LegacyValue) {
     return String(item.id) === String(itemId);
@@ -332,6 +357,16 @@ export async function stockInlineCommitElement(
 }
 
 export async function stockInlineCommit(
+  itemId: LegacyValue,
+  field: StockInlineField,
+  restoreFocus = true,
+): Promise<boolean> {
+  return stockQueueInlineMutation(function () {
+    return stockInlineCommitNow(itemId, field, restoreFocus);
+  });
+}
+
+async function stockInlineCommitNow(
   itemId: LegacyValue,
   field: StockInlineField,
   restoreFocus = true,

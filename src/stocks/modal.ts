@@ -191,16 +191,18 @@ export function openStockModal(
   itemId: LegacyValue,
   mode?: LegacyValue,
 ): boolean {
-  if (mode === 'details') return openStockItemDetails(itemId);
   if (
     !runtimeValue('stockCanManage')() ||
     runtimeValue('stockState').loading ||
     runtimeValue('stockState').refreshing ||
     readStocksBinding('stockStoredPending', stockStoredPending)() ||
-    runtimeValue('stockState').sourceConflict
+    runtimeValue('stockState').sourceConflict ||
+    runtimeValue('stockModal').submitting ||
+    runtimeValue('stockState').inlineMutationChain
   ) {
     return false;
   }
+  if (mode === 'details') return openStockItemDetails(itemId);
   const item = readStocksBinding('stockItemById', stockItemById)(itemId);
   if (!item) return false;
   const actions = readStocksBinding(
