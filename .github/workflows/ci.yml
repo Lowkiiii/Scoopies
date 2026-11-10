@@ -131,6 +131,9 @@ jobs:
       - name: Type-check build and test code
         run: npm run typecheck
 
+      - name: Test production maintenance safeguards
+        run: npm run test:admin
+
       - name: Build production artifact
         run: npm run build
 
@@ -185,6 +188,9 @@ jobs:
 
       - name: Type-check build and test code
         run: npm run typecheck
+
+      - name: Test production maintenance safeguards
+        run: npm run test:admin
 
       - name: Build production artifact
         run: npm run build
