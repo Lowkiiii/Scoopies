@@ -16,6 +16,7 @@
     "test:legacy": "playwright test tests/e2e/legacy-suite.spec.ts --project=chromium-desktop",
     "test:assets": "playwright test tests/e2e/assets.spec.ts --project=chromium-desktop",
     "test:compatibility": "playwright test tests/e2e/compatibility.spec.ts --project=chromium-desktop",
+    "test:admin": "node --test tests/admin/*.test.mjs",
     "test:smoke": "playwright test tests/e2e/smoke.spec.ts",
     "test:production:smoke": "playwright test --config=playwright.production.config.ts"
   },

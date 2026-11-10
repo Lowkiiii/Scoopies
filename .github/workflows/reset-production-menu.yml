@@ -1,0 +1,82 @@
+name: Reset production menu
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: Type CLEAR RECIPES PRICING AND POS DRINKS
+        required: true
+        type: string
+      reason:
+        description: Audit note for this reset
+        required: true
+        default: New brand menu rebuild
+        type: string
+      business_id:
+        description: Optional POS business ID (leave blank when this account has one business)
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-data-maintenance
+  cancel-in-progress: false
+
+jobs:
+  reset-menu:
+    name: Back up, reset, and verify
+    if: ${{ github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: production-smoke
+      url: https://lowkiiii.github.io/Scoopies/
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+
+      - name: Test reset safeguards
+        run: node --test tests/admin/reset-production-menu.test.mjs
+
+      - name: Reset recipes, pricing, and visible POS drinks
+        run: node scripts/reset-production-menu.mjs
+        env:
+          MATCHA_LUNA_SUPABASE_URL: https://zdhybtctoxosjddzbfzp.supabase.co
+          MATCHA_LUNA_SUPABASE_KEY: sb_publishable_0doOTYpX9SKPHNHSSHLYRg_g2lJCsAj
+          MATCHA_LUNA_SMOKE_EMAIL: ${{ secrets.MATCHA_LUNA_SMOKE_EMAIL }}
+          MATCHA_LUNA_SMOKE_PASSWORD: ${{ secrets.MATCHA_LUNA_SMOKE_PASSWORD }}
+          MATCHA_LUNA_RESET_CONFIRMATION: ${{ inputs.confirmation }}
+          MATCHA_LUNA_RESET_REASON: ${{ inputs.reason }}
+          MATCHA_LUNA_BUSINESS_ID: ${{ inputs.business_id }}
+          MATCHA_LUNA_RESET_BACKUP_PATH: ${{ runner.temp }}/matcha-luna-menu-reset-backup.json
+
+      - name: Encrypt recovery backup
+        if: ${{ always() }}
+        shell: bash
+        env:
+          BACKUP_PASSPHRASE: ${{ secrets.MATCHA_LUNA_SMOKE_PASSWORD }}
+        run: |
+          backup="$RUNNER_TEMP/matcha-luna-menu-reset-backup.json"
+          if [[ -f "$backup" ]]; then
+            openssl enc -aes-256-cbc -salt -pbkdf2 \
+              -in "$backup" \
+              -out "$backup.enc" \
+              -pass env:BACKUP_PASSPHRASE
+          fi
+
+      - name: Retain encrypted recovery backup
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: production-menu-reset-backup-${{ github.run_id }}
+          path: ${{ runner.temp }}/matcha-luna-menu-reset-backup.json.enc
+          if-no-files-found: warn
+          retention-days: 30

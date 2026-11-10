@@ -189,16 +189,31 @@ test('signed-in production reads the POS Stocks and Costing workspaces without m
         root.posContext?.businessId &&
         root.posContext?.loaded &&
         !root.posContext?.loading &&
+        root.posCheckout?.loaded &&
         !root.posCheckout?.catalogLoading &&
-        root.posCheckout?.catalog?.length,
+        !root.posCheckout?.catalogError &&
+        Array.isArray(root.posCheckout?.catalog),
     );
   });
 
   await page.locator('nav button[data-tab="pos"]').click();
   await expect(page.locator('section#pos')).toHaveClass(/active/);
-  await expect(
-    page.locator('#posRoot [data-act="addPosProduct"]').first(),
-  ).toBeVisible();
+  const publishedDrinkCount = await page.evaluate(() => {
+    const root = window as typeof window & Record<string, any>;
+    return Number(root.posCheckout?.catalog?.length || 0);
+  });
+  if (publishedDrinkCount > 0) {
+    await expect(
+      page.locator('#posRoot [data-act="addPosProduct"]').first(),
+    ).toBeVisible();
+  } else {
+    await expect(
+      page.locator('#posRoot [data-act="addPosProduct"]'),
+    ).toHaveCount(0);
+    await expect(page.locator('#posCatalogBody')).toContainText(
+      'No drinks are on the POS yet.',
+    );
+  }
   await expect(page.locator('#posRoot [data-act="setPosPayment"]')).toHaveCount(
     3,
   );
@@ -206,6 +221,20 @@ test('signed-in production reads the POS Stocks and Costing workspaces without m
   await expect(page.locator('#posRoot')).not.toContainText(
     'Shift status unavailable',
   );
+  await page.waitForFunction(() => {
+    const root = window as typeof window & Record<string, any>;
+    return !root.posCheckout?.reportsLoading;
+  });
+  const retainedSalesHistory = await page.evaluate(() => {
+    const root = window as typeof window & Record<string, any>;
+    return {
+      recentCount: Number(root.posCheckout?.recent?.length || 0),
+      hasSummary: Boolean(root.posCheckout?.summary),
+    };
+  });
+  expect(retainedSalesHistory.recentCount).toBeGreaterThan(0);
+  expect(retainedSalesHistory.hasSummary).toBe(true);
+  await expect(page.locator('#posRoot .pos-recent-row').first()).toBeVisible();
 
   const stockCanManage = await page.evaluate(() => {
     const root = window as typeof window & Record<string, any>;
@@ -239,15 +268,41 @@ test('signed-in production reads the POS Stocks and Costing workspaces without m
   const costingTabs = [
     {
       tab: 'ingredients',
+      stateKey: 'ingredients',
       row: '#ingTable tr[data-entity="ingredient"]',
+      emptyText: 'No ingredients added.',
+      requiresRows: true,
     },
-    { tab: 'recipes', row: '#recipeList [data-entity="recipe"]' },
-    { tab: 'products', row: '#productList [data-entity="product"]' },
+    {
+      tab: 'recipes',
+      stateKey: 'recipes',
+      row: '#recipeList [data-entity="recipe"]',
+      emptyText: 'No recipes yet.',
+      requiresRows: false,
+    },
+    {
+      tab: 'products',
+      stateKey: 'products',
+      row: '#productList [data-entity="product"]',
+      emptyText: 'No products yet.',
+      requiresRows: false,
+    },
   ];
-  for (const { tab, row } of costingTabs) {
+  for (const { tab, stateKey, row, emptyText, requiresRows } of costingTabs) {
     await page.locator(`nav button[data-tab="${tab}"]`).click();
     await expect(page.locator(`section#${tab}`)).toHaveClass(/active/);
-    await expect(page.locator(row).first()).toBeVisible();
+    const stateCount = await page.evaluate((key) => {
+      const root = window as typeof window & Record<string, any>;
+      const rows = root.state?.[key];
+      return Array.isArray(rows) ? rows.length : -1;
+    }, stateKey);
+    expect(stateCount).toBeGreaterThanOrEqual(0);
+    await expect(page.locator(row)).toHaveCount(stateCount);
+    if (requiresRows || stateCount > 0) {
+      await expect(page.locator(row).first()).toBeVisible();
+    } else {
+      await expect(page.locator(`section#${tab}`)).toContainText(emptyText);
+    }
   }
   await page.waitForFunction(() => {
     const root = window as typeof window & Record<string, any>;
@@ -259,14 +314,18 @@ test('signed-in production reads the POS Stocks and Costing workspaces without m
       ingredients: Number(root.state?.ingredients?.length || 0),
       recipes: Number(root.state?.recipes?.length || 0),
       products: Number(root.state?.products?.length || 0),
+      ingredientsArray: Array.isArray(root.state?.ingredients),
+      recipesArray: Array.isArray(root.state?.recipes),
+      productsArray: Array.isArray(root.state?.products),
       cloudReady: Boolean(root.costingCloudReady),
       localDirty: Boolean(root.localDirty),
       pendingSave: Boolean(root.pendingSave),
     };
   });
+  expect(costingResult.ingredientsArray).toBe(true);
+  expect(costingResult.recipesArray).toBe(true);
+  expect(costingResult.productsArray).toBe(true);
   expect(costingResult.ingredients).toBeGreaterThan(0);
-  expect(costingResult.recipes).toBeGreaterThan(0);
-  expect(costingResult.products).toBeGreaterThan(0);
   expect(costingResult.cloudReady).toBe(true);
   expect(costingResult.localDirty).toBe(false);
   expect(costingResult.pendingSave).toBe(false);
