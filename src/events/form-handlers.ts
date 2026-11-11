@@ -11,6 +11,12 @@ import {
   stockCellCommitElement,
   stockCellHandleInput,
 } from '../stocks/cell-edit';
+import {
+  stockSpreadsheetCommitElement,
+  stockSpreadsheetHandleInput,
+  updateStockColorDraft,
+  updateStockPeriodField,
+} from '../stocks/spreadsheet';
 import type { LegacyValue } from './types';
 
 export function handleNavigationClick(event: LegacyValue): void {
@@ -42,8 +48,17 @@ export function handleImageError(event: LegacyValue): void {
 export function handleBodyInput(event: LegacyValue): void {
   if (runtimeValue('costingSourceCommitInFlight')) return;
   const element = event.target;
+  if (stockSpreadsheetHandleInput(element)) return;
   if (stockInlineHandleInput(element)) return;
   if (stockCellHandleInput(element)) return;
+  if (element.dataset.stockColorInput != null) {
+    updateStockColorDraft(element.value);
+    return;
+  }
+  if (element.dataset.stockPeriodField) {
+    updateStockPeriodField(element.dataset.stockPeriodField, element.value);
+    return;
+  }
   if (element.id === 'stockSearch') {
     runtimeValue('stockState').search = element.value || '';
     runtimeValue('renderStockResults')();
@@ -167,6 +182,10 @@ export function handleBodyInput(event: LegacyValue): void {
 export function handleBodyChange(event: LegacyValue): void {
   if (runtimeValue('costingSourceCommitInFlight')) return;
   const element = event.target;
+  if (element && element.dataset.stockSheetField) {
+    stockSpreadsheetCommitElement(element, false).catch(function () {});
+    return;
+  }
   if (element && element.dataset.stockInlineField) {
     stockInlineCommitElement(element, false).catch(function () {});
     return;

@@ -30,7 +30,7 @@ export function stockBaseUnitForIngredient(
 
 export function stockSourcePayload(sourceState?: LegacyValue): LegacyValue[] {
   sourceState = sourceState || runtimeValue('state');
-  return (sourceState.ingredients || [])
+  const ingredients = (sourceState.ingredients || [])
     .filter(function (ingredient: LegacyValue) {
       return (
         ingredient &&
@@ -44,6 +44,8 @@ export function stockSourcePayload(sourceState?: LegacyValue): LegacyValue[] {
     })
     .map(function (ingredient: LegacyValue) {
       return {
+        sourceType: 'ingredient',
+        sourceCostingId: String(ingredient.id),
         sourceCostingIngredientId: String(ingredient.id),
         kind: runtimeValue('isMixture')(ingredient) ? 'mixture' : 'purchased',
         name: String(ingredient.name || '').trim(),
@@ -53,6 +55,21 @@ export function stockSourcePayload(sourceState?: LegacyValue): LegacyValue[] {
         )(ingredient),
       };
     });
+  const packaging = (sourceState.packaging || [])
+    .filter(function (item: LegacyValue) {
+      return item && item.id && String(item.name || '').trim();
+    })
+    .map(function (item: LegacyValue) {
+      return {
+        sourceType: 'packaging',
+        sourceCostingId: String(item.id),
+        sourceCostingIngredientId: 'packaging:' + String(item.id),
+        kind: 'packaging',
+        name: String(item.name || '').trim(),
+        baseUnit: 'piece',
+      };
+    });
+  return ingredients.concat(packaging);
 }
 
 export function costingBulkInventoryIssue(nextState: LegacyValue): string {
@@ -196,16 +213,35 @@ export function replaceCostingStateSafely(
 
 export function stockNormalizeItem(row: LegacyValue): LegacyValue {
   row = row || {};
+  const sourceType =
+    String(row.source_type || row.sourceType || 'ingredient') === 'packaging'
+      ? 'packaging'
+      : 'ingredient';
   const sourceId = String(
-    row.source_costing_ingredient_id || row.sourceCostingIngredientId || '',
+    row.source_costing_id ||
+      row.sourceCostingId ||
+      row.source_costing_ingredient_id ||
+      row.sourceCostingIngredientId ||
+      '',
   );
   const source = runtimeValue('getById')(
-    runtimeValue('state').ingredients || [],
+    sourceType === 'packaging'
+      ? runtimeValue('state').packaging || []
+      : runtimeValue('state').ingredients || [],
     sourceId,
   );
-  const baseUnit = String(row.base_unit || row.baseUnit || 'g');
+  const responseUnit = String(
+    row.unit || row.preferred_unit || row.preferredUnit || '',
+  ).toLowerCase();
+  const inferredBase = runtimeValue('TYPE_BASE')[
+    runtimeValue('UNIT_TYPE')[responseUnit]
+  ];
+  const baseUnit = String(
+    row.base_unit || row.baseUnit || inferredBase || 'g',
+  );
   const requestedUnit = String(
-    row.preferred_unit ||
+    row.unit ||
+      row.preferred_unit ||
       row.preferredUnit ||
       (source && source.unit) ||
       baseUnit,
@@ -215,14 +251,59 @@ export function stockNormalizeItem(row: LegacyValue): LegacyValue {
     runtimeValue('UNIT_TYPE')[baseUnit]
       ? requestedUnit
       : baseUnit;
+  const numberOrNull = function (value: LegacyValue): number | null {
+    if (value == null || value === '') return null;
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  };
+  const displayFactor = Number(
+    runtimeValue('UNIT_FACTOR')[preferredUnit] || 1,
+  );
+  const displayToBase = function (value: LegacyValue): number | null {
+    const parsed = numberOrNull(value);
+    return parsed == null ? null : parsed * displayFactor;
+  };
+  const moneyToCentavos = function (value: LegacyValue): number | null {
+    const parsed = numberOrNull(value);
+    return parsed == null ? null : Math.round(parsed * 100);
+  };
+  const rowColor = String(
+    row.row_color_hex || row.row_color || row.rowColor || '',
+  ).trim();
+  const openingStock = row.opening_stock != null
+    ? displayToBase(row.opening_stock)
+    : numberOrNull(
+        row.opening_stock_base == null
+          ? row.openingStock
+          : row.opening_stock_base,
+      );
+  const stockAdded = row.stock_added != null
+    ? displayToBase(row.stock_added) || 0
+    : Number(row.stock_added_base || row.stockAdded || 0);
+  const stockUsed = row.stock_used != null
+    ? displayToBase(row.stock_used) || 0
+    : Number(row.stock_used_base || row.stockUsed || 0);
+  const wasted = row.wasted_damaged != null
+    ? displayToBase(row.wasted_damaged) || 0
+    : Number(row.wasted_base || row.wasted || 0);
+  const remainingStock = row.remaining_stock != null
+    ? displayToBase(row.remaining_stock)
+    : numberOrNull(
+        row.remaining_stock_base == null
+          ? row.current_balance_base
+          : row.remaining_stock_base,
+      );
   return {
     id: String(row.inventory_item_id || row.id || ''),
     sourceId,
-    name: String(row.name || 'Unnamed item'),
+    sourceType,
+    name: String(row.item_name || row.name || 'Unnamed item'),
     kind:
-      String(row.item_kind || row.kind || 'purchased') === 'mixture'
-        ? 'mixture'
-        : 'purchased',
+      sourceType === 'packaging'
+        ? 'packaging'
+        : String(row.item_kind || row.kind || 'purchased') === 'mixture'
+          ? 'mixture'
+          : 'purchased',
     baseUnit,
     preferredUnit,
     // Kept only so a cached pre-schema-12 client can complete an in-flight
@@ -231,20 +312,22 @@ export function stockNormalizeItem(row: LegacyValue): LegacyValue {
     purchasedFrom: String(row.purchased_from || row.purchasedFrom || ''),
     lastStockedOn: row.last_stocked_on || row.lastStockedOn || null,
     notes: String(row.notes || ''),
-    balance: Number(
-      row.current_balance_base == null ? 0 : row.current_balance_base,
-    ),
+    balance: Number(remainingStock == null ? 0 : remainingStock),
     threshold:
-      row.low_stock_threshold_base == null
-        ? null
-        : Number(row.low_stock_threshold_base),
-    revision: Number(row.revision || 0),
-    initialized: !!(row.has_stock_history || row.initialized),
+      row.reorder_level != null
+        ? displayToBase(row.reorder_level)
+        : row.low_stock_threshold_base == null
+          ? null
+          : Number(row.low_stock_threshold_base),
+    revision: Number(row.item_revision || row.revision || 0),
+    initialized: !!(
+      row.period_id || row.has_stock_history || row.initialized
+    ),
     active: row.active !== false,
     lastMovementAt: row.last_movement_at || null,
     lastMovementType: String(row.last_movement_type || ''),
     categoryName: String(
-      row.category_name ||
+      (sourceType === 'packaging' ? 'Packaging' : row.category_name) ||
         row.categoryName ||
         (source
           ? runtimeValue('categoryNameIn')(
@@ -252,6 +335,49 @@ export function stockNormalizeItem(row: LegacyValue): LegacyValue {
               source.categoryId,
             )
           : 'Removed from costing'),
+    ),
+    periodId: String(row.active_period_id || row.period_id || row.periodId || ''),
+    openingStock,
+    stockAdded,
+    stockUsed,
+    wasted,
+    remainingStock,
+    purchaseQuantity:
+      row.purchase_quantity != null
+        ? displayToBase(row.purchase_quantity)
+        : numberOrNull(
+            row.purchase_quantity_base == null
+              ? row.purchaseQuantity
+              : row.purchase_quantity_base,
+          ),
+    purchasePriceCentavos:
+      row.purchase_price != null
+        ? moneyToCentavos(row.purchase_price)
+        : numberOrNull(
+            row.purchase_price_centavos == null
+              ? row.purchasePriceCentavos
+              : row.purchase_price_centavos,
+          ),
+    costPerUnitCentavos:
+      row.cost_per_unit != null
+        ? moneyToCentavos(row.cost_per_unit)
+        : numberOrNull(
+            row.cost_per_unit_centavos == null
+              ? row.costPerUnitCentavos
+              : row.cost_per_unit_centavos,
+          ),
+    remainingValueCentavos:
+      row.remaining_value != null
+        ? moneyToCentavos(row.remaining_value)
+        : numberOrNull(
+            row.remaining_value_centavos == null
+              ? row.remainingValueCentavos
+              : row.remaining_value_centavos,
+          ),
+    stockStatus: String(row.stock_status || row.stockStatus || ''),
+    rowColor: /^#[0-9a-f]{6}$/i.test(rowColor) ? rowColor.toUpperCase() : '',
+    periodItemRevision: Number(
+      row.period_item_revision || row.periodItemRevision || 0,
     ),
   };
 }

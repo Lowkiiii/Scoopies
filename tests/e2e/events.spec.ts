@@ -450,7 +450,7 @@ test('typed Events preserves delegated behavior and live browser bindings', asyn
   });
 });
 
-test('typed Events retains the exact ordered 112-action dispatcher surface', () => {
+test('typed Events retains the legacy dispatcher order plus 8 inventory actions', () => {
   const classicSource = readFileSync(
     resolve(process.cwd(), 'assets/js/events.js'),
     'utf8',
@@ -463,7 +463,24 @@ test('typed Events retains the exact ordered 112-action dispatcher surface', () 
     Array.from(source.matchAll(/case '([^']+)'/g), (match) => match[1]);
   const classicActions = actionNames(classicSource);
   const typedActions = actionNames(typedSource);
+  const inventoryActions = [
+    'openInventoryPeriodStart',
+    'openInventoryPeriodClose',
+    'submitInventoryPeriodStart',
+    'submitInventoryPeriodClose',
+    'openStockColor',
+    'chooseStockRowColor',
+    'saveStockRowColor',
+    'clearStockRowColor',
+  ];
+  const insertionIndex = classicActions.indexOf('openStockModal');
 
   expect(classicActions).toHaveLength(112);
-  expect(typedActions).toEqual(classicActions);
+  expect(insertionIndex).toBeGreaterThan(0);
+  expect(typedActions).toHaveLength(120);
+  expect(typedActions).toEqual([
+    ...classicActions.slice(0, insertionIndex),
+    ...inventoryActions,
+    ...classicActions.slice(insertionIndex),
+  ]);
 });

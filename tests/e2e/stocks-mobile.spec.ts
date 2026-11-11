@@ -99,6 +99,12 @@ async function seedPopulatedStocks(page: Page) {
       status: 'all',
       kind: 'all',
       lastUpdatedAt: Date.now(),
+      activePeriod: {
+        id: 'period-mobile',
+        name: 'Mobile popup',
+        status: 'open',
+        openedAt: '2026-11-01T00:00:00.000Z',
+      },
       items: [
         {
           id: 'inventory-matcha',
@@ -119,6 +125,18 @@ async function seedPopulatedStocks(page: Page) {
           lastMovementAt: '2026-11-02T04:00:00.000Z',
           lastMovementType: 'stock_count',
           categoryName: 'Tea Powders',
+          periodId: 'period-mobile',
+          openingStock: 500,
+          stockAdded: 0,
+          stockUsed: 0,
+          wasted: 0,
+          remainingStock: 500,
+          purchaseQuantity: 1000,
+          purchasePriceCentavos: 125000,
+          costPerUnitCentavos: 125,
+          remainingValueCentavos: 62500,
+          stockStatus: 'OK',
+          periodItemRevision: 4,
         },
         {
           id: 'inventory-oat-milk',
@@ -134,6 +152,18 @@ async function seedPopulatedStocks(page: Page) {
           lastMovementAt: '2026-11-02T04:10:00.000Z',
           lastMovementType: 'waste',
           categoryName: 'Milk and Shelf Stable Beverages',
+          periodId: 'period-mobile',
+          openingStock: 300,
+          stockAdded: 0,
+          stockUsed: 0,
+          wasted: 250,
+          remainingStock: 50,
+          purchaseQuantity: 1000,
+          purchasePriceCentavos: 18000,
+          costPerUnitCentavos: 18,
+          remainingValueCentavos: 900,
+          stockStatus: 'RESTOCK',
+          periodItemRevision: 3,
         },
         {
           id: 'inventory-sea-salt-cream',
@@ -149,6 +179,18 @@ async function seedPopulatedStocks(page: Page) {
           lastMovementAt: '2026-11-02T04:20:00.000Z',
           lastMovementType: 'stock_count',
           categoryName: 'Prepared Cream and Foam Mixtures',
+          periodId: 'period-mobile',
+          openingStock: 0,
+          stockAdded: 0,
+          stockUsed: 0,
+          wasted: 0,
+          remainingStock: 0,
+          purchaseQuantity: 1000,
+          purchasePriceCentavos: 25000,
+          costPerUnitCentavos: 25,
+          remainingValueCentavos: 0,
+          stockStatus: 'RESTOCK',
+          periodItemRevision: 2,
         },
         {
           id: 'inventory-vanilla',
@@ -164,6 +206,18 @@ async function seedPopulatedStocks(page: Page) {
           lastMovementAt: null,
           lastMovementType: '',
           categoryName: 'Syrups',
+          periodId: 'period-mobile',
+          openingStock: null,
+          stockAdded: 0,
+          stockUsed: 0,
+          wasted: 0,
+          remainingStock: null,
+          purchaseQuantity: null,
+          purchasePriceCentavos: null,
+          costPerUnitCentavos: null,
+          remainingValueCentavos: null,
+          stockStatus: 'NOT COUNTED',
+          periodItemRevision: 0,
         },
       ],
       transactions: [
@@ -239,29 +293,74 @@ async function seedPopulatedStocks(page: Page) {
     };
     const stocks = app.MatchaLunaApp.domains.stocks as Record<string, any>;
     app.__stockInlineRpcCalls = [];
-    stocks.loadStocks = async () => true;
+    stocks.loadStocks = async () => {
+      app.renderStocks();
+      return true;
+    };
     app.cloud = {
       connected: true,
       client: {
         rpc: async (name: string, args: any) => {
-          app.__stockInlineRpcCalls.push({
-            name,
-            args: app.snapshot(args),
-          });
-          if (name === 'pos_inventory_set_threshold') {
+          if (name === 'pos_inventory_set_spreadsheet_cell') {
+            app.__stockInlineRpcCalls.push({
+              name,
+              args: app.snapshot(args),
+            });
+            const current = app.stockState.items.find(
+              (item: any) => item.id === args.p_inventory_item_id,
+            );
+            const factor =
+              current.preferredUnit === 'kg' || current.preferredUnit === 'l'
+                ? 1000
+                : 1;
+            const displayValue =
+              args.p_value === '' ? null : Number(args.p_value);
+            const baseValue =
+              displayValue == null ? null : displayValue * factor;
+            const propertyByColumn: Record<string, string> = {
+              opening_stock: 'openingStock',
+              stock_added: 'stockAdded',
+              wasted_damaged: 'wasted',
+              reorder_level: 'threshold',
+              purchase_quantity: 'purchaseQuantity',
+            };
+            if (propertyByColumn[args.p_column]) {
+              current[propertyByColumn[args.p_column]] = baseValue;
+            } else if (args.p_column === 'purchase_price') {
+              current.purchasePriceCentavos =
+                displayValue == null ? null : Math.round(displayValue * 100);
+            } else if (args.p_column === 'row_color') {
+              current.rowColor = String(args.p_value || '');
+            }
+            current.remainingStock =
+              current.openingStock == null
+                ? null
+                : Number(current.openingStock || 0) +
+                  Number(current.stockAdded || 0) -
+                  Number(current.stockUsed || 0) -
+                  Number(current.wasted || 0);
+            current.revision += 1;
+            current.periodItemRevision += 1;
             return {
               data: [
                 {
+                  period_id: args.p_period_id,
                   inventory_item_id: args.p_inventory_item_id,
-                  low_stock_threshold_base: args.p_threshold_base,
-                  revision: Number(args.p_expected_revision) + 1,
-                  active: true,
+                  column_name: args.p_column,
+                  saved_value: args.p_value,
+                  item_revision_after: current.revision,
+                  period_item_revision_after: current.periodItemRevision,
+                  is_retry: false,
                 },
               ],
               error: null,
             };
           }
           if (name === 'pos_inventory_update_item_details_v2') {
+            app.__stockInlineRpcCalls.push({
+              name,
+              args: app.snapshot(args),
+            });
             return {
               data: [
                 {
@@ -277,30 +376,50 @@ async function seedPopulatedStocks(page: Page) {
               error: null,
             };
           }
-          const line = args.p_lines[0];
-          const current = app.stockState.items.find(
-            (item: any) => item.id === line.inventoryItemId,
-          );
-          const factor =
-            line.unit === 'kg' || line.unit === 'l' ? 1000 : 1;
-          const balanceAfter = Number(line.quantity) * factor;
-          return {
-            data: [
-              {
-                transaction_id: 'inline-mobile-count',
-                inventory_item_id: line.inventoryItemId,
-                item_name: current.name,
-                transaction_type: 'stock_count',
-                quantity_delta_base: balanceAfter - Number(current.balance),
-                balance_before_base: Number(current.balance),
-                balance_after_base: balanceAfter,
-                base_unit: current.baseUnit,
-                item_revision: Number(line.expectedRevision) + 1,
-                occurred_at: '2026-11-05T08:00:00.000Z',
-              },
-            ],
-            error: null,
-          };
+          if (name === 'pos_inventory_sync_spreadsheet_sources') {
+            return { data: [], error: null };
+          }
+          if (name === 'pos_inventory_get_transactions') {
+            return { data: [], error: null };
+          }
+          if (name === 'pos_inventory_get_spreadsheet') {
+            return {
+              data: app.stockState.items.map((item: any) => ({
+                active_period_id: 'period-mobile',
+                active_period_name: 'Mobile popup',
+                active_period_status: 'open',
+                active_period_opened_at: '2026-11-01T00:00:00.000Z',
+                inventory_item_id: item.id,
+                source_type: item.sourceType || 'ingredient',
+                source_costing_id: item.sourceId,
+                source_costing_ingredient_id: item.sourceId,
+                item_kind: item.kind,
+                category_name: item.categoryName,
+                name: item.name,
+                base_unit: item.baseUnit,
+                preferred_unit: item.preferredUnit || item.baseUnit,
+                opening_stock_base: item.openingStock,
+                stock_added_base: item.stockAdded,
+                stock_used_base: item.stockUsed,
+                wasted_base: item.wasted,
+                remaining_stock_base: item.remainingStock,
+                current_balance_base: item.remainingStock,
+                low_stock_threshold_base: item.threshold,
+                purchase_quantity_base: item.purchaseQuantity,
+                purchase_price_centavos: item.purchasePriceCentavos,
+                cost_per_unit_centavos: item.costPerUnitCentavos,
+                remaining_value_centavos: item.remainingValueCentavos,
+                stock_status: item.stockStatus,
+                row_color: item.rowColor || null,
+                revision: item.revision,
+                period_item_revision: item.periodItemRevision,
+                initialized: item.openingStock != null,
+                active: true,
+              })),
+              error: null,
+            };
+          }
+          throw new Error(`Unexpected Stocks RPC: ${name}`);
         },
       },
     };
@@ -328,24 +447,28 @@ test('populated Stocks spreadsheet remains event-driven and mobile safe', async 
     'polite',
   );
   const stockTable = page.getByRole('table', {
-    name: 'Physical ingredient and prepared mixture inventory',
+    name: 'Inventory period spreadsheet',
   });
   await expect(stockTable).toBeVisible();
   await expect(stockTable.getByRole('columnheader')).toHaveText([
     'Category',
-    'Item name',
-    'Purchased from',
-    'Date purchased',
-    'On hand',
+    'Item',
     'Unit',
-    'Low-stock alert',
+    'Opening Stock',
+    'Stock Added',
+    'Stock Used',
+    'Wasted/Damaged',
+    'Remaining Stock',
+    'Reorder Level',
+    'Purchase Quantity',
+    'Purchase Price (₱)',
+    'Cost per Unit',
+    'Remaining Value (₱)',
     'Status',
-    'Notes',
-    'Last movement',
   ]);
   await expect(stockTable.getByRole('row')).toHaveCount(5);
   await expect(stockTable.getByRole('rowheader')).toHaveCount(4);
-  await expect(stockTable.getByRole('cell')).toHaveCount(36);
+  await expect(stockTable.getByRole('cell')).toHaveCount(52);
   await expect(page.locator('.stock-row[data-stock-item]')).toHaveCount(4);
   expect(
     await page.locator('.stock-row').evaluateAll((rows) =>
@@ -359,14 +482,18 @@ test('populated Stocks spreadsheet remains event-driven and mobile safe', async 
     Array.from({ length: 4 }, () => [
       'category',
       'item',
-      'purchased-from',
-      'stocked-on',
-      'on-hand',
       'unit',
-      'threshold',
+      'opening',
+      'added',
+      'used',
+      'wasted',
+      'remaining',
+      'reorder',
+      'purchase-quantity',
+      'purchase-price',
+      'unit-cost',
+      'remaining-value',
       'status',
-      'notes',
-      'updated',
     ]),
   );
   await expect(page.locator('.stock-history-row')).toHaveCount(4);
@@ -403,30 +530,30 @@ test('populated Stocks spreadsheet remains event-driven and mobile safe', async 
   await page.locator('#stockKindFilter').selectOption('all');
   await expect(page.locator('#stockVisibleCount')).toHaveText('4 of 4 items');
 
-  const matchaCount = page.locator(
-    '[data-stock-item="inventory-matcha"] [data-stock-inline-field="count"]',
+  const matchaOpening = page.locator(
+    '[data-stock-item="inventory-matcha"] [data-stock-sheet-field="openingStock"]',
   );
-  await expect(matchaCount).toHaveValue('0.5');
-  await expect(matchaCount).toHaveAttribute('inputmode', 'decimal');
-  await matchaCount.fill('0.475');
-  await matchaCount.press('Escape');
-  await expect(matchaCount).toHaveValue('0.5');
+  await expect(matchaOpening).toHaveValue('0.5');
+  await expect(matchaOpening).toHaveAttribute('inputmode', 'decimal');
+  await matchaOpening.fill('0.475');
+  await matchaOpening.press('Escape');
+  await expect(matchaOpening).toHaveValue('0.5');
   await expect.poll(() =>
     page.evaluate(() => (window as any).__stockInlineRpcCalls.length),
   ).toBe(0);
 
-  await matchaCount.fill('-1');
-  await matchaCount.press('Enter');
-  await expect(matchaCount).toHaveAttribute('aria-invalid', 'true');
+  await matchaOpening.fill('-1');
+  await matchaOpening.press('Enter');
+  await expect(matchaOpening).toHaveAttribute('aria-invalid', 'true');
   await expect.poll(() =>
     page.evaluate(() => (window as any).__stockInlineRpcCalls.length),
   ).toBe(0);
 
-  await matchaCount.fill('0.475');
-  await matchaCount.press('Enter');
+  await matchaOpening.fill('0.475');
+  await matchaOpening.press('Enter');
   await expect(
     page.locator(
-      '[data-stock-item="inventory-matcha"] [data-stock-inline-field="count"]',
+      '[data-stock-item="inventory-matcha"] [data-stock-sheet-field="openingStock"]',
     ),
   ).toHaveValue('0.475');
   await expect(page.locator('#stockModal')).toBeHidden();
@@ -436,39 +563,43 @@ test('populated Stocks spreadsheet remains event-driven and mobile safe', async 
   const inlineRequest = await page.evaluate(() =>
     (window as any).__stockInlineRpcCalls[0],
   );
-  expect(inlineRequest.name).toBe('pos_inventory_record_transaction');
-  expect(inlineRequest.args.p_transaction_type).toBe('stock_count');
-  expect(inlineRequest.args.p_lines[0]).toMatchObject({
-    inventoryItemId: 'inventory-matcha',
-    quantity: 0.475,
-    unit: 'kg',
-    expectedRevision: 4,
+  expect(inlineRequest.name).toBe('pos_inventory_set_spreadsheet_cell');
+  expect(inlineRequest.args).toMatchObject({
+    p_business_id: 'business-mobile',
+    p_period_id: 'period-mobile',
+    p_inventory_item_id: 'inventory-matcha',
+    p_column: 'opening_stock',
+    p_value: '0.475',
+    p_expected_item_revision: 4,
+    p_expected_period_item_revision: 4,
   });
+  expect(inlineRequest.args.p_client_mutation_id).toBeTruthy();
 
-  const matchaThreshold = page.locator(
-    '[data-stock-item="inventory-matcha"] [data-stock-inline-field="threshold"]',
+  const matchaReorder = page.locator(
+    '[data-stock-item="inventory-matcha"] [data-stock-sheet-field="reorderLevel"]',
   );
-  await matchaThreshold.fill('0.07');
+  await matchaReorder.fill('0.07');
   await page
     .locator(
-      '[data-stock-item="inventory-matcha"] [data-stock-field="updated"]',
+      '[data-stock-item="inventory-matcha"] [data-stock-field="remaining"]',
     )
     .click();
   await expect.poll(() =>
     page.evaluate(() => (window as any).__stockInlineRpcCalls.length),
   ).toBe(2);
-  await expect(matchaThreshold).toHaveValue('0.07');
+  await expect(matchaReorder).toHaveValue('0.07');
   const thresholdRequest = await page.evaluate(() =>
     (window as any).__stockInlineRpcCalls[1],
   );
-  expect(thresholdRequest).toEqual({
-    name: 'pos_inventory_set_threshold',
-    args: {
+  expect(thresholdRequest.name).toBe('pos_inventory_set_spreadsheet_cell');
+  expect(thresholdRequest.args).toMatchObject({
       p_business_id: 'business-mobile',
+      p_period_id: 'period-mobile',
       p_inventory_item_id: 'inventory-matcha',
-      p_threshold_base: 70,
-      p_expected_revision: 5,
-    },
+      p_column: 'reorder_level',
+      p_value: '0.07',
+      p_expected_item_revision: 5,
+      p_expected_period_item_revision: 5,
   });
 
   const matchaCategory = page.locator(
@@ -507,9 +638,9 @@ test('populated Stocks spreadsheet remains event-driven and mobile safe', async 
     args: {
       p_business_id: 'business-mobile',
       p_inventory_item_id: 'inventory-matcha',
-      p_purchased_from: 'Tea supplier',
-      p_last_stocked_on: '2026-11-01',
-      p_notes: 'Keep sealed and dry',
+      p_purchased_from: null,
+      p_last_stocked_on: null,
+      p_notes: null,
       p_preferred_unit: 'g',
       p_expected_revision: 6,
     },
@@ -518,44 +649,14 @@ test('populated Stocks spreadsheet remains event-driven and mobile safe', async 
   await expect(matchaUnit).toHaveValue('g');
   await expect(
     page.locator(
-      '[data-stock-item="inventory-matcha"] [data-stock-inline-field="count"]',
+      '[data-stock-item="inventory-matcha"] [data-stock-sheet-field="openingStock"]',
     ),
   ).toHaveValue('475');
   await expect(
     page.locator(
-      '[data-stock-item="inventory-matcha"] [data-stock-inline-field="threshold"]',
+      '[data-stock-item="inventory-matcha"] [data-stock-sheet-field="reorderLevel"]',
     ),
   ).toHaveValue('70');
-
-  const purchasedFrom = page.locator(
-    '[data-stock-item="inventory-matcha"] [data-stock-cell-field="purchasedFrom"]',
-  );
-  await purchasedFrom.fill('New tea supplier');
-  await purchasedFrom.press('Tab');
-  await expect.poll(() =>
-    page.evaluate(() => (window as any).__stockInlineRpcCalls.length),
-  ).toBe(4);
-  await expect(purchasedFrom).toHaveValue('New tea supplier');
-  await expect(
-    page.locator(
-      '[data-stock-item="inventory-matcha"] [data-stock-cell-field="lastStockedOn"]',
-    ),
-  ).toBeFocused();
-  const supplierRequest = await page.evaluate(() =>
-    (window as any).__stockInlineRpcCalls[3],
-  );
-  expect(supplierRequest).toEqual({
-    name: 'pos_inventory_update_item_details_v2',
-    args: {
-      p_business_id: 'business-mobile',
-      p_inventory_item_id: 'inventory-matcha',
-      p_purchased_from: 'New tea supplier',
-      p_last_stocked_on: '2026-11-01',
-      p_notes: 'Keep sealed and dry',
-      p_preferred_unit: 'g',
-      p_expected_revision: 7,
-    },
-  });
 
   const stocksLayout = await page.evaluate(() => {
     const root = document.documentElement;
@@ -565,7 +666,7 @@ test('populated Stocks spreadsheet remains event-driven and mobile safe', async 
     const sectionRect = section.getBoundingClientRect();
     const editableControls = Array.from(
       document.querySelectorAll(
-        '.stock-inline-input, .stock-cell-control',
+        '.stock-sheet-input, .stock-cell-control',
       ),
     ) as HTMLElement[];
     return {
@@ -633,13 +734,13 @@ test('populated Stocks spreadsheet remains event-driven and mobile safe', async 
       ),
     ).toBe(true);
     await expect(stockTable.locator('thead')).toBeVisible();
-    await expect(stockTable).toHaveCSS('min-width', '1160px');
+    await expect(stockTable).toHaveCSS('min-width', '1780px');
   } else {
     await expect(stockTable.locator('thead')).toBeVisible();
     expect(
       stocksLayout.viewportWidth - stocksLayout.workspaceWidth,
     ).toBeLessThanOrEqual(26);
-    expect(stocksLayout.inventoryScrollWidth).toBeLessThanOrEqual(
+    expect(stocksLayout.inventoryScrollWidth).toBeGreaterThan(
       stocksLayout.inventoryClientWidth + 1,
     );
   }
@@ -719,6 +820,67 @@ test('owner can drag stock rows without changing quantities or movement history'
   expect(after.transactions).toEqual(before.transactions);
   expect(after.dragging).toBe(false);
   expect(after.indicators).toBe(0);
+});
+
+test('packaging rows persist the canonical prefixed order identity', async ({
+  page,
+}) => {
+  await page.evaluate(() => {
+    const app = window as typeof window & Record<string, any>;
+    app.state.packaging = [
+      { id: 'cup', name: '12oz Cup', qty: 100, price: 257 },
+    ];
+    app.state.stockOrder = [];
+    app.stockState.items.push({
+      id: 'inventory-cup',
+      sourceId: 'cup',
+      sourceType: 'packaging',
+      name: '12oz Cup',
+      kind: 'packaging',
+      baseUnit: 'piece',
+      preferredUnit: 'piece',
+      balance: 100,
+      threshold: 20,
+      revision: 1,
+      initialized: true,
+      active: true,
+      categoryName: 'Packaging',
+      periodId: 'period-mobile',
+      openingStock: 100,
+      stockAdded: 0,
+      stockUsed: 0,
+      wasted: 0,
+      remainingStock: 100,
+      purchaseQuantity: 100,
+      purchasePriceCentavos: 25700,
+      costPerUnitCentavos: 257,
+      remainingValueCentavos: 25700,
+      stockStatus: 'OK',
+      periodItemRevision: 1,
+    });
+    app.save = () => {};
+    app.renderStocks();
+  });
+
+  const handle = page.locator(
+    '[data-stock-item="inventory-cup"] .stock-drag-handle',
+  );
+  await expect(handle).toHaveAttribute('data-stock-order-id', 'packaging:cup');
+  await expect(handle).toBeEnabled();
+  await handle.focus();
+  await handle.press('Home');
+
+  const order = await page.evaluate(() => {
+    const app = window as typeof window & Record<string, any>;
+    return app.state.stockOrder;
+  });
+  expect(order[0]).toBe('packaging:cup');
+  expect(order).toContain('matcha');
+  expect(order).not.toContain('cup');
+  await expect(page.locator('.stock-row[data-stock-item]').first()).toHaveAttribute(
+    'data-stock-item',
+    'inventory-cup',
+  );
 });
 
 test('keyboard row arranging persists source order and respects filters and roles', async ({
@@ -838,45 +1000,33 @@ test('rapid spreadsheet edits serialize and movement waits for the active save',
     const app = window as typeof window & Record<string, any>;
     app.__stockRaceCalls = [];
     app.__releaseFirstStockCellRpc = null;
+    const originalRpc = app.cloud.client.rpc;
     app.cloud.client.rpc = async (name: string, args: any) => {
-      app.__stockRaceCalls.push({ name, args: app.snapshot(args) });
-      if (name !== 'pos_inventory_update_item_details_v2') {
-        throw new Error(`Unexpected RPC during rapid edit: ${name}`);
+      if (name !== 'pos_inventory_set_spreadsheet_cell') {
+        return originalRpc(name, args);
       }
+      app.__stockRaceCalls.push({ name, args: app.snapshot(args) });
       if (app.__stockRaceCalls.length === 1) {
         await new Promise<void>((resolve) => {
           app.__releaseFirstStockCellRpc = resolve;
         });
       }
-      return {
-        data: [
-          {
-            inventory_item_id: args.p_inventory_item_id,
-            purchased_from: args.p_purchased_from,
-            last_stocked_on: args.p_last_stocked_on,
-            notes: args.p_notes,
-            preferred_unit: args.p_preferred_unit,
-            active: true,
-            revision: Number(args.p_expected_revision) + 1,
-          },
-        ],
-        error: null,
-      };
+      return originalRpc(name, args);
     };
   });
 
   const row = page.locator('[data-stock-item="inventory-matcha"]');
-  const supplier = row.locator('[data-stock-cell-field="purchasedFrom"]');
+  const stockAdded = row.locator('[data-stock-sheet-field="stockAdded"]');
   await expect(row.locator('.stock-row-menu')).toHaveCount(0);
 
-  await supplier.fill('First pending supplier');
-  await supplier.press('Enter');
+  await stockAdded.fill('0.1');
+  await stockAdded.press('Enter');
   await expect.poll(() =>
     page.evaluate(() => (window as any).__stockRaceCalls.length),
   ).toBe(1);
 
-  await supplier.fill('Final rapid supplier');
-  await supplier.press('Enter');
+  await stockAdded.fill('0.2');
+  await stockAdded.press('Enter');
   const movementOpened = await page.evaluate(() => {
     const app = window as typeof window & Record<string, any>;
     const stocks = app.MatchaLunaApp.domains.stocks as Record<string, any>;
@@ -889,7 +1039,7 @@ test('rapid spreadsheet edits serialize and movement waits for the active save',
   await expect.poll(() =>
     page.evaluate(() => (window as any).__stockRaceCalls.length),
   ).toBe(2);
-  await expect(supplier).toHaveValue('Final rapid supplier');
+  await expect(stockAdded).toHaveValue('0.2');
   await expect
     .poll(() =>
       page.evaluate(() => Boolean((window as any).stockState.inlineMutationChain)),
@@ -901,29 +1051,38 @@ test('rapid spreadsheet edits serialize and movement waits for the active save',
     const item = app.stockState.items.find(
       (candidate: any) => candidate.id === 'inventory-matcha',
     );
-    const edit = app.stockState.cellEdits['inventory-matcha'].purchasedFrom;
+    const edit = app.stockState.spreadsheetEdits['inventory-matcha'].stockAdded;
     return {
       calls: app.__stockRaceCalls,
-      itemPurchasedFrom: item.purchasedFrom,
+      itemStockAdded: item.stockAdded,
       itemRevision: item.revision,
+      periodItemRevision: item.periodItemRevision,
       editValue: edit.value,
       editConfirmed: edit.confirmed,
       editStatus: edit.status,
     };
   });
-  expect(result.calls.map((call: any) => call.args.p_expected_revision)).toEqual([
+  expect(result.calls.map((call: any) => call.args.p_expected_item_revision)).toEqual([
     4,
     5,
   ]);
-  expect(result.calls.map((call: any) => call.args.p_purchased_from)).toEqual([
-    'First pending supplier',
-    'Final rapid supplier',
+  expect(
+    result.calls.map((call: any) => call.args.p_expected_period_item_revision),
+  ).toEqual([
+    4,
+    5,
   ]);
+  expect(result.calls.map((call: any) => call.args.p_column)).toEqual([
+    'stock_added',
+    'stock_added',
+  ]);
+  expect(result.calls.map((call: any) => call.args.p_value)).toEqual(['0.1', '0.2']);
   expect(result).toMatchObject({
-    itemPurchasedFrom: 'Final rapid supplier',
+    itemStockAdded: 200,
     itemRevision: 6,
-    editValue: 'Final rapid supplier',
-    editConfirmed: 'Final rapid supplier',
+    periodItemRevision: 6,
+    editValue: '0.2',
+    editConfirmed: '0.2',
     editStatus: 'saved',
   });
 });

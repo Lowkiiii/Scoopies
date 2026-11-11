@@ -3998,13 +3998,13 @@ document.getElementById('app').addEventListener('load', async () => {
     const calls = [];
     app.cloud.client = { rpc(name, args) {
       calls.push({ name, args: app.snapshot(args) });
-      if (name === 'pos_inventory_sync_items') return rpcResult([]);
-      if (name === 'pos_inventory_get_items') return rpcResult([inventoryItemFixture()]);
+      if (name === 'pos_inventory_sync_spreadsheet_sources') return rpcResult([]);
+      if (name === 'pos_inventory_get_spreadsheet') return rpcResult([inventoryItemFixture()]);
       if (name === 'pos_inventory_get_transactions') return rpcResult([inventoryTransactionFixture()]);
       throw new Error('unexpected RPC ' + name);
     }};
     assert(await app.loadStocks(), 'authoritative inventory load failed');
-    assert(calls.map(call => call.name).join(',') === 'pos_inventory_sync_items,pos_inventory_get_items,pos_inventory_get_transactions', 'inventory RPC sequence changed');
+    assert(calls.map(call => call.name).join(',') === 'pos_inventory_sync_spreadsheet_sources,pos_inventory_get_spreadsheet,pos_inventory_get_transactions', 'inventory RPC sequence changed');
     assert(calls.every(call => call.args.p_business_id === app.posContext.businessId), 'inventory call escaped its business scope');
     assert(app.stockState.items[0].balance === 1250 && app.stockState.items[0].categoryName === 'Milk and cream', 'inventory item was not normalized');
     assert(app.stockState.transactions[0].after === 1250, 'ledger row was not normalized');
@@ -4016,12 +4016,12 @@ document.getElementById('app').addEventListener('load', async () => {
     const calls = [];
     app.cloud.client = { rpc(name, args) {
       calls.push({ name, args: app.snapshot(args) });
-      if (name === 'pos_inventory_get_items' || name === 'pos_inventory_get_transactions') return rpcResult([]);
+      if (name === 'pos_inventory_get_spreadsheet' || name === 'pos_inventory_get_transactions') return rpcResult([]);
       throw new Error('unconfirmed source reached inventory sync: ' + name);
     }};
     try { assert(await app.loadStocks(), 'Stocks failed instead of safely skipping an unconfirmed costing source'); }
     finally { app.pendingSave = false; app.localDirty = false; }
-    assert(!calls.some(call => call.name === 'pos_inventory_sync_items'), 'dirty costing sources were synchronized into immutable inventory identities');
+    assert(!calls.some(call => call.name === 'pos_inventory_sync_spreadsheet_sources'), 'dirty costing sources were synchronized into immutable inventory identities');
     assert(/still saving|cloud confirms/i.test(app.stockState.notice), 'Stocks did not explain why source synchronization was deferred');
   });
   test('stock movement submits exact physical input and refreshes from the server', async () => {
@@ -4032,8 +4032,8 @@ document.getElementById('app').addEventListener('load', async () => {
     app.cloud.client = { rpc(name, args) {
       calls.push({ name, args: app.snapshot(args) });
       if (name === 'pos_inventory_record_transaction') return rpcResult([{ transaction_id: 'move-1', inventory_item_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', transaction_type: 'stock_in', item_name: 'Oat milk', base_unit: 'ml', quantity_delta_base: 250, balance_before_base: 1250, balance_after_base: 1500, item_revision: 4, occurred_at: '2026-09-29T04:00:00.000Z' }]);
-      if (name === 'pos_inventory_sync_items') return rpcResult([]);
-      if (name === 'pos_inventory_get_items') return rpcResult([inventoryItemFixture({ current_balance_base: 1500, revision: 4 })]);
+      if (name === 'pos_inventory_sync_spreadsheet_sources') return rpcResult([]);
+      if (name === 'pos_inventory_get_spreadsheet') return rpcResult([inventoryItemFixture({ current_balance_base: 1500, revision: 4 })]);
       if (name === 'pos_inventory_get_transactions') return rpcResult([inventoryTransactionFixture({ quantity_delta_base: 250, balance_before_base: 1250, balance_after_base: 1500 })]);
       throw new Error('unexpected RPC ' + name);
     }};
@@ -4055,8 +4055,8 @@ document.getElementById('app').addEventListener('load', async () => {
         if (attempt === 1) return Promise.reject(new Error('connection dropped'));
         return rpcResult([{ transaction_id: 'move-retry', inventory_item_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', transaction_type: 'stock_in', item_name: 'Oat milk', base_unit: 'ml', quantity_delta_base: 100, balance_before_base: 1250, balance_after_base: 1350, item_revision: 4, occurred_at: '2026-09-29T04:00:00.000Z' }]);
       }
-      if (name === 'pos_inventory_sync_items') return rpcResult([]);
-      if (name === 'pos_inventory_get_items') return rpcResult([inventoryItemFixture({ current_balance_base: 1350, revision: 4 })]);
+      if (name === 'pos_inventory_sync_spreadsheet_sources') return rpcResult([]);
+      if (name === 'pos_inventory_get_spreadsheet') return rpcResult([inventoryItemFixture({ current_balance_base: 1350, revision: 4 })]);
       if (name === 'pos_inventory_get_transactions') return rpcResult([]);
       throw new Error('unexpected RPC ' + name);
     }};
@@ -4079,8 +4079,8 @@ document.getElementById('app').addEventListener('load', async () => {
     const recoveryCalls = [];
     app.cloud.client = { rpc(name, args) {
       recoveryCalls.push({ name, args: app.snapshot(args) });
-      if (name === 'pos_inventory_sync_items') return rpcResult([]);
-      if (name === 'pos_inventory_get_items') return rpcResult([inventoryItemFixture()]);
+      if (name === 'pos_inventory_sync_spreadsheet_sources') return rpcResult([]);
+      if (name === 'pos_inventory_get_spreadsheet') return rpcResult([inventoryItemFixture()]);
       if (name === 'pos_inventory_get_transactions') return rpcResult([inventoryTransactionFixture()]);
       if (name === 'pos_inventory_record_transaction') return rpcResult([{ transaction_id: 'move-recovered', inventory_item_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', transaction_type: 'stock_in', item_name: 'Oat milk', base_unit: 'ml', quantity_delta_base: 100, balance_before_base: 1250, balance_after_base: 1350, item_revision: 4, occurred_at: '2026-09-29T04:00:00.000Z', is_retry: true }]);
       throw new Error('unexpected RPC ' + name);
@@ -4105,8 +4105,8 @@ document.getElementById('app').addEventListener('load', async () => {
     app.setStockModalAction('stock_in'); app.stockModal.quantity = '250'; app.stockModal.unit = 'ml';
     app.cloud.client = { rpc(name) {
       if (name === 'pos_inventory_record_transaction') return rpcResult([{ transaction_id: 'move-committed', inventory_item_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', transaction_type: 'stock_in', item_name: 'Oat milk', base_unit: 'ml', quantity_delta_base: 250, balance_before_base: 1250, balance_after_base: 1500, item_revision: 4, occurred_at: '2026-09-29T04:00:00.000Z' }]);
-      if (name === 'pos_inventory_sync_items') return rpcResult([]);
-      if (name === 'pos_inventory_get_items') return Promise.reject(new Error('refresh offline'));
+      if (name === 'pos_inventory_sync_spreadsheet_sources') return rpcResult([]);
+      if (name === 'pos_inventory_get_spreadsheet') return Promise.reject(new Error('refresh offline'));
       if (name === 'pos_inventory_get_transactions') return rpcResult([]);
       throw new Error('unexpected RPC ' + name);
     }};
@@ -4118,8 +4118,8 @@ document.getElementById('app').addEventListener('load', async () => {
     installInventory('owner', [], []);
     let resolveItems;
     app.cloud.client = { rpc(name) {
-      if (name === 'pos_inventory_sync_items') return rpcResult([]);
-      if (name === 'pos_inventory_get_items') return new Promise(resolve => { resolveItems = resolve; });
+      if (name === 'pos_inventory_sync_spreadsheet_sources') return rpcResult([]);
+      if (name === 'pos_inventory_get_spreadsheet') return new Promise(resolve => { resolveItems = resolve; });
       if (name === 'pos_inventory_get_transactions') return rpcResult([]);
       throw new Error('unexpected RPC ' + name);
     }};

@@ -79,21 +79,40 @@ export async function loadStocks(options?: LegacyValue): Promise<boolean> {
         !runtimeValue('saveTimer')
       ) {
         try {
-          const syncRows = runtimeValue('rpcRows')(
-            await runtimeValue('cloud').client.rpc(
-              'pos_inventory_sync_items',
-              {
-                p_business_id: businessId,
-                p_items: readStocksBinding(
-                  'stockSourcePayload',
-                  stockSourcePayload,
-                )(runtimeValue('syncedState')),
-              },
-            ),
-          );
+          let syncRows: LegacyValue[];
+          try {
+            syncRows = runtimeValue('rpcRows')(
+              await runtimeValue('cloud').client.rpc(
+                'pos_inventory_sync_spreadsheet_sources',
+                { p_business_id: businessId },
+              ),
+            );
+          } catch (error) {
+            const code = String((error as LegacyValue)?.code || '');
+            const message = String((error as LegacyValue)?.message || '');
+            if (code !== 'PGRST202' && !/function.*not found|schema cache/i.test(message)) {
+              throw error;
+            }
+            const ingredientPayload = readStocksBinding(
+              'stockSourcePayload',
+              stockSourcePayload,
+            )(runtimeValue('syncedState')).filter(function (source: LegacyValue) {
+              return source.sourceType === 'ingredient';
+            });
+            syncRows = runtimeValue('rpcRows')(
+              await runtimeValue('cloud').client.rpc(
+                'pos_inventory_sync_items',
+                {
+                  p_business_id: businessId,
+                  p_items: ingredientPayload,
+                },
+              ),
+            );
+          }
           const inactiveSources = syncRows
             .filter(function (row: LegacyValue) {
-              return row && row.active === false;
+              return row &&
+                (row.active === false || row.sync_result === 'inactive');
             })
             .map(function (row: LegacyValue) {
               return String(
@@ -140,13 +159,34 @@ export async function loadStocks(options?: LegacyValue): Promise<boolean> {
       syncWarning =
         'Costing-to-stock sync is paused until the pending source recovery is confirmed.';
     }
-    const itemRequest = runtimeValue('cloud').client.rpc(
-      'pos_inventory_get_items',
-      {
-        p_business_id: businessId,
-        p_include_inactive: false,
-      },
-    );
+    const itemRequest = (async function (): Promise<LegacyValue[]> {
+      try {
+        return runtimeValue('rpcRows')(
+          await runtimeValue('cloud').client.rpc(
+            'pos_inventory_get_spreadsheet',
+            {
+              p_business_id: businessId,
+              p_period_id: null,
+            },
+          ),
+        );
+      } catch (error) {
+        const code = String((error as LegacyValue)?.code || '');
+        const message = String((error as LegacyValue)?.message || '');
+        if (code !== 'PGRST202' && !/function.*not found|schema cache/i.test(message)) {
+          throw error;
+        }
+        return runtimeValue('rpcRows')(
+          await runtimeValue('cloud').client.rpc(
+            'pos_inventory_get_items',
+            {
+              p_business_id: businessId,
+              p_include_inactive: false,
+            },
+          ),
+        );
+      }
+    })();
     const historyRequest = runtimeValue('stockCanManage')()
       ? runtimeValue('cloud').client.rpc(
           'pos_inventory_get_transactions',
@@ -166,9 +206,20 @@ export async function loadStocks(options?: LegacyValue): Promise<boolean> {
     ) {
       return false;
     }
-    runtimeValue('stockState').items = runtimeValue('rpcRows')(
-      responses[0],
-    ).map(
+    const itemRows = responses[0] as LegacyValue[];
+    const periodRow = itemRows.find(function (row: LegacyValue) {
+      return row && (row.active_period_id || row.period_id);
+    });
+    runtimeValue('stockState').activePeriod = periodRow
+      ? {
+          id: String(periodRow.active_period_id || periodRow.period_id || ''),
+          name: String(periodRow.active_period_name || periodRow.period_name || 'Inventory period'),
+          status: String(periodRow.active_period_status || periodRow.period_status || 'active'),
+          openedAt: periodRow.active_period_opened_at || periodRow.opened_at || null,
+          revision: Number(periodRow.active_period_revision || periodRow.period_revision || 0),
+        }
+      : null;
+    runtimeValue('stockState').items = itemRows.map(
       readStocksBinding('stockNormalizeItem', stockNormalizeItem),
     );
     runtimeValue('stockState').transactions = runtimeValue('rpcRows')(

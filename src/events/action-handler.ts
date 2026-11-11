@@ -1,4 +1,13 @@
 import { runtimeValue, writeRuntimeBinding } from './bindings';
+import {
+  chooseStockRowColor,
+  openInventoryPeriodClose,
+  openInventoryPeriodStart,
+  openStockColorPicker,
+  saveStockRowColor,
+  submitInventoryPeriodClose,
+  submitInventoryPeriodStart,
+} from '../stocks/spreadsheet';
 import type { LegacyValue } from './types';
 
 const commitActions = Object.freeze([
@@ -39,6 +48,30 @@ export function handleActionClick(event: LegacyValue): void {
     case 'setStockStatus':
       runtimeValue('stockState').status = button.dataset.status || 'all';
       runtimeValue('renderStocks')();
+      return;
+    case 'openInventoryPeriodStart':
+      openInventoryPeriodStart();
+      return;
+    case 'openInventoryPeriodClose':
+      openInventoryPeriodClose();
+      return;
+    case 'submitInventoryPeriodStart':
+      submitInventoryPeriodStart().catch(function () {});
+      return;
+    case 'submitInventoryPeriodClose':
+      submitInventoryPeriodClose().catch(function () {});
+      return;
+    case 'openStockColor':
+      openStockColorPicker(id);
+      return;
+    case 'chooseStockRowColor':
+      chooseStockRowColor(button.dataset.color);
+      return;
+    case 'saveStockRowColor':
+      saveStockRowColor(false).catch(function () {});
+      return;
+    case 'clearStockRowColor':
+      saveStockRowColor(true).catch(function () {});
       return;
     case 'openStockModal':
       runtimeValue('openStockModal')(id, button.dataset.mode);

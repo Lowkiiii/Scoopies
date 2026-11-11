@@ -462,6 +462,12 @@ test('authenticated data-heavy Stocks view stays usable at a mobile width', asyn
       status: 'all',
       kind: 'all',
       lastUpdatedAt: Date.now(),
+      activePeriod: {
+        id: 'period-mobile',
+        name: 'Weekend popup',
+        status: 'open',
+        openedAt: '2026-11-01T00:00:00.000Z',
+      },
       items: itemFixtures.map((fixture, index) => ({
         id: `inventory-${fixture.id}`,
         sourceId: fixture.id,
@@ -476,6 +482,23 @@ test('authenticated data-heavy Stocks view stays usable at a mobile width', asyn
         lastMovementAt: `2026-11-${String(index + 1).padStart(2, '0')}T04:00:00.000Z`,
         lastMovementType: index % 2 ? 'stock_in' : 'stock_count',
         categoryName: fixture.categoryName,
+        periodId: 'period-mobile',
+        preferredUnit: fixture.baseUnit,
+        openingStock: fixture.balance,
+        stockAdded: 0,
+        stockUsed: 0,
+        wasted: 0,
+        remainingStock: fixture.balance,
+        purchaseQuantity: 1_000,
+        purchasePriceCentavos: 10_000,
+        costPerUnitCentavos: 10,
+        remainingValueCentavos: fixture.balance * 10,
+        stockStatus:
+          fixture.balance <= 0 ||
+          (fixture.threshold != null && fixture.balance <= fixture.threshold)
+            ? 'RESTOCK'
+            : 'OK',
+        periodItemRevision: index + 1,
       })),
       transactions: Array.from({ length: 12 }, (_, index) => {
         const fixture = itemFixtures[index % itemFixtures.length];
@@ -509,24 +532,28 @@ test('authenticated data-heavy Stocks view stays usable at a mobile width', asyn
   await expect(page.locator('section#stocks')).toHaveClass(/active/);
   await expect(page.locator('#stockVisibleCount')).toHaveText('8 of 8 items');
   const stockTable = page.getByRole('table', {
-    name: 'Physical ingredient and prepared mixture inventory',
+    name: 'Inventory period spreadsheet',
   });
   await expect(stockTable).toBeVisible();
   await expect(stockTable.getByRole('columnheader')).toHaveText([
     'Category',
-    'Item name',
-    'Purchased from',
-    'Date purchased',
-    'On hand',
+    'Item',
     'Unit',
-    'Low-stock alert',
+    'Opening Stock',
+    'Stock Added',
+    'Stock Used',
+    'Wasted/Damaged',
+    'Remaining Stock',
+    'Reorder Level',
+    'Purchase Quantity',
+    'Purchase Price (₱)',
+    'Cost per Unit',
+    'Remaining Value (₱)',
     'Status',
-    'Notes',
-    'Last movement',
   ]);
   await expect(stockTable.getByRole('row')).toHaveCount(9);
   await expect(stockTable.getByRole('rowheader')).toHaveCount(8);
-  await expect(stockTable.getByRole('cell')).toHaveCount(72);
+  await expect(stockTable.getByRole('cell')).toHaveCount(104);
   await expect(page.locator('.stock-row[data-stock-item]')).toHaveCount(8);
   await expect(page.locator('.stock-history-row')).toHaveCount(12);
   await expect(
@@ -537,7 +564,7 @@ test('authenticated data-heavy Stocks view stays usable at a mobile width', asyn
           'Organic Ceremonial Grade Matcha Powder From Uji Kyoto Reserve',
       }),
   ).toBeVisible();
-  await expect(page.locator('.stock-row .stock-inline-input')).toHaveCount(16);
+  await expect(page.locator('.stock-row .stock-sheet-input')).toHaveCount(48);
   await expect(
     page.locator('.stock-row [data-act="openStockModal"]:not([data-mode])'),
   ).toHaveCount(0);
@@ -589,13 +616,17 @@ test('authenticated data-heavy Stocks view stays usable at a mobile width', asyn
   expect(firstRowLabels).toEqual([
     'category',
     'item',
-    'purchased-from',
-    'stocked-on',
-    'on-hand',
     'unit',
-    'threshold',
+    'opening',
+    'added',
+    'used',
+    'wasted',
+    'remaining',
+    'reorder',
+    'purchase-quantity',
+    'purchase-price',
+    'unit-cost',
+    'remaining-value',
     'status',
-    'notes',
-    'updated',
   ]);
 });
