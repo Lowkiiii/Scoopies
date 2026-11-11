@@ -321,7 +321,7 @@ export function stockItemCardsHtml(): string {
   const reorderReason = stockReorderReason(false);
   return (
     '<div class="stock-inventory" tabindex="0" aria-label="Scrollable inventory table"><table class="stock-table"><caption class="stock-table-caption">Physical ingredient and prepared mixture inventory</caption><thead><tr>' +
-    '<th scope="col" data-stock-field="item">Item name</th><th scope="col" data-stock-field="category">Category</th><th scope="col" data-stock-field="purchased-from">Purchased from</th><th scope="col" data-stock-field="stocked-on">Date purchased</th><th scope="col" data-stock-field="on-hand">On hand</th><th scope="col" data-stock-field="unit">Unit</th><th scope="col" data-stock-field="threshold">Low-stock alert</th><th scope="col" data-stock-field="status">Status</th><th scope="col" data-stock-field="notes">Notes</th><th scope="col" data-stock-field="updated">Last movement</th>' +
+    '<th scope="col" data-stock-field="category">Category</th><th scope="col" data-stock-field="item">Item name</th><th scope="col" data-stock-field="purchased-from">Purchased from</th><th scope="col" data-stock-field="stocked-on">Date purchased</th><th scope="col" data-stock-field="on-hand">On hand</th><th scope="col" data-stock-field="unit">Unit</th><th scope="col" data-stock-field="threshold">Low-stock alert</th><th scope="col" data-stock-field="status">Status</th><th scope="col" data-stock-field="notes">Notes</th><th scope="col" data-stock-field="updated">Last movement</th>' +
     '</tr></thead><tbody>' +
     items
       .map(function (item: LegacyValue, itemIndex: number) {
@@ -351,7 +351,24 @@ export function stockItemCardsHtml(): string {
           runtimeValue('escapeHtml')(item.sourceId || item.id) +
           '" data-entity="ingredient" data-id="' +
           runtimeValue('escapeHtml')(item.sourceId || '') +
-          '"><th scope="row" class="stock-item-cell" data-stock-field="item" data-label="Item name"><div class="stock-item-line">' +
+          '"><td data-stock-field="category" data-label="Category">' +
+          (!source
+            ? '<span class="stock-cell-muted">Removed from costing</span>'
+            : canManage
+              ? '<select class="stock-cell-control stock-cell-select" data-field="categoryId" aria-label="Category for ' +
+                runtimeValue('escapeHtml')(item.name) +
+                '"' +
+                (inlineLocked ? ' disabled title="' + runtimeValue('escapeHtml')(lockReason) + '"' : '') +
+                '>' +
+                stockCategoryOptions(source) +
+                '</select>'
+              : runtimeValue('escapeHtml')(
+                  runtimeValue('categoryNameIn')(
+                    runtimeValue('state'),
+                    source.categoryId,
+                  ) || 'Uncategorized',
+                )) +
+          '</td><th scope="row" class="stock-item-cell" data-stock-field="item" data-label="Item name"><div class="stock-item-line">' +
           (canManage
             ? '<button class="stock-drag-handle" type="button" data-stock-drag-handle data-id="' +
               runtimeValue('escapeHtml')(item.id) +
@@ -387,24 +404,7 @@ export function stockItemCardsHtml(): string {
           (!source
             ? '<span class="stock-source-warning">Removed from costing</span>'
             : '') +
-          '</th><td data-stock-field="category" data-label="Category">' +
-          (!source
-            ? '<span class="stock-cell-muted">Removed from costing</span>'
-            : canManage
-              ? '<select class="stock-cell-control stock-cell-select" data-field="categoryId" aria-label="Category for ' +
-                runtimeValue('escapeHtml')(item.name) +
-                '"' +
-                (inlineLocked ? ' disabled title="' + runtimeValue('escapeHtml')(lockReason) + '"' : '') +
-                '>' +
-                stockCategoryOptions(source) +
-                '</select>'
-              : runtimeValue('escapeHtml')(
-                  runtimeValue('categoryNameIn')(
-                    runtimeValue('state'),
-                    source.categoryId,
-                  ) || 'Uncategorized',
-                )) +
-          '</td><td data-stock-field="purchased-from" data-label="Purchased from">' +
+          '</th><td data-stock-field="purchased-from" data-label="Purchased from">' +
           (item.kind === 'mixture'
             ? 'Prepared in-house'
             : canManage
