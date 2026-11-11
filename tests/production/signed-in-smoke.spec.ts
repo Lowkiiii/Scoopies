@@ -10,6 +10,7 @@ const READ_ONLY_RPC_NAMES = new Set([
   'pos_get_recent_sales_v2',
   'pos_get_shift_status',
   'pos_inventory_get_items',
+  'pos_inventory_get_spreadsheet',
   'pos_inventory_get_transactions',
 ]);
 
@@ -339,7 +340,7 @@ test('signed-in production reads the POS Stocks and Costing workspaces without m
     return blocked;
   });
   expect(blockedRpcNames).toEqual(
-    stockCanManage ? ['pos_inventory_sync_items'] : [],
+    stockCanManage ? ['pos_inventory_sync_spreadsheet_sources'] : [],
   );
   expect(blockedNetworkBusinessWrites).toEqual([]);
   expect(escapedNetworkBusinessWrites).toEqual([]);
