@@ -335,8 +335,9 @@
   .stock-on-hand.bad{color:var(--bad)}
   .stock-card-meta{font-size:12px;color:var(--muted);margin-top:4px;min-height:34px}
   .stock-card .btn{width:100%;min-height:44px;margin-top:10px}
-  .stock-inventory{max-width:100%;min-width:0;margin-top:8px;overflow-x:auto;-webkit-overflow-scrolling:touch;
-    border:1px solid var(--line);border-radius:10px;background:var(--card);scrollbar-width:thin}
+  .stock-inventory{position:relative;isolation:isolate;max-width:100%;min-width:0;max-height:68vh;max-height:min(68dvh,720px);
+    margin-top:8px;overflow:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--line);border-radius:10px;
+    background:var(--card);scrollbar-width:thin}
   .stock-table{width:100%;min-width:1160px;table-layout:fixed;border-collapse:collapse;background:var(--card)}
   .stock-table-caption{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;
     clip:rect(0,0,0,0);white-space:nowrap;border:0}
@@ -345,7 +346,7 @@
     font-size:11px;font-weight:750;letter-spacing:.045em;white-space:nowrap}
   .stock-table thead th:not(:last-child){border-right:1px solid var(--line)}
   .stock-table [data-stock-field='item']{width:225px}
-  .stock-table [data-stock-field='brand']{width:105px}
+  .stock-table [data-stock-field='category']{width:125px}
   .stock-table [data-stock-field='purchased-from']{width:135px}
   .stock-table [data-stock-field='stocked-on']{width:110px}
   .stock-table [data-stock-field='on-hand']{width:105px}
@@ -383,9 +384,6 @@
   .stock-kind-marker{flex:0 0 auto;border:1px solid var(--line);border-radius:999px;padding:1px 5px;background:var(--cream);
     color:var(--muted);font-size:9px;font-weight:750;text-transform:uppercase}
   .stock-kind-marker.mixture{background:#eef5ff;color:#315b8a;border-color:#cfdef0}
-  .stock-row-menu{display:inline-flex;align-items:center;justify-content:center;flex:0 0 30px;width:30px;height:30px;margin-left:auto;padding:0;border:1px solid transparent;border-radius:5px;background:transparent;color:var(--brown);font-size:18px;font-weight:800;line-height:1;cursor:pointer}
-  .stock-row-menu:hover{border-color:var(--line);background:var(--pink-soft)}
-  .stock-row-menu:disabled{cursor:not-allowed;color:var(--muted);background:var(--cream)}
   .stock-source-warning{display:block;margin-top:2px;color:var(--bad);font-size:10px;font-weight:700}
   .stock-status-cell .stock-badge{white-space:normal;text-align:center;line-height:1.25}
   .stock-table .stock-on-hand{margin:0;color:var(--brown);font-size:17px;font-weight:850;line-height:1.25;
@@ -562,7 +560,7 @@
     #stocks .stock-head .btn,#stocks .stock-toolbar input,#stocks .stock-toolbar select,
     #stocks .stock-filter-bar .category-chip{min-width:44px;min-height:44px}
     .stock-grid{grid-template-columns:1fr}
-    .stock-inventory{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--card)}
+    .stock-inventory{max-height:62vh;max-height:min(62dvh,600px);overflow:auto;border:1px solid var(--line);border-radius:10px;background:var(--card)}
     .stock-table{display:table;width:100%;min-width:1160px;table-layout:fixed;border-collapse:collapse;background:var(--card)}
     .stock-table thead{position:static;width:auto;height:auto;padding:0;margin:0;overflow:visible;clip:auto;clip-path:none;
       white-space:normal;border:0}
@@ -578,7 +576,6 @@
     .stock-table .stock-inline-input,.stock-table .stock-cell-control{min-height:44px}
     .stock-table .stock-unit-cell select{min-height:44px}
     .stock-drag-handle{flex-basis:44px;width:44px;height:44px}
-    .stock-row-menu{flex-basis:44px;width:44px;height:44px}
   }
   @media(forced-colors:active){
     .stock-row-drop-before>th,.stock-row-drop-before>td{border-top:3px solid Highlight}

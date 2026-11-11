@@ -108,7 +108,7 @@ force a rollback.
 
 ## Next phase
 
-Phase 2B will compile validated physical recipe quantities into immutable
-published-product consumption profiles. Automatic checkout deduction remains
-off until product requirements, prepared-mixture behavior, opening counts,
-shadow validation, and reversal rules are complete.
+Phase 2B exposes each stock item's canonical costing-owned ingredient category
+without creating a second inventory category field. Automatic checkout
+deduction remains off until product requirements, prepared-mixture behavior,
+opening counts, shadow validation, and reversal rules are complete.

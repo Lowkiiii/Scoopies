@@ -225,7 +225,9 @@ export function stockNormalizeItem(row: LegacyValue): LegacyValue {
         : 'purchased',
     baseUnit,
     preferredUnit,
-    brand: String(row.brand || ''),
+    // Kept only so a cached pre-schema-12 client can complete an in-flight
+    // details save without erasing a legacy value. The live UI uses Category.
+    brand: String(row.brand || row.legacy_brand || ''),
     purchasedFrom: String(row.purchased_from || row.purchasedFrom || ''),
     lastStockedOn: row.last_stocked_on || row.lastStockedOn || null,
     notes: String(row.notes || ''),
@@ -241,12 +243,16 @@ export function stockNormalizeItem(row: LegacyValue): LegacyValue {
     active: row.active !== false,
     lastMovementAt: row.last_movement_at || null,
     lastMovementType: String(row.last_movement_type || ''),
-    categoryName: source
-      ? runtimeValue('categoryNameIn')(
-          runtimeValue('state'),
-          source.categoryId,
-        )
-      : 'Removed from costing',
+    categoryName: String(
+      row.category_name ||
+        row.categoryName ||
+        (source
+          ? runtimeValue('categoryNameIn')(
+              runtimeValue('state'),
+              source.categoryId,
+            )
+          : 'Removed from costing'),
+    ),
   };
 }
 

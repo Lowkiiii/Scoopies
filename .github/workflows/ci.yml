@@ -105,6 +105,12 @@ jobs:
           run_sql supabase/tests/inventory_phase_2a_timezone_schema_checks.sql
           run_sql supabase/tests/inventory_phase_2a_timezone_behavior_checks.sql
 
+          run_sql supabase/migrations/202611110012_inventory_phase_2b_category.sql
+          run_sql supabase/tests/inventory_phase_2b_category_schema_checks.sql
+          run_sql supabase/tests/inventory_phase_2b_category_behavior_checks.sql
+          run_sql supabase/tests/inventory_phase_2b_rollback_roundtrip_checks.sql
+          run_sql supabase/tests/inventory_phase_2b_category_schema_checks.sql
+
   browser-tests:
     name: Browser tests
     runs-on: ubuntu-latest

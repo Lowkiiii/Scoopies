@@ -129,7 +129,6 @@ function stockCellEditorHtml(
   const safeId = String(item.id || '').replace(/[^a-zA-Z0-9_-]/g, '-');
   const feedbackId = 'stockCellFeedback-' + safeId + '-' + field;
   const labels: Record<StockCellField, string> = {
-    brand: 'brand',
     purchasedFrom: 'purchased from',
     lastStockedOn:
       item.kind === 'mixture' ? 'last batch made date' : 'date purchased',
@@ -156,12 +155,9 @@ function stockCellEditorHtml(
       stockPreferredUnitOptions(item, value) +
       '</select>';
   } else {
-    const maxLength =
-      field === 'brand' ? 120 : field === 'purchasedFrom' ? 160 : 1000;
+    const maxLength = field === 'purchasedFrom' ? 160 : 1000;
     const placeholder =
-      field === 'brand'
-        ? 'Brand'
-        : field === 'purchasedFrom'
+      field === 'purchasedFrom'
           ? 'Supplier'
           : field === 'notes'
             ? 'Notes'
@@ -202,6 +198,46 @@ function stockCellEditorHtml(
     runtimeValue('escapeHtml')(message) +
     '</div></div>'
   );
+}
+
+function stockCategoryOptions(source: LegacyValue): string {
+  const selected = String((source && source.categoryId) || '');
+  return (
+    '<option value=""' +
+    (!selected ? ' selected' : '') +
+    '>Uncategorized</option>' +
+    (runtimeValue('state').ingredientCategories || [])
+      .map(function (category: LegacyValue) {
+        const id = String(category.id || '');
+        return (
+          '<option value="' +
+          runtimeValue('escapeHtml')(id) +
+          '"' +
+          (id === selected ? ' selected' : '') +
+          '>' +
+          runtimeValue('escapeHtml')(category.name || 'Unnamed category') +
+          '</option>'
+        );
+      })
+      .join('')
+  );
+}
+
+function stockInventoryScrollPosition(): { top: number; left: number } | null {
+  const inventory = document.querySelector('.stock-inventory') as HTMLElement | null;
+  return inventory
+    ? { top: inventory.scrollTop, left: inventory.scrollLeft }
+    : null;
+}
+
+function restoreStockInventoryScroll(
+  position: { top: number; left: number } | null,
+): void {
+  if (!position) return;
+  const inventory = document.querySelector('.stock-inventory') as HTMLElement | null;
+  if (!inventory) return;
+  inventory.scrollTop = position.top;
+  inventory.scrollLeft = position.left;
 }
 
 function stockPreferredQuantity(
@@ -284,8 +320,8 @@ export function stockItemCardsHtml(): string {
           : '';
   const reorderReason = stockReorderReason(false);
   return (
-    '<div class="stock-inventory"><table class="stock-table"><caption class="stock-table-caption">Physical ingredient and prepared mixture inventory</caption><thead><tr>' +
-    '<th scope="col" data-stock-field="item">Item name</th><th scope="col" data-stock-field="brand">Brand</th><th scope="col" data-stock-field="purchased-from">Purchased from</th><th scope="col" data-stock-field="stocked-on">Date purchased</th><th scope="col" data-stock-field="on-hand">On hand</th><th scope="col" data-stock-field="unit">Unit</th><th scope="col" data-stock-field="threshold">Low-stock alert</th><th scope="col" data-stock-field="status">Status</th><th scope="col" data-stock-field="notes">Notes</th><th scope="col" data-stock-field="updated">Last updated</th>' +
+    '<div class="stock-inventory" tabindex="0" aria-label="Scrollable inventory table"><table class="stock-table"><caption class="stock-table-caption">Physical ingredient and prepared mixture inventory</caption><thead><tr>' +
+    '<th scope="col" data-stock-field="item">Item name</th><th scope="col" data-stock-field="category">Category</th><th scope="col" data-stock-field="purchased-from">Purchased from</th><th scope="col" data-stock-field="stocked-on">Date purchased</th><th scope="col" data-stock-field="on-hand">On hand</th><th scope="col" data-stock-field="unit">Unit</th><th scope="col" data-stock-field="threshold">Low-stock alert</th><th scope="col" data-stock-field="status">Status</th><th scope="col" data-stock-field="notes">Notes</th><th scope="col" data-stock-field="updated">Last movement</th>' +
     '</tr></thead><tbody>' +
     items
       .map(function (item: LegacyValue, itemIndex: number) {
@@ -313,6 +349,8 @@ export function stockItemCardsHtml(): string {
           runtimeValue('escapeHtml')(item.id) +
           '" data-stock-order-id="' +
           runtimeValue('escapeHtml')(item.sourceId || item.id) +
+          '" data-entity="ingredient" data-id="' +
+          runtimeValue('escapeHtml')(item.sourceId || '') +
           '"><th scope="row" class="stock-item-cell" data-stock-field="item" data-label="Item name"><div class="stock-item-line">' +
           (canManage
             ? '<button class="stock-drag-handle" type="button" data-stock-drag-handle data-id="' +
@@ -345,29 +383,27 @@ export function stockItemCardsHtml(): string {
           '">' +
           (item.kind === 'mixture' ? 'Mix' : 'Item') +
           '</span>' +
-          (canManage
-            ? '<button class="stock-row-menu" type="button" data-act="openStockModal" data-id="' +
-              runtimeValue('escapeHtml')(item.id) +
-              '" aria-label="Record a stock movement for ' +
-              runtimeValue('escapeHtml')(item.name) +
-              '" title="' +
-              runtimeValue('escapeHtml')(
-                inlineLocked
-                  ? lockReason
-                  : 'Record received stock, waste, or a correction',
-              ) +
-              '"' +
-              (inlineLocked ? ' disabled' : '') +
-              '>&#8942;</button>'
-            : '') +
           '</div>' +
           (!source
             ? '<span class="stock-source-warning">Removed from costing</span>'
             : '') +
-          '</th><td data-stock-field="brand" data-label="Brand">' +
-          (canManage
-            ? stockCellEditorHtml(item, 'brand', inlineLocked, lockReason)
-            : runtimeValue('escapeHtml')(item.brand || '\u2014')) +
+          '</th><td data-stock-field="category" data-label="Category">' +
+          (!source
+            ? '<span class="stock-cell-muted">Removed from costing</span>'
+            : canManage
+              ? '<select class="stock-cell-control stock-cell-select" data-field="categoryId" aria-label="Category for ' +
+                runtimeValue('escapeHtml')(item.name) +
+                '"' +
+                (inlineLocked ? ' disabled title="' + runtimeValue('escapeHtml')(lockReason) + '"' : '') +
+                '>' +
+                stockCategoryOptions(source) +
+                '</select>'
+              : runtimeValue('escapeHtml')(
+                  runtimeValue('categoryNameIn')(
+                    runtimeValue('state'),
+                    source.categoryId,
+                  ) || 'Uncategorized',
+                )) +
           '</td><td data-stock-field="purchased-from" data-label="Purchased from">' +
           (item.kind === 'mixture'
             ? 'Prepared in-house'
@@ -432,7 +468,7 @@ export function stockItemCardsHtml(): string {
             ? stockCellEditorHtml(item, 'notes', inlineLocked, lockReason)
             : runtimeValue('escapeHtml')(item.notes || '\u2014')) +
           '</td>' +
-          '<td class="stock-updated-cell" data-stock-field="updated" data-label="Last updated">' +
+          '<td class="stock-updated-cell" data-stock-field="updated" data-label="Last movement">' +
           runtimeValue('escapeHtml')(last) +
           '</td></tr>'
         );
@@ -509,6 +545,7 @@ export function stockHistoryHtml(): string {
 }
 
 export function renderStockResults(): void {
+  const scrollPosition = stockInventoryScrollPosition();
   const results = document.getElementById('stockResults');
   const count = document.getElementById('stockVisibleCount');
   if (results) {
@@ -534,9 +571,11 @@ export function renderStockResults(): void {
       element.classList.toggle('active', active);
       element.setAttribute('aria-pressed', active ? 'true' : 'false');
     });
+  restoreStockInventoryScroll(scrollPosition);
 }
 
 export function renderStocks(): void {
+  const scrollPosition = stockInventoryScrollPosition();
   const root = document.getElementById('stockRoot');
   if (!root) return;
   if (!runtimeValue('session')) {
@@ -616,13 +655,13 @@ export function renderStocks(): void {
   const note =
     '<div class="note stock-phase-note"><strong>Spreadsheet-style inventory.</strong> Type directly in a cell, then press Enter, Tab, or tap away to save; press Escape to undo the current edit.' +
     reorderHelp +
-    ' On hand is the exact physical amount counted, and a blank low-stock alert disables it. Use the three-dot item menu only for received stock, waste, or corrections. POS sales do not subtract stock yet.</div>';
+    ' On hand is the exact physical amount available, and a blank low-stock alert disables it. All day-to-day stock updates happen directly in this table. POS sales do not subtract stock yet.</div>';
   const toolbar =
     '<div class="card">' +
     readStocksBinding('stockSummaryHtml', stockSummaryHtml)() +
     '<div class="stock-toolbar"><div><label class="fld" for="stockSearch">Search ingredients and mixtures</label><input id="stockSearch" type="search" value="' +
     runtimeValue('escapeHtml')(runtimeValue('stockState').search) +
-    '" placeholder="Search name, brand, supplier, or notes..." autocomplete="off"></div><div><label class="fld" for="stockKindFilter">Item type</label><select id="stockKindFilter"><option value="all"' +
+    '" placeholder="Search name, category, supplier, or notes..." autocomplete="off"></div><div><label class="fld" for="stockKindFilter">Item type</label><select id="stockKindFilter"><option value="all"' +
     (runtimeValue('stockState').kind === 'all' ? ' selected' : '') +
     '>All types</option><option value="purchased"' +
     (runtimeValue('stockState').kind === 'purchased' ? ' selected' : '') +
@@ -670,4 +709,5 @@ export function renderStocks(): void {
     note +
     toolbar +
     readStocksBinding('stockHistoryHtml', stockHistoryHtml)();
+  restoreStockInventoryScroll(scrollPosition);
 }

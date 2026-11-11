@@ -261,12 +261,11 @@ async function seedPopulatedStocks(page: Page) {
               error: null,
             };
           }
-          if (name === 'pos_inventory_update_item_details') {
+          if (name === 'pos_inventory_update_item_details_v2') {
             return {
               data: [
                 {
                   inventory_item_id: args.p_inventory_item_id,
-                  brand: args.p_brand,
                   purchased_from: args.p_purchased_from,
                   last_stocked_on: args.p_last_stocked_on,
                   notes: args.p_notes,
@@ -334,7 +333,7 @@ test('populated Stocks spreadsheet remains event-driven and mobile safe', async 
   await expect(stockTable).toBeVisible();
   await expect(stockTable.getByRole('columnheader')).toHaveText([
     'Item name',
-    'Brand',
+    'Category',
     'Purchased from',
     'Date purchased',
     'On hand',
@@ -342,7 +341,7 @@ test('populated Stocks spreadsheet remains event-driven and mobile safe', async 
     'Low-stock alert',
     'Status',
     'Notes',
-    'Last updated',
+    'Last movement',
   ]);
   await expect(stockTable.getByRole('row')).toHaveCount(5);
   await expect(stockTable.getByRole('rowheader')).toHaveCount(4);
@@ -359,7 +358,7 @@ test('populated Stocks spreadsheet remains event-driven and mobile safe', async 
   ).toEqual(
     Array.from({ length: 4 }, () => [
       'item',
-      'brand',
+      'category',
       'purchased-from',
       'stocked-on',
       'on-hand',
@@ -472,16 +471,29 @@ test('populated Stocks spreadsheet remains event-driven and mobile safe', async 
     },
   });
 
-  const matchaBrand = page.locator(
-    '[data-stock-item="inventory-matcha"] [data-stock-cell-field="brand"]',
+  const matchaCategory = page.locator(
+    '[data-stock-item="inventory-matcha"] [data-field="categoryId"]',
   );
   const matchaUnit = page.locator(
     '[data-stock-item="inventory-matcha"] [data-stock-cell-field="preferredUnit"]',
   );
-  await expect(matchaBrand).toHaveValue('Uji Reserve');
-  await matchaBrand.fill('Temporary brand');
-  await matchaBrand.press('Escape');
-  await expect(matchaBrand).toHaveValue('Uji Reserve');
+  await expect(matchaCategory).toHaveValue('powders');
+  await matchaCategory.selectOption('milk');
+  await expect(matchaCategory).toHaveValue('milk');
+  await expect
+    .poll(() =>
+      page.evaluate(() =>
+        (window as any).state.ingredients.find(
+          (ingredient: any) => ingredient.id === 'matcha',
+        ).categoryId,
+      ),
+    )
+    .toBe('milk');
+  await page.locator('#stockSearch').fill('Milk and Shelf Stable Beverages');
+  await expect(
+    page.locator('[data-stock-item="inventory-matcha"]'),
+  ).toBeVisible();
+  await page.locator('#stockSearch').fill('');
 
   await matchaUnit.selectOption('g');
   await expect.poll(() =>
@@ -491,11 +503,10 @@ test('populated Stocks spreadsheet remains event-driven and mobile safe', async 
     (window as any).__stockInlineRpcCalls[2],
   );
   expect(unitRequest).toEqual({
-    name: 'pos_inventory_update_item_details',
+    name: 'pos_inventory_update_item_details_v2',
     args: {
       p_business_id: 'business-mobile',
       p_inventory_item_id: 'inventory-matcha',
-      p_brand: 'Uji Reserve',
       p_purchased_from: 'Tea supplier',
       p_last_stocked_on: '2026-11-01',
       p_notes: 'Keep sealed and dry',
@@ -516,27 +527,29 @@ test('populated Stocks spreadsheet remains event-driven and mobile safe', async 
     ),
   ).toHaveValue('70');
 
-  await matchaBrand.fill('Matcha Luna Reserve');
-  await matchaBrand.press('Tab');
+  const purchasedFrom = page.locator(
+    '[data-stock-item="inventory-matcha"] [data-stock-cell-field="purchasedFrom"]',
+  );
+  await purchasedFrom.fill('New tea supplier');
+  await purchasedFrom.press('Tab');
   await expect.poll(() =>
     page.evaluate(() => (window as any).__stockInlineRpcCalls.length),
   ).toBe(4);
-  await expect(matchaBrand).toHaveValue('Matcha Luna Reserve');
+  await expect(purchasedFrom).toHaveValue('New tea supplier');
   await expect(
     page.locator(
-      '[data-stock-item="inventory-matcha"] [data-stock-cell-field="purchasedFrom"]',
+      '[data-stock-item="inventory-matcha"] [data-stock-cell-field="lastStockedOn"]',
     ),
   ).toBeFocused();
-  const brandRequest = await page.evaluate(() =>
+  const supplierRequest = await page.evaluate(() =>
     (window as any).__stockInlineRpcCalls[3],
   );
-  expect(brandRequest).toEqual({
-    name: 'pos_inventory_update_item_details',
+  expect(supplierRequest).toEqual({
+    name: 'pos_inventory_update_item_details_v2',
     args: {
       p_business_id: 'business-mobile',
       p_inventory_item_id: 'inventory-matcha',
-      p_brand: 'Matcha Luna Reserve',
-      p_purchased_from: 'Tea supplier',
+      p_purchased_from: 'New tea supplier',
       p_last_stocked_on: '2026-11-01',
       p_notes: 'Keep sealed and dry',
       p_preferred_unit: 'g',
@@ -827,7 +840,7 @@ test('rapid spreadsheet edits serialize and movement waits for the active save',
     app.__releaseFirstStockCellRpc = null;
     app.cloud.client.rpc = async (name: string, args: any) => {
       app.__stockRaceCalls.push({ name, args: app.snapshot(args) });
-      if (name !== 'pos_inventory_update_item_details') {
+      if (name !== 'pos_inventory_update_item_details_v2') {
         throw new Error(`Unexpected RPC during rapid edit: ${name}`);
       }
       if (app.__stockRaceCalls.length === 1) {
@@ -839,7 +852,6 @@ test('rapid spreadsheet edits serialize and movement waits for the active save',
         data: [
           {
             inventory_item_id: args.p_inventory_item_id,
-            brand: args.p_brand,
             purchased_from: args.p_purchased_from,
             last_stocked_on: args.p_last_stocked_on,
             notes: args.p_notes,
@@ -854,25 +866,30 @@ test('rapid spreadsheet edits serialize and movement waits for the active save',
   });
 
   const row = page.locator('[data-stock-item="inventory-matcha"]');
-  const brand = row.locator('[data-stock-cell-field="brand"]');
-  const movementMenu = row.locator('.stock-row-menu');
+  const supplier = row.locator('[data-stock-cell-field="purchasedFrom"]');
+  await expect(row.locator('.stock-row-menu')).toHaveCount(0);
 
-  await brand.fill('First pending brand');
-  await brand.press('Enter');
+  await supplier.fill('First pending supplier');
+  await supplier.press('Enter');
   await expect.poll(() =>
     page.evaluate(() => (window as any).__stockRaceCalls.length),
   ).toBe(1);
 
-  await brand.fill('Final rapid brand');
-  await brand.press('Enter');
-  await movementMenu.click();
+  await supplier.fill('Final rapid supplier');
+  await supplier.press('Enter');
+  const movementOpened = await page.evaluate(() => {
+    const app = window as typeof window & Record<string, any>;
+    const stocks = app.MatchaLunaApp.domains.stocks as Record<string, any>;
+    return stocks.openStockModal('inventory-matcha');
+  });
+  expect(movementOpened).toBe(false);
   await expect(page.locator('#stockModal')).toBeHidden();
 
   await page.evaluate(() => (window as any).__releaseFirstStockCellRpc());
   await expect.poll(() =>
     page.evaluate(() => (window as any).__stockRaceCalls.length),
   ).toBe(2);
-  await expect(brand).toHaveValue('Final rapid brand');
+  await expect(supplier).toHaveValue('Final rapid supplier');
   await expect
     .poll(() =>
       page.evaluate(() => Boolean((window as any).stockState.inlineMutationChain)),
@@ -884,10 +901,10 @@ test('rapid spreadsheet edits serialize and movement waits for the active save',
     const item = app.stockState.items.find(
       (candidate: any) => candidate.id === 'inventory-matcha',
     );
-    const edit = app.stockState.cellEdits['inventory-matcha'].brand;
+    const edit = app.stockState.cellEdits['inventory-matcha'].purchasedFrom;
     return {
       calls: app.__stockRaceCalls,
-      itemBrand: item.brand,
+      itemPurchasedFrom: item.purchasedFrom,
       itemRevision: item.revision,
       editValue: edit.value,
       editConfirmed: edit.confirmed,
@@ -898,15 +915,15 @@ test('rapid spreadsheet edits serialize and movement waits for the active save',
     4,
     5,
   ]);
-  expect(result.calls.map((call: any) => call.args.p_brand)).toEqual([
-    'First pending brand',
-    'Final rapid brand',
+  expect(result.calls.map((call: any) => call.args.p_purchased_from)).toEqual([
+    'First pending supplier',
+    'Final rapid supplier',
   ]);
   expect(result).toMatchObject({
-    itemBrand: 'Final rapid brand',
+    itemPurchasedFrom: 'Final rapid supplier',
     itemRevision: 6,
-    editValue: 'Final rapid brand',
-    editConfirmed: 'Final rapid brand',
+    editValue: 'Final rapid supplier',
+    editConfirmed: 'Final rapid supplier',
     editStatus: 'saved',
   });
 });

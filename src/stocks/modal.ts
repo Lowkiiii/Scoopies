@@ -227,7 +227,6 @@ function stockDetailsValidation(item: LegacyValue): LegacyValue {
   if (!item) {
     return { valid: false, error: 'This stock item is no longer available.' };
   }
-  const brand = String(runtimeValue('stockModal').brand || '').trim();
   const purchasedFrom = String(
     runtimeValue('stockModal').purchasedFrom || '',
   ).trim();
@@ -238,9 +237,6 @@ function stockDetailsValidation(item: LegacyValue): LegacyValue {
   const preferredUnit = String(
     runtimeValue('stockModal').preferredUnit || item.baseUnit,
   ).toLowerCase();
-  if (brand.length > 120) {
-    return { valid: false, error: 'Keep the brand under 120 characters.' };
-  }
   if (purchasedFrom.length > 160) {
     return {
       valid: false,
@@ -263,7 +259,6 @@ function stockDetailsValidation(item: LegacyValue): LegacyValue {
   return {
     valid: true,
     item,
-    brand: brand || null,
     purchasedFrom: purchasedFrom || null,
     lastStockedOn: lastStockedOn || null,
     notes: notes || null,
@@ -289,7 +284,6 @@ function openStockItemDetails(itemId: LegacyValue): boolean {
   runtimeValue('stockModal').open = true;
   runtimeValue('stockModal').itemId = item.id;
   runtimeValue('stockModal').action = 'details';
-  runtimeValue('stockModal').brand = item.brand || '';
   runtimeValue('stockModal').purchasedFrom = item.purchasedFrom || '';
   runtimeValue('stockModal').lastStockedOn = item.lastStockedOn || '';
   runtimeValue('stockModal').detailsNotes = item.notes || '';
@@ -299,7 +293,7 @@ function openStockItemDetails(itemId: LegacyValue): boolean {
   if (modal) modal.hidden = false;
   runtimeValue('refreshModalBodyClass')();
   readStocksBinding('renderStockModal', renderStockModal)();
-  runtimeValue('focusSoon')('#stockDetailBrand');
+  runtimeValue('focusSoon')('#stockDetailPurchasedFrom');
   return true;
 }
 
@@ -446,26 +440,21 @@ function renderStockDetailsModal(item: LegacyValue, content: HTMLElement): void 
     '</h2><p class="hint">Basic inventory details. Counts and movements remain in History.</p></div><button class="modal-close" data-act="closeStockModal" aria-label="Close stock details"' +
     (locked ? ' disabled' : '') +
     '>x</button></div>' +
-    '<div class="grid2"><div><label class="fld" for="stockDetailBrand">Brand</label><input id="stockDetailBrand" data-stock-detail-field="brand" maxlength="120" value="' +
-    runtimeValue('escapeHtml')(runtimeValue('stockModal').brand) +
-    '" placeholder="Optional"' +
-    (locked ? ' disabled' : '') +
-    '></div><div><label class="fld" for="stockDetailPurchasedFrom">Purchased from</label><input id="stockDetailPurchasedFrom" data-stock-detail-field="purchasedFrom" maxlength="160" value="' +
+    '<div class="grid2"><div><label class="fld" for="stockDetailPurchasedFrom">Purchased from</label><input id="stockDetailPurchasedFrom" data-stock-detail-field="purchasedFrom" maxlength="160" value="' +
     runtimeValue('escapeHtml')(runtimeValue('stockModal').purchasedFrom) +
     '" placeholder="Supplier or store"' +
     (locked ? ' disabled' : '') +
-    '></div></div>' +
-    '<div class="grid2" style="margin-top:10px"><div><label class="fld" for="stockDetailPurchasedOn">' +
+    '></div><div><label class="fld" for="stockDetailPurchasedOn">' +
     (item.kind === 'mixture' ? 'Last batch made' : 'Date purchased') +
     '</label><input id="stockDetailPurchasedOn" data-stock-detail-field="lastStockedOn" type="date" value="' +
     runtimeValue('escapeHtml')(runtimeValue('stockModal').lastStockedOn) +
     '"' +
     (locked ? ' disabled' : '') +
-    '></div><div><label class="fld" for="stockDetailUnit">Measurement unit</label><select id="stockDetailUnit" data-stock-detail-field="preferredUnit"' +
+    '></div></div><div style="margin-top:10px"><label class="fld" for="stockDetailUnit">Measurement unit</label><select id="stockDetailUnit" data-stock-detail-field="preferredUnit"' +
     (locked ? ' disabled' : '') +
     '>' +
     options +
-    '</select></div></div>' +
+    '</select></div>' +
     '<label class="fld" for="stockDetailNotes" style="margin-top:10px">Notes</label><textarea id="stockDetailNotes" data-stock-detail-field="detailsNotes" maxlength="1000" placeholder="Optional inventory note"' +
     (locked ? ' disabled' : '') +
     '>' +
@@ -644,21 +633,40 @@ async function updateStockItemDetails(
   const generation = incrementRuntimeBinding('stockMutationGeneration');
   const userId = String(runtimeValue('session').user.id || '');
   const businessId = String(runtimeValue('posContext').businessId || '');
-  const rows = runtimeValue('rpcRows')(
-    await runtimeValue('cloud').client.rpc(
+  const v2Args = {
+    p_business_id: businessId,
+    p_inventory_item_id: item.id,
+    p_purchased_from: values.purchasedFrom,
+    p_last_stocked_on: values.lastStockedOn,
+    p_notes: values.notes,
+    p_preferred_unit: values.preferredUnit,
+    p_expected_revision: item.revision,
+  };
+  let response = await runtimeValue('cloud').client.rpc(
+    'pos_inventory_update_item_details_v2',
+    v2Args,
+  );
+  if (
+    response &&
+    response.error &&
+    (String(response.error.code || '') === 'PGRST202' ||
+      /function.*not found|schema cache/i.test(String(response.error.message || '')))
+  ) {
+    response = await runtimeValue('cloud').client.rpc(
       'pos_inventory_update_item_details',
       {
         p_business_id: businessId,
         p_inventory_item_id: item.id,
-        p_brand: values.brand,
+        p_brand: item.brand || null,
         p_purchased_from: values.purchasedFrom,
         p_last_stocked_on: values.lastStockedOn,
         p_notes: values.notes,
         p_preferred_unit: values.preferredUnit,
         p_expected_revision: item.revision,
       },
-    ),
-  );
+    );
+  }
+  const rows = runtimeValue('rpcRows')(response);
   if (
     generation !== runtimeValue('stockMutationGeneration') ||
     !runtimeValue('session') ||
