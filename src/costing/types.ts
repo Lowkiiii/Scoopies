@@ -70,6 +70,7 @@ export interface CostingState {
   recipes: CostingRecipe[];
   products: CostingProduct[];
   mixtureDrafts?: MixtureDraft[];
+  stockOrder?: string[];
   [key: string]: LegacyValue;
 }
 

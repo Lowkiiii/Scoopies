@@ -8,6 +8,7 @@ import {
   stockCellResetElement,
 } from '../stocks/cell-edit';
 import type { LegacyValue } from './types';
+import { handleStockRowReorderKeydown } from '../stocks/reorder';
 
 function stockKeyboardSelector(element: LegacyValue): string {
   const attribute = element.dataset.stockCellField
@@ -71,6 +72,7 @@ export function handleBackdropClick(event: LegacyValue): void {
 }
 
 export function handleBodyKeydown(event: LegacyValue): void {
+  if (handleStockRowReorderKeydown(event)) return;
   if (event.target && event.target.dataset.stockCellField) {
     if (event.key === 'Enter') {
       event.preventDefault();

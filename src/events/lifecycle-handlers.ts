@@ -4,6 +4,11 @@ import {
   writeRuntimeBinding,
 } from './bindings';
 import type { LegacyValue } from './types';
+import {
+  beginStockRowDrag,
+  endStockRowDrag,
+  moveStockRowDrag,
+} from '../stocks/reorder';
 
 export function handleWindowFocus(): void {
   if (
@@ -93,13 +98,16 @@ export function handleBodyFocusout(): void {
 }
 
 export function handlePointerDown(event: LegacyValue): void {
+  if (beginStockRowDrag(event)) return;
   runtimeValue('beginPosDrinkImageDrag')(event);
 }
 
 export function handlePointerMove(event: LegacyValue): void {
+  if (moveStockRowDrag(event)) return;
   runtimeValue('movePosDrinkImageDrag')(event);
 }
 
 export function handlePointerEnd(event: LegacyValue): void {
+  if (endStockRowDrag(event)) return;
   runtimeValue('endPosDrinkImageDrag')(event);
 }

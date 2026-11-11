@@ -73,8 +73,20 @@ export function stockFilteredItems(): LegacyValue[] {
   const query = String(runtimeValue('stockState').search || '')
     .trim()
     .toLowerCase();
-  return runtimeValue('stockState')
-    .items.filter(function (item: LegacyValue) {
+  const stockItems = runtimeValue('stockState').items as LegacyValue[];
+  const savedOrder = Array.isArray(runtimeValue('state').stockOrder)
+    ? runtimeValue('state').stockOrder
+    : [];
+  const orderById = new Map<string, number>();
+  savedOrder.forEach(function (
+    rawId: LegacyValue,
+    index: number,
+  ) {
+    const id = String(rawId || '').trim();
+    if (id && !orderById.has(id)) orderById.set(id, index);
+  });
+  return stockItems
+    .filter(function (item: LegacyValue) {
       const status = readStocksBinding('stockStatus', stockStatus)(item);
       if (
         runtimeValue('stockState').status !== 'all' &&
@@ -107,6 +119,17 @@ export function stockFilteredItems(): LegacyValue[] {
       return item.active !== false;
     })
     .sort(function (a: LegacyValue, b: LegacyValue) {
+      const aOrder = orderById.get(
+        String((a && (a.sourceId || a.id)) || ''),
+      );
+      const bOrder = orderById.get(
+        String((b && (b.sourceId || b.id)) || ''),
+      );
+      if (aOrder !== undefined && bOrder !== undefined && aOrder !== bOrder) {
+        return aOrder - bOrder;
+      }
+      if (aOrder !== undefined && bOrder === undefined) return -1;
+      if (aOrder === undefined && bOrder !== undefined) return 1;
       const rank =
         readStocksBinding('stockStatus', stockStatus)(a).rank -
         readStocksBinding('stockStatus', stockStatus)(b).rank;

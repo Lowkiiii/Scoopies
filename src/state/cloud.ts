@@ -62,6 +62,7 @@ export function cloudSave(state: LegacyValue): Promise<void> {
 }
 
 export function appIsEditing(): boolean {
+  const documentValue = runtimeValue<Document>('document');
   if (
     runtimeValue('categoryModalOpen') ||
     runtimeValue('purchasedIngredientModalOpen') ||
@@ -75,7 +76,10 @@ export function appIsEditing(): boolean {
   ) {
     return true;
   }
-  const active = runtimeValue<Document>('document').activeElement as
+  if (documentValue.body.classList.contains('stock-row-reordering')) {
+    return true;
+  }
+  const active = documentValue.activeElement as
     | HTMLElement
     | null;
   return !!(
