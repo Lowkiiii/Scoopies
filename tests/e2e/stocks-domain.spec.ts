@@ -176,7 +176,9 @@ async function collectStocksFingerprint() {
     const next = app.blank();
     next.ingredientCategories = [{ id: 'dairy', name: 'Dairy' }];
     next.ingredients = ingredients;
-    next.packaging = [];
+    next.packaging = [
+      { id: 'cup', name: ' 12oz Cup ', qty: 100, price: 257 },
+    ];
     next.recipes = [];
     next.products = [];
     next.mixtureDrafts = [];
@@ -633,22 +635,36 @@ test('typed Stocks preserves the complete 36-function fingerprint', async ({ pag
   expect(result.baseUnits).toEqual(['ml', 'g', 'ml', '']);
   expect(result.sourcePayload).toEqual([
     {
+      sourceType: 'ingredient',
+      sourceCostingId: 'milk',
       sourceCostingIngredientId: 'milk',
       kind: 'purchased',
       name: 'Oat Milk',
       baseUnit: 'ml',
     },
     {
+      sourceType: 'ingredient',
+      sourceCostingId: 'matcha',
       sourceCostingIngredientId: 'matcha',
       kind: 'purchased',
       name: 'Matcha',
       baseUnit: 'g',
     },
     {
+      sourceType: 'ingredient',
+      sourceCostingId: 'cream',
       sourceCostingIngredientId: 'cream',
       kind: 'mixture',
       name: 'Cream',
       baseUnit: 'ml',
+    },
+    {
+      sourceType: 'packaging',
+      sourceCostingId: 'cup',
+      sourceCostingIngredientId: 'packaging:cup',
+      kind: 'packaging',
+      name: '12oz Cup',
+      baseUnit: 'piece',
     },
   ]);
   expect(result.bulkIssues[0]).toBe('');
@@ -748,17 +764,43 @@ test('typed Stocks matches the retained classic Stocks asset', async ({ page, co
   await legacyPage.close();
 
   expect(provenance).toEqual({ moduleScripts: 0, hasTypedStocksDomain: false });
-  expect(typedFingerprint).toEqual({
-    ...classicFingerprint,
-    normalizedItem: {
-      ...classicFingerprint.normalizedItem,
-      preferredUnit: 'l',
-      brand: '',
-      purchasedFrom: '',
-      lastStockedOn: null,
-      notes: '',
-    },
+  const {
+    normalizedItem: typedNormalizedItem,
+    sourcePayload: typedSourcePayload,
+    ...typedStable
+  } = typedFingerprint;
+  const {
+    normalizedItem: classicNormalizedItem,
+    sourcePayload: classicSourcePayload,
+    ...classicStable
+  } = classicFingerprint;
+  expect(typedStable).toEqual(classicStable);
+  expect(typedNormalizedItem).toMatchObject({
+    ...classicNormalizedItem,
+    preferredUnit: 'l',
+    sourceType: 'ingredient',
+    brand: '',
+    purchasedFrom: '',
+    lastStockedOn: null,
+    notes: '',
   });
+  expect(
+    typedSourcePayload
+      .filter((source: any) => source.sourceType === 'ingredient')
+      .map(({ sourceType: _sourceType, sourceCostingId: _sourceCostingId, ...source }: any) => source),
+  ).toEqual(classicSourcePayload);
+  expect(
+    typedSourcePayload.filter((source: any) => source.sourceType === 'packaging'),
+  ).toEqual([
+    {
+      sourceType: 'packaging',
+      sourceCostingId: 'cup',
+      sourceCostingIngredientId: 'packaging:cup',
+      kind: 'packaging',
+      name: '12oz Cup',
+      baseUnit: 'piece',
+    },
+  ]);
 });
 
 test('typed Stocks preserves live sibling and later-defined runtime bindings', async ({ page }) => {
@@ -836,6 +878,8 @@ test('typed Stocks preserves live sibling and later-defined runtime bindings', a
   expect(result).toEqual({
     dynamicSibling: [
       {
+        sourceType: 'ingredient',
+        sourceCostingId: 'live',
         sourceCostingIngredientId: 'live',
         kind: 'purchased',
         name: 'Live source',

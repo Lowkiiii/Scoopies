@@ -93,9 +93,17 @@ export function stockMoveOrder(
   return next;
 }
 
+function stockOrderId(item: LegacyValue): string {
+  if (!item) return '';
+  const sourceId = String(item.sourceId || item.id || '');
+  return item.sourceType === 'packaging' && sourceId
+    ? 'packaging:' + sourceId
+    : sourceId;
+}
+
 function stockVisibleOrder(): string[] {
   return stockFilteredItems().map(function (item: LegacyValue) {
-    return String(item.sourceId || item.id || '');
+    return stockOrderId(item);
   }).filter(Boolean);
 }
 
@@ -158,7 +166,7 @@ export function stockCommitOrder(
       )
     : null;
   const focusedOrderId = String(
-    focusedItem && (focusedItem.sourceId || focusedItem.id) || '',
+    stockOrderId(focusedItem),
   );
   const position = normalized.indexOf(focusedOrderId);
   announceStockOrder(
@@ -211,7 +219,7 @@ export function beginStockRowDrag(event: LegacyValue): boolean {
   dragSession = {
     pointerId: Number(event.pointerId || 0),
     itemId,
-    orderId: String(item && (item.sourceId || item.id) || itemId),
+    orderId: stockOrderId(item) || itemId,
     itemName: String(item && item.name || 'Stock item'),
     startX: Number(event.clientX || 0),
     startY: Number(event.clientY || 0),

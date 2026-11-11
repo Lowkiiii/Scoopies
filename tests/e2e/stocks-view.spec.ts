@@ -190,6 +190,18 @@ async function collectStocksViewFingerprint() {
       lastMovementAt: '2026-10-02T03:00:00.000Z',
       lastMovementType: 'waste',
       categoryName: 'Cream & foam',
+      periodId: 'period-1',
+      openingStock: 100,
+      stockAdded: 0,
+      stockUsed: 0,
+      wasted: 100,
+      remainingStock: 0,
+      purchaseQuantity: 1000,
+      purchasePriceCentavos: 18000,
+      costPerUnitCentavos: 18,
+      remainingValueCentavos: 0,
+      stockStatus: 'RESTOCK',
+      periodItemRevision: 2,
     },
     {
       id: 'low',
@@ -205,6 +217,18 @@ async function collectStocksViewFingerprint() {
       lastMovementAt: '2026-10-02T04:00:00.000Z',
       lastMovementType: 'stock_in',
       categoryName: 'Milk and cream',
+      periodId: 'period-1',
+      openingStock: 400,
+      stockAdded: 0,
+      stockUsed: 0,
+      wasted: 0,
+      remainingStock: 400,
+      purchaseQuantity: 1000,
+      purchasePriceCentavos: 18000,
+      costPerUnitCentavos: 18,
+      remainingValueCentavos: 7200,
+      stockStatus: 'RESTOCK',
+      periodItemRevision: 3,
     },
     {
       id: 'uncounted',
@@ -220,6 +244,18 @@ async function collectStocksViewFingerprint() {
       lastMovementAt: null,
       lastMovementType: '',
       categoryName: 'Tea powder',
+      periodId: 'period-1',
+      openingStock: null,
+      stockAdded: 0,
+      stockUsed: 0,
+      wasted: 0,
+      remainingStock: null,
+      purchaseQuantity: null,
+      purchasePriceCentavos: null,
+      costPerUnitCentavos: null,
+      remainingValueCentavos: null,
+      stockStatus: 'NOT COUNTED',
+      periodItemRevision: 0,
     },
     {
       id: 'good',
@@ -235,6 +271,18 @@ async function collectStocksViewFingerprint() {
       lastMovementAt: '2026-10-02T05:00:00.000Z',
       lastMovementType: 'stock_count',
       categoryName: 'Milk and cream',
+      periodId: 'period-1',
+      openingStock: 1500,
+      stockAdded: 0,
+      stockUsed: 0,
+      wasted: 0,
+      remainingStock: 1500,
+      purchaseQuantity: 1000,
+      purchasePriceCentavos: 18000,
+      costPerUnitCentavos: 18,
+      remainingValueCentavos: 27000,
+      stockStatus: 'OK',
+      periodItemRevision: 7,
     },
     {
       id: 'inactive',
@@ -318,6 +366,12 @@ async function collectStocksViewFingerprint() {
     status: 'all',
     kind: 'all',
     lastUpdatedAt: Date.parse('2026-10-02T05:30:00.000Z'),
+    activePeriod: {
+      id: 'period-1',
+      name: 'October popup',
+      status: 'open',
+      openedAt: '2026-10-01T00:00:00.000Z',
+    },
   };
   app.stockModal = app.freshStockModal();
   app.stockModalReturnFocus = null;
@@ -328,7 +382,7 @@ async function collectStocksViewFingerprint() {
   };
   app.focusSoon = (selector: string) => focuses.push(selector);
   app.posRoleLabel = () => 'Owner';
-  app.cloud = { client: null, connected: true };
+  app.cloud = { client: {}, connected: true };
   app.TEST_MODE = true;
 
   const number = await invoke('stockNumber', 'not-a-number');
@@ -820,7 +874,7 @@ test('typed Stocks view matches the retained classic view fingerprint', async ({
       activeStatuses: classicResultsSnapshot.activeStatuses,
     });
     expect(typedResultsSnapshot.text).toContain(
-      'Physical ingredient and prepared mixture inventory',
+      'Inventory period spreadsheet',
     );
     expect(typedResultsSnapshot.text).toContain('Zeta milk');
     expect(typedResultsSnapshot.text).not.toContain('A removed <source>');
@@ -871,27 +925,31 @@ test('typed Stocks view matches the retained classic view fingerprint', async ({
   });
 
   const stockTable = page.getByRole('table', {
-    name: 'Physical ingredient and prepared mixture inventory',
+    name: 'Inventory period spreadsheet',
   });
   await expect(stockTable).toBeVisible();
   await expect(stockTable.getByRole('columnheader')).toHaveText([
     'Category',
-    'Item name',
-    'Purchased from',
-    'Date purchased',
-    'On hand',
+    'Item',
     'Unit',
-    'Low-stock alert',
+    'Opening Stock',
+    'Stock Added',
+    'Stock Used',
+    'Wasted/Damaged',
+    'Remaining Stock',
+    'Reorder Level',
+    'Purchase Quantity',
+    'Purchase Price (₱)',
+    'Cost per Unit',
+    'Remaining Value (₱)',
     'Status',
-    'Notes',
-    'Last movement',
   ]);
   expect(
     await page.locator('.stock-row[data-stock-item]').evaluateAll((rows) =>
       rows.map((row) => (row as HTMLElement).dataset.stockItem),
     ),
   ).toEqual(['out', 'low', 'uncounted', 'good']);
-  await expect(page.locator('.stock-row [data-stock-field]')).toHaveCount(40);
+  await expect(page.locator('.stock-row [data-stock-field]')).toHaveCount(56);
   await expect(page.locator('#stockVisibleCount')).toHaveAttribute(
     'aria-live',
     'polite',
@@ -912,22 +970,22 @@ test('typed Stocks view matches the retained classic view fingerprint', async ({
     'A removed <source>',
   );
   await expect(removedRow.locator('.stock-kind-marker')).toHaveAttribute(
-    'title',
-    'Prepared mixture',
+    'class',
+    /mixture/,
   );
-  await expect(removedRow).toContainText('Removed from costing');
+  await expect(removedRow).toContainText('Removed');
   await expect(
     removedRow.locator('[data-stock-field="status"]'),
-  ).toHaveText('Out of stock');
+  ).toHaveText('Out');
   await expect(
-    removedRow.locator('[data-stock-inline-field="count"]'),
-  ).toHaveValue('0');
-  await expect(
-    removedRow.locator('[data-stock-inline-field="threshold"]'),
+    removedRow.locator('[data-stock-sheet-field="openingStock"]'),
   ).toHaveValue('100');
   await expect(
-    removedRow.locator('[data-stock-field="updated"]'),
-  ).toContainText('Oct 2');
+    removedRow.locator('[data-stock-sheet-field="reorderLevel"]'),
+  ).toHaveValue('100');
+  await expect(
+    removedRow.locator('[data-stock-field="remaining"]'),
+  ).toHaveText('0 ml');
 
   const uncountedRow = page.locator(
     '.stock-row[data-stock-item="uncounted"]',
@@ -936,23 +994,22 @@ test('typed Stocks view matches the retained classic view fingerprint', async ({
     uncountedRow.locator('[data-stock-field="status"]'),
   ).toHaveText('Not counted');
   await expect(
-    uncountedRow.locator('[data-stock-inline-field="count"]'),
+    uncountedRow.locator('[data-stock-sheet-field="openingStock"]'),
   ).toHaveValue('');
   await expect(
-    uncountedRow.locator('[data-stock-inline-field="threshold"]'),
+    uncountedRow.locator('[data-stock-sheet-field="reorderLevel"]'),
   ).toHaveValue('');
   await expect(
-    uncountedRow.locator('[data-stock-field="updated"]'),
-  ).toHaveText('No count yet');
-  await expect(page.locator('.stock-row .stock-inline-input')).toHaveCount(8);
+    uncountedRow.locator('[data-stock-field="remaining"]'),
+  ).toHaveText('—');
+  await expect(page.locator('.stock-row .stock-sheet-input')).toHaveCount(24);
   await expect(
     page.locator(
       '.stock-row [data-stock-cell-field="preferredUnit"]',
     ),
   ).toHaveCount(4);
-  await expect(page.locator('.stock-row [data-stock-cell-field]')).toHaveCount(
-    15,
-  );
+  await expect(page.locator('.stock-row [data-stock-cell-field]')).toHaveCount(4);
+  await expect(page.locator('.stock-row .stock-color-swatch')).toHaveCount(4);
   await expect(
     page.locator('.stock-row [data-act="openStockModal"]:not([data-mode])'),
   ).toHaveCount(0);
@@ -975,7 +1032,7 @@ test('typed Stocks view matches the retained classic view fingerprint', async ({
   );
   expect(
     await page
-      .locator('.stock-row .stock-inline-input')
+      .locator('.stock-row .stock-sheet-input')
       .evaluateAll((inputs) =>
         inputs.every((input) => (input as HTMLInputElement).disabled),
       ),
@@ -988,10 +1045,10 @@ test('typed Stocks view matches the retained classic view fingerprint', async ({
       ),
   ).toBe(true);
   await expect(
-    page.locator('.stock-row .stock-inline-input').first(),
+    page.locator('.stock-row .stock-sheet-input').first(),
   ).toHaveAttribute(
     'title',
-    'Resolve the costing and stock identity conflict first',
+    'Wait for the current inventory update to finish',
   );
 
   await page.evaluate(() => {
@@ -1007,7 +1064,7 @@ test('typed Stocks view matches the retained classic view fingerprint', async ({
   );
   expect(
     await page
-      .locator('.stock-row .stock-inline-input')
+      .locator('.stock-row .stock-sheet-input')
       .evaluateAll((inputs) =>
         inputs.every((input) => (input as HTMLInputElement).disabled),
       ),
@@ -1020,8 +1077,8 @@ test('typed Stocks view matches the retained classic view fingerprint', async ({
       ),
   ).toBe(true);
   await expect(
-    page.locator('.stock-row .stock-inline-input').first(),
-  ).toHaveAttribute('title', 'Recover the pending stock update first');
+    page.locator('.stock-row .stock-sheet-input').first(),
+  ).toHaveAttribute('title', 'Wait for the current inventory update to finish');
   expect(
     await page.evaluate(() => {
       const app = window as typeof window & Record<string, any>;
@@ -1046,13 +1103,13 @@ test('typed Stocks view matches the retained classic view fingerprint', async ({
     app.stockCanManage = () => false;
     stocks.renderStocks();
   });
-  await expect(page.locator('.stock-row .stock-inline-input')).toHaveCount(0);
+  await expect(page.locator('.stock-row .stock-sheet-input')).toHaveCount(0);
   await expect(page.locator('.stock-row .stock-cell-control')).toHaveCount(0);
   await expect(
     page.locator('.stock-row [data-act="openStockModal"]'),
   ).toHaveCount(0);
   await expect(
-    removedRow.locator('[data-stock-field="on-hand"]'),
+    removedRow.locator('[data-stock-field="remaining"]'),
   ).toHaveText('0 ml');
 
   await page.evaluate(() => {

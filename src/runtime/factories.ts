@@ -73,6 +73,8 @@ export interface StockState {
   kind: string;
   lastUpdatedAt: number;
   inlineEdits?: Record<string, unknown>;
+  spreadsheetEdits?: Record<string, unknown>;
+  activePeriod?: unknown | null;
 }
 
 export interface StockModalState {
@@ -93,6 +95,12 @@ export interface StockModalState {
   lastStockedOn: string;
   detailsNotes: string;
   preferredUnit: string;
+  mode?: string;
+  periodName?: string;
+  periodNote?: string;
+  clientPeriodId?: string;
+  clientCloseId?: string;
+  color?: string;
 }
 
 export function freshPosOpsModal(): PosOpsModalState {

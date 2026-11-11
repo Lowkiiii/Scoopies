@@ -7,15 +7,23 @@ import {
   stockCellCommitElement,
   stockCellResetElement,
 } from '../stocks/cell-edit';
+import {
+  stockSpreadsheetCommitElement,
+  stockSpreadsheetResetElement,
+} from '../stocks/spreadsheet';
 import type { LegacyValue } from './types';
 import { handleStockRowReorderKeydown } from '../stocks/reorder';
 
 function stockKeyboardSelector(element: LegacyValue): string {
-  const attribute = element.dataset.stockCellField
-    ? 'stock-cell-field'
-    : 'stock-inline-field';
+  const attribute = element.dataset.stockSheetField
+    ? 'stock-sheet-field'
+    : element.dataset.stockCellField
+      ? 'stock-cell-field'
+      : 'stock-inline-field';
   const field = String(
-    element.dataset.stockCellField || element.dataset.stockInlineField || '',
+    element.dataset.stockSheetField ||
+      element.dataset.stockCellField ||
+      element.dataset.stockInlineField || '',
   ).replace(/"/g, '\\"');
   const id = String(element.dataset.id || '')
     .replace(/\\/g, '\\\\')
@@ -32,7 +40,7 @@ function stockKeyboardNextElement(
   const document = runtimeValue<Document>('document');
   const editable = Array.from(
     document.querySelectorAll(
-      '#stockResults [data-stock-cell-field]:not([disabled]),#stockResults [data-stock-inline-field]:not([disabled])',
+      '#stockResults [data-stock-sheet-field]:not([disabled]),#stockResults [data-stock-cell-field]:not([disabled]),#stockResults [data-stock-inline-field]:not([disabled])',
     ),
   ) as LegacyValue[];
   const index = editable.indexOf(element);
@@ -73,6 +81,31 @@ export function handleBackdropClick(event: LegacyValue): void {
 
 export function handleBodyKeydown(event: LegacyValue): void {
   if (handleStockRowReorderKeydown(event)) return;
+  if (event.target && event.target.dataset.stockSheetField) {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      stockSpreadsheetCommitElement(event.target).catch(function () {});
+      return;
+    }
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      stockSpreadsheetResetElement(event.target);
+      return;
+    }
+    if (event.key === 'Tab') {
+      const nextCell = stockKeyboardNextElement(event.target, event.shiftKey);
+      if (nextCell) {
+        event.preventDefault();
+        const selector = stockKeyboardSelector(nextCell);
+        stockSpreadsheetCommitElement(event.target, false)
+          .then(function () {
+            runtimeValue('focusSoon')(selector);
+          })
+          .catch(function () {});
+        return;
+      }
+    }
+  }
   if (event.target && event.target.dataset.stockCellField) {
     if (event.key === 'Enter') {
       event.preventDefault();

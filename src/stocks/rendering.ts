@@ -13,6 +13,11 @@ import {
 import { stockInlineFieldState, stockInlineLocked } from './inline-edit';
 import { stockReorderReason } from './reorder';
 import { stockStoredPending } from './storage';
+import {
+  stockSpreadsheetFieldState,
+  stockSpreadsheetLocked,
+  type StockSpreadsheetField,
+} from './spreadsheet';
 import type { LegacyValue } from './types';
 
 export function stockFilterBarHtml(): string {
@@ -285,195 +290,166 @@ function stockPreferredUnitOptions(
     .join('');
 }
 
+function stockSpreadsheetEditorHtml(
+  item: LegacyValue,
+  field: StockSpreadsheetField,
+  label: string,
+  locked: boolean,
+  lockReason: string,
+): string {
+  const edit = stockSpreadsheetFieldState(item, field);
+  const state = String((edit && edit.status) || 'idle');
+  const invalid = state === 'error';
+  const safeId = String(item.id || '').replace(/[^a-zA-Z0-9_-]/g, '-');
+  const feedbackId = 'stockSheetFeedback-' + safeId + '-' + field;
+  const step = field === 'purchasePrice' ? '0.01' : 'any';
+  return (
+    '<div class="stock-sheet-editor" data-stock-sheet-editor data-stock-sheet-state="' +
+    state +
+    '"><input class="stock-sheet-input" type="number" inputmode="decimal" min="0" step="' +
+    step +
+    '" data-stock-sheet-field="' +
+    field +
+    '" data-id="' +
+    runtimeValue('escapeHtml')(item.id) +
+    '" value="' +
+    runtimeValue('escapeHtml')((edit && edit.value) || '') +
+    '" placeholder="0" aria-label="' +
+    runtimeValue('escapeHtml')(item.name + ' ' + label) +
+    '" aria-describedby="' +
+    feedbackId +
+    '" aria-invalid="' +
+    (invalid ? 'true' : 'false') +
+    '"' +
+    (locked
+      ? ' disabled title="' + runtimeValue('escapeHtml')(lockReason) + '"'
+      : '') +
+    '><span id="' +
+    feedbackId +
+    '" class="stock-cell-feedback ' +
+    (invalid ? 'bad' : state === 'saved' ? 'good' : '') +
+    '" data-stock-sheet-feedback aria-live="polite">' +
+    runtimeValue('escapeHtml')(
+      (edit && edit.error) ||
+        (state === 'saving' ? 'Saving...' : state === 'saved' ? 'Saved' : ''),
+    ) +
+    '</span></div>'
+  );
+}
+
+function stockSpreadsheetQuantity(value: LegacyValue, item: LegacyValue): string {
+  return value == null ? '\u2014' : stockPreferredQuantity(value, item);
+}
+
+function stockSpreadsheetMoney(centavos: LegacyValue): string {
+  return centavos == null
+    ? '\u2014'
+    : runtimeValue('peso')(Number(centavos) / 100);
+}
+
+function stockSpreadsheetStatus(item: LegacyValue): LegacyValue {
+  const serverStatus = String(item.stockStatus || '').toUpperCase();
+  if (!item.periodId || serverStatus === 'NOT COUNTED' || item.openingStock == null) {
+    return { key: 'not_counted', label: 'Not counted', cls: 'warn' };
+  }
+  const remaining = Number(item.remainingStock || 0);
+  if (remaining <= 0) return { key: 'out', label: 'Out', cls: 'bad' };
+  if (serverStatus === 'RESTOCK' || (item.threshold != null && remaining <= Number(item.threshold))) {
+    return { key: 'low', label: 'Restock', cls: 'warn' };
+  }
+  return { key: 'good', label: 'OK', cls: 'good' };
+}
+
 export function stockItemCardsHtml(): string {
-  const items = readStocksBinding(
-    'stockFilteredItems',
-    stockFilteredItems,
-  )();
+  const items = readStocksBinding('stockFilteredItems', stockFilteredItems)();
   if (!items.length) {
-    return (
-      '<div class="card"><p class="empty">' +
+    return '<p class="empty">' +
       (runtimeValue('stockState').items.length
         ? 'No stock items match these filters.'
         : 'No ingredients are tracked yet. Add named ingredients in Costing, then refresh Stocks.') +
-      '</p></div>'
-    );
+      '</p>';
   }
-  const pendingRecovery = !!readStocksBinding(
-    'stockStoredPending',
-    stockStoredPending,
-  )();
-  const sourceConflict = !!runtimeValue('stockState').sourceConflict;
   const canManage = runtimeValue('stockCanManage')();
-  const inlineLocked = stockInlineLocked();
-  const loading =
-    !!runtimeValue('stockState').loading ||
-    !!runtimeValue('stockState').refreshing;
-  const lockReason = pendingRecovery
-    ? 'Recover the pending stock update first'
-    : sourceConflict
-      ? 'Resolve the costing and stock identity conflict first'
-      : loading
-        ? 'Wait for the stock list to finish refreshing'
-        : inlineLocked
-          ? 'Wait for the current stock value to finish saving'
-          : '';
+  const period = runtimeValue('stockState').activePeriod;
+  const locked = stockSpreadsheetLocked() || !period;
+  const unitLocked = stockInlineLocked();
+  const lockReason = !period
+    ? 'Start an inventory period before entering quantities'
+    : 'Wait for the current inventory update to finish';
   const reorderReason = stockReorderReason(false);
   return (
-    '<div class="stock-inventory" tabindex="0" aria-label="Scrollable inventory table"><table class="stock-table"><caption class="stock-table-caption">Physical ingredient and prepared mixture inventory</caption><thead><tr>' +
-    '<th scope="col" data-stock-field="category">Category</th><th scope="col" data-stock-field="item">Item name</th><th scope="col" data-stock-field="purchased-from">Purchased from</th><th scope="col" data-stock-field="stocked-on">Date purchased</th><th scope="col" data-stock-field="on-hand">On hand</th><th scope="col" data-stock-field="unit">Unit</th><th scope="col" data-stock-field="threshold">Low-stock alert</th><th scope="col" data-stock-field="status">Status</th><th scope="col" data-stock-field="notes">Notes</th><th scope="col" data-stock-field="updated">Last movement</th>' +
+    '<p class="stock-mobile-scroll-hint">Swipe sideways to view every inventory column.</p>' +
+    '<div class="stock-inventory" tabindex="0" aria-label="Scrollable inventory spreadsheet"><table class="stock-table stock-spreadsheet"><caption class="stock-table-caption">Inventory period spreadsheet</caption><thead><tr>' +
+    '<th scope="col" data-stock-field="category">Category</th>' +
+    '<th scope="col" data-stock-field="item">Item</th>' +
+    '<th scope="col" data-stock-field="unit">Unit</th>' +
+    '<th scope="col" data-stock-field="opening">Opening Stock</th>' +
+    '<th scope="col" data-stock-field="added">Stock Added</th>' +
+    '<th scope="col" data-stock-field="used">Stock Used</th>' +
+    '<th scope="col" data-stock-field="wasted">Wasted/Damaged</th>' +
+    '<th scope="col" data-stock-field="remaining">Remaining Stock</th>' +
+    '<th scope="col" data-stock-field="reorder">Reorder Level</th>' +
+    '<th scope="col" data-stock-field="purchase-quantity">Purchase Quantity</th>' +
+    '<th scope="col" data-stock-field="purchase-price">Purchase Price (&#8369;)</th>' +
+    '<th scope="col" data-stock-field="unit-cost">Cost per Unit</th>' +
+    '<th scope="col" data-stock-field="remaining-value">Remaining Value (&#8369;)</th>' +
+    '<th scope="col" data-stock-field="status">Status</th>' +
     '</tr></thead><tbody>' +
-    items
-      .map(function (item: LegacyValue, itemIndex: number) {
-        const status = readStocksBinding('stockStatus', stockStatus)(item);
-        const source = readStocksBinding(
-          'stockSourceForItem',
-          stockSourceForItem,
-        )(item);
-        const threshold =
-          item.threshold == null
-            ? 'Disabled'
-            : stockPreferredQuantity(item.threshold, item);
-        const last = item.lastMovementAt
-          ? new Date(item.lastMovementAt).toLocaleString('en-PH', {
-              month: 'short',
-              day: 'numeric',
-              hour: 'numeric',
-              minute: '2-digit',
-            })
-          : 'No count yet';
-        // `stock-card` is a selector-only compatibility alias for the protected
-        // legacy browser baseline; the element remains one semantic table row.
-        return (
-          '<tr class="stock-row stock-card" data-stock-item="' +
-          runtimeValue('escapeHtml')(item.id) +
-          '" data-stock-order-id="' +
-          runtimeValue('escapeHtml')(item.sourceId || item.id) +
-          '" data-entity="ingredient" data-id="' +
-          runtimeValue('escapeHtml')(item.sourceId || '') +
-          '"><td data-stock-field="category" data-label="Category">' +
-          (!source
-            ? '<span class="stock-cell-muted">Removed from costing</span>'
-            : canManage
-              ? '<select class="stock-cell-control stock-cell-select" data-field="categoryId" aria-label="Category for ' +
-                runtimeValue('escapeHtml')(item.name) +
-                '"' +
-                (inlineLocked ? ' disabled title="' + runtimeValue('escapeHtml')(lockReason) + '"' : '') +
-                '>' +
-                stockCategoryOptions(source) +
-                '</select>'
-              : runtimeValue('escapeHtml')(
-                  runtimeValue('categoryNameIn')(
-                    runtimeValue('state'),
-                    source.categoryId,
-                  ) || 'Uncategorized',
-                )) +
-          '</td><th scope="row" class="stock-item-cell" data-stock-field="item" data-label="Item name"><div class="stock-item-line">' +
-          (canManage
-            ? '<button class="stock-drag-handle" type="button" data-stock-drag-handle data-id="' +
-              runtimeValue('escapeHtml')(item.id) +
-              '" data-stock-order-id="' +
-              runtimeValue('escapeHtml')(item.sourceId || item.id) +
-              '" aria-label="Move ' +
-              runtimeValue('escapeHtml')(item.name) +
-              ', position ' +
-              (itemIndex + 1) +
-              ' of ' +
-              items.length +
-              '" aria-describedby="stockReorderInstructions" aria-keyshortcuts="ArrowUp ArrowDown Home End" title="' +
-              runtimeValue('escapeHtml')(
-                reorderReason ||
-                  'Drag to arrange this row. Keyboard: Arrow Up or Down, Home, or End.',
-              ) +
-              '"' +
-              (reorderReason ? ' disabled' : '') +
-              '>&#8942;&#8942;</button>'
-            : '') +
-          '<span class="stock-item-name">' +
-          runtimeValue('escapeHtml')(item.name) +
-          '</span><span class="stock-kind-marker' +
-          (item.kind === 'mixture' ? ' mixture' : '') +
-          '" title="' +
-          (item.kind === 'mixture'
-            ? 'Prepared mixture'
-            : 'Purchased ingredient') +
-          '">' +
-          (item.kind === 'mixture' ? 'Mix' : 'Item') +
-          '</span>' +
-          '</div>' +
-          (!source
-            ? '<span class="stock-source-warning">Removed from costing</span>'
-            : '') +
-          '</th><td data-stock-field="purchased-from" data-label="Purchased from">' +
-          (item.kind === 'mixture'
-            ? 'Prepared in-house'
-            : canManage
-              ? stockCellEditorHtml(
-                  item,
-                  'purchasedFrom',
-                  inlineLocked,
-                  lockReason,
-                )
-              : runtimeValue('escapeHtml')(item.purchasedFrom || '\u2014')) +
-          '</td><td data-stock-field="stocked-on" data-label="' +
-          (item.kind === 'mixture' ? 'Last batch made' : 'Date purchased') +
-          '">' +
-          (canManage
-            ? stockCellEditorHtml(
-                item,
-                'lastStockedOn',
-                inlineLocked,
-                lockReason,
-              )
-            : runtimeValue('escapeHtml')(item.lastStockedOn || '\u2014')) +
-          '</td>' +
-          '<td class="stock-on-hand-cell" data-stock-field="on-hand" data-label="On hand">' +
-          (canManage
-            ? stockInlineEditorHtml(item, 'count', inlineLocked, lockReason)
-            : '<span class="stock-on-hand ' +
-              (status.key === 'out' ? 'bad' : '') +
-              '">' +
-              (item.initialized
-                ? stockPreferredQuantity(item.balance, item)
-                : 'Not counted') +
-              '</span>') +
-          '</td>' +
-          '<td class="stock-unit-cell" data-stock-field="unit" data-label="Unit">' +
-          (canManage
-            ? stockCellEditorHtml(
-                item,
-                'preferredUnit',
-                inlineLocked,
-                lockReason,
-              )
-            : runtimeValue('escapeHtml')(
-                item.preferredUnit === 'l' ? 'L' : item.preferredUnit,
-              )) +
-          '</td>' +
-          '<td class="stock-threshold-cell" data-stock-field="threshold" data-label="Low-stock alert">' +
-          (canManage
-            ? stockInlineEditorHtml(
-                item,
-                'threshold',
-                inlineLocked,
-                lockReason,
-              )
-            : runtimeValue('escapeHtml')(threshold)) +
-          '</td><td class="stock-status-cell" data-stock-field="status" data-label="Status"><span class="stock-badge ' +
-          status.cls +
-          '">' +
-          runtimeValue('escapeHtml')(status.label) +
-          '</span></td><td class="stock-notes-cell" data-stock-field="notes" data-label="Notes">' +
-          (canManage
-            ? stockCellEditorHtml(item, 'notes', inlineLocked, lockReason)
-            : runtimeValue('escapeHtml')(item.notes || '\u2014')) +
-          '</td>' +
-          '<td class="stock-updated-cell" data-stock-field="updated" data-label="Last movement">' +
-          runtimeValue('escapeHtml')(last) +
-          '</td></tr>'
-        );
-      })
-      .join('') +
+    items.map(function (item: LegacyValue, itemIndex: number) {
+      const source = readStocksBinding('stockSourceForItem', stockSourceForItem)(item);
+      const status = stockSpreadsheetStatus(item);
+      const preferredUnit = String(item.preferredUnit || item.baseUnit || '');
+      const unitCost = item.costPerUnitCentavos == null
+        ? null
+        : Number(item.costPerUnitCentavos) *
+          Number(runtimeValue('UNIT_FACTOR')[preferredUnit] || 1);
+      const color = /^#[0-9A-F]{6}$/i.test(String(item.rowColor || ''))
+        ? String(item.rowColor).toUpperCase()
+        : '';
+      const rowStyle = color
+        ? ' style="--stock-row-tint:' + color + '24;--stock-row-accent:' + color + '"'
+        : '';
+      const orderId = item.sourceType === 'packaging'
+        ? 'packaging:' + String(item.sourceId || item.id)
+        : String(item.sourceId || item.id);
+      return (
+        '<tr class="stock-row stock-card" data-stock-item="' + runtimeValue('escapeHtml')(item.id) + '" data-stock-order-id="' + runtimeValue('escapeHtml')(orderId) + '" data-entity="' + (item.sourceType === 'packaging' ? 'packaging' : 'ingredient') + '" data-id="' + runtimeValue('escapeHtml')(item.sourceId || '') + '"' + rowStyle + '>' +
+        '<td data-stock-field="category"><div class="stock-category-entry">' +
+        (canManage
+          ? '<button class="stock-color-swatch" type="button" data-act="openStockColor" data-id="' + runtimeValue('escapeHtml')(item.id) + '" aria-label="Choose row color for ' + runtimeValue('escapeHtml')(item.name) + '" title="' + (period ? 'Choose row color' : 'Start an inventory period to choose a row color') + '" style="--stock-color:' + (color || '#FFFFFF') + '"' + (period ? '' : ' disabled') + '></button>'
+          : '') +
+        (item.sourceType === 'packaging'
+          ? '<span class="stock-fixed-category">Packaging</span>'
+          : !source
+          ? '<span class="stock-cell-muted">Removed</span>'
+          : canManage
+            ? '<select class="stock-cell-control stock-cell-select" data-field="categoryId" aria-label="Category for ' + runtimeValue('escapeHtml')(item.name) + '"' + (unitLocked ? ' disabled' : '') + '>' + stockCategoryOptions(source) + '</select>'
+            : runtimeValue('escapeHtml')(item.categoryName || 'Uncategorized')) +
+        '</div></td>' +
+        '<th scope="row" data-stock-field="item"><div class="stock-item-line">' +
+        (canManage
+          ? '<button class="stock-drag-handle" type="button" data-stock-drag-handle data-id="' + runtimeValue('escapeHtml')(item.id) + '" data-stock-order-id="' + runtimeValue('escapeHtml')(orderId) + '" aria-label="Move ' + runtimeValue('escapeHtml')(item.name) + ', position ' + (itemIndex + 1) + ' of ' + items.length + '" aria-describedby="stockReorderInstructions" aria-keyshortcuts="ArrowUp ArrowDown Home End" title="' + runtimeValue('escapeHtml')(reorderReason || 'Drag to arrange this row') + '"' + (reorderReason ? ' disabled' : '') + '>&#8942;&#8942;</button>'
+          : '') +
+        '<span class="stock-item-name">' + runtimeValue('escapeHtml')(item.name) + '</span><span class="stock-kind-marker' + (item.kind === 'mixture' ? ' mixture' : '') + '">' + (item.kind === 'mixture' ? 'Mix' : item.sourceType === 'packaging' ? 'Pack' : 'Item') + '</span></div></th>' +
+        '<td class="stock-unit-cell" data-stock-field="unit">' +
+        (canManage
+          ? stockCellEditorHtml(item, 'preferredUnit', unitLocked, lockReason)
+          : runtimeValue('escapeHtml')(preferredUnit === 'l' ? 'L' : preferredUnit)) +
+        '</td>' +
+        '<td data-stock-field="opening">' + (canManage ? stockSpreadsheetEditorHtml(item, 'openingStock', 'opening stock in ' + preferredUnit, locked, lockReason) : stockSpreadsheetQuantity(item.openingStock, item)) + '</td>' +
+        '<td data-stock-field="added">' + (canManage ? stockSpreadsheetEditorHtml(item, 'stockAdded', 'stock added in ' + preferredUnit, locked, lockReason) : stockSpreadsheetQuantity(item.stockAdded, item)) + '</td>' +
+        '<td class="stock-formula-cell" data-stock-field="used">' + stockSpreadsheetQuantity(item.stockUsed, item) + '</td>' +
+        '<td data-stock-field="wasted">' + (canManage ? stockSpreadsheetEditorHtml(item, 'wasted', 'wasted or damaged in ' + preferredUnit, locked, lockReason) : stockSpreadsheetQuantity(item.wasted, item)) + '</td>' +
+        '<td class="stock-formula-cell stock-remaining-cell" data-stock-field="remaining">' + stockSpreadsheetQuantity(item.remainingStock, item) + '</td>' +
+        '<td data-stock-field="reorder">' + (canManage ? stockSpreadsheetEditorHtml(item, 'reorderLevel', 'reorder level in ' + preferredUnit, locked, lockReason) : stockSpreadsheetQuantity(item.threshold, item)) + '</td>' +
+        '<td data-stock-field="purchase-quantity">' + (canManage ? stockSpreadsheetEditorHtml(item, 'purchaseQuantity', 'purchase quantity in ' + preferredUnit, locked, lockReason) : stockSpreadsheetQuantity(item.purchaseQuantity, item)) + '</td>' +
+        '<td data-stock-field="purchase-price">' + (canManage ? stockSpreadsheetEditorHtml(item, 'purchasePrice', 'purchase price in pesos', locked, lockReason) : stockSpreadsheetMoney(item.purchasePriceCentavos)) + '</td>' +
+        '<td class="stock-formula-cell" data-stock-field="unit-cost">' + stockSpreadsheetMoney(unitCost) + (unitCost == null ? '' : ' / ' + runtimeValue('escapeHtml')(preferredUnit === 'l' ? 'L' : preferredUnit)) + '</td>' +
+        '<td class="stock-formula-cell" data-stock-field="remaining-value">' + stockSpreadsheetMoney(item.remainingValueCentavos) + '</td>' +
+        '<td class="stock-status-cell" data-stock-field="status"><span class="stock-badge ' + status.cls + '">' + runtimeValue('escapeHtml')(status.label) + '</span></td>' +
+        '</tr>'
+      );
+    }).join('') +
     '</tbody></table></div>'
   );
 }
@@ -574,6 +550,37 @@ export function renderStockResults(): void {
   restoreStockInventoryScroll(scrollPosition);
 }
 
+function stockPeriodBarHtml(readOnly: boolean): string {
+  const period = runtimeValue('stockState').activePeriod;
+  if (!period) {
+    return (
+      '<div class="stock-period-bar empty-period"><div><strong>No active inventory period</strong><span>Start one before entering opening stock or purchases.</span></div>' +
+      (readOnly
+        ? ''
+        : '<button class="btn small" data-act="openInventoryPeriodStart">Start inventory</button>') +
+      '</div>'
+    );
+  }
+  const opened = period.openedAt
+    ? new Date(period.openedAt).toLocaleDateString('en-PH', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      })
+    : '';
+  return (
+    '<div class="stock-period-bar"><div><span class="stock-period-state">Active</span><strong>' +
+    runtimeValue('escapeHtml')(period.name || 'Inventory period') +
+    '</strong><span>' +
+    runtimeValue('escapeHtml')(opened ? 'Opened ' + opened : 'Shared inventory period') +
+    '</span></div>' +
+    (readOnly
+      ? ''
+      : '<button class="btn small secondary" data-act="openInventoryPeriodClose">Close period</button>') +
+    '</div>'
+  );
+}
+
 export function renderStocks(): void {
   const scrollPosition = stockInventoryScrollPosition();
   const root = document.getElementById('stockRoot');
@@ -655,9 +662,10 @@ export function renderStocks(): void {
   const note =
     '<div class="note stock-phase-note"><strong>Spreadsheet-style inventory.</strong> Type directly in a cell, then press Enter, Tab, or tap away to save; press Escape to undo the current edit.' +
     reorderHelp +
-    ' On hand is the exact physical amount available, and a blank low-stock alert disables it. All day-to-day stock updates happen directly in this table. POS sales do not subtract stock yet.</div>';
+    ' Formula columns are calculated automatically from the active period and completed POS sales.</div>';
   const toolbar =
     '<div class="card">' +
+    stockPeriodBarHtml(readOnly) +
     readStocksBinding('stockSummaryHtml', stockSummaryHtml)() +
     '<div class="stock-toolbar"><div><label class="fld" for="stockSearch">Search ingredients and mixtures</label><input id="stockSearch" type="search" value="' +
     runtimeValue('escapeHtml')(runtimeValue('stockState').search) +

@@ -46,12 +46,36 @@ export function stockFormatQuantity(
 
 export function stockSourceForItem(item: LegacyValue): LegacyValue {
   return runtimeValue('getById')(
-    runtimeValue('state').ingredients || [],
+    item && item.sourceType === 'packaging'
+      ? runtimeValue('state').packaging || []
+      : runtimeValue('state').ingredients || [],
     item && item.sourceId,
   );
 }
 
 export function stockStatus(item: LegacyValue): LegacyValue {
+  if (runtimeValue('stockState').activePeriod && item.active !== false) {
+    const serverStatus = String(item.stockStatus || '').toUpperCase();
+    if (!item.periodId || serverStatus === 'NOT COUNTED' || item.openingStock == null) {
+      return {
+        key: 'not_counted',
+        label: 'Not counted',
+        cls: 'warn',
+        rank: 2,
+      };
+    }
+    const remaining = Number(item.remainingStock || 0);
+    if (remaining <= 0) {
+      return { key: 'out', label: 'Out of stock', cls: 'bad', rank: 0 };
+    }
+    if (
+      serverStatus === 'RESTOCK' ||
+      (item.threshold != null && remaining <= Number(item.threshold))
+    ) {
+      return { key: 'low', label: 'Low stock', cls: 'warn', rank: 1 };
+    }
+    return { key: 'good', label: 'In stock', cls: 'good', rank: 3 };
+  }
   if (!item.initialized) {
     return {
       key: 'not_counted',
@@ -93,10 +117,12 @@ export function stockFilteredItems(): LegacyValue[] {
         stockSourceForItem,
       )(item);
       const categoryName = source
-        ? runtimeValue('categoryNameIn')(
-            runtimeValue('state'),
-            source.categoryId,
-          )
+        ? item.sourceType === 'packaging'
+          ? 'Packaging'
+          : runtimeValue('categoryNameIn')(
+              runtimeValue('state'),
+              source.categoryId,
+            )
         : item.categoryName;
       if (
         runtimeValue('stockState').status !== 'all' &&
@@ -129,10 +155,14 @@ export function stockFilteredItems(): LegacyValue[] {
     })
     .sort(function (a: LegacyValue, b: LegacyValue) {
       const aOrder = orderById.get(
-        String((a && (a.sourceId || a.id)) || ''),
+        a && a.sourceType === 'packaging'
+          ? 'packaging:' + String(a.sourceId || a.id || '')
+          : String((a && (a.sourceId || a.id)) || ''),
       );
       const bOrder = orderById.get(
-        String((b && (b.sourceId || b.id)) || ''),
+        b && b.sourceType === 'packaging'
+          ? 'packaging:' + String(b.sourceId || b.id || '')
+          : String((b && (b.sourceId || b.id)) || ''),
       );
       if (aOrder !== undefined && bOrder !== undefined && aOrder !== bOrder) {
         return aOrder - bOrder;

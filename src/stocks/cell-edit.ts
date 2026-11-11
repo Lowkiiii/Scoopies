@@ -386,7 +386,10 @@ async function stockCellCommitNow(
     });
     runtimeValue('stockModal').submitting = false;
     if (field === 'preferredUnit') {
-      runtimeValue('renderStocks')();
+      // Spreadsheet quantities and formula values are returned in the item's
+      // preferred display unit. Reload the authoritative sheet after a unit
+      // change so every editable and computed cell switches together.
+      await readStocksBinding('loadStocks', loadStocks)({ background: true });
     } else {
       stockCellUpdateElement(item.id, field, entry);
     }

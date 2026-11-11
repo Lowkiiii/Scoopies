@@ -19,6 +19,7 @@ import {
   stockStoredPendings,
 } from './storage';
 import { renderStocks } from './rendering';
+import { renderStockSpreadsheetModal } from './spreadsheet';
 import type { LegacyValue } from './types';
 
 export function stockItemById(id: LegacyValue): LegacyValue {
@@ -472,6 +473,7 @@ function renderStockDetailsModal(item: LegacyValue, content: HTMLElement): void 
 
 export function renderStockModal(): void {
   if (!runtimeValue('stockModal').open) return;
+  if (renderStockSpreadsheetModal()) return;
   const item = readStocksBinding(
     'stockItemById',
     stockItemById,
