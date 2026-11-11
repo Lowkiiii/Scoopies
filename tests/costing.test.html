@@ -3949,7 +3949,19 @@ document.getElementById('app').addEventListener('load', async () => {
   test('stocks render status cards, category search, and critical filters', () => {
     const rows = [
       inventoryItemFixture(),
-      inventoryItemFixture({ inventory_item_id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', source_costing_ingredient_id: 'cream-source', item_kind: 'mixture', name: 'Sea Salt Cream', current_balance_base: 0, low_stock_threshold_base: 100, revision: 1 }),
+      inventoryItemFixture({
+        inventory_item_id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+        source_costing_ingredient_id: 'cream-source',
+        item_kind: 'mixture',
+        name: 'Sea Salt Cream',
+        active_period_id: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',
+        opening_stock_base: 0,
+        remaining_stock_base: 0,
+        stock_status: 'OUT',
+        current_balance_base: 0,
+        low_stock_threshold_base: 100,
+        revision: 1,
+      }),
       inventoryItemFixture({ inventory_item_id: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd', name: 'Uncounted syrup', source_costing_ingredient_id: 'missing-source', current_balance_base: 0, low_stock_threshold_base: null, revision: 0, has_stock_history: false, last_movement_at: null })
     ];
     installInventory('owner', rows, []);

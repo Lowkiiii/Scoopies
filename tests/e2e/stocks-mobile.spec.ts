@@ -376,6 +376,72 @@ async function seedPopulatedStocks(page: Page) {
               error: null,
             };
           }
+          if (name === 'pos_inventory_update_item_category') {
+            app.__stockInlineRpcCalls.push({
+              name,
+              args: app.snapshot(args),
+            });
+            const current = app.stockState.items.find(
+              (item: any) => item.id === args.p_inventory_item_id,
+            );
+            current.categoryName = String(args.p_category || '');
+            current.revision += 1;
+            return {
+              data: [
+                {
+                  inventory_item_id: args.p_inventory_item_id,
+                  category_name: current.categoryName,
+                  revision: current.revision,
+                  is_retry: false,
+                },
+              ],
+              error: null,
+            };
+          }
+          if (name === 'pos_inventory_update_item_row_color') {
+            app.__stockInlineRpcCalls.push({
+              name,
+              args: app.snapshot(args),
+            });
+            const current = app.stockState.items.find(
+              (item: any) => item.id === args.p_inventory_item_id,
+            );
+            current.rowColor = String(args.p_row_color || '');
+            current.revision += 1;
+            return {
+              data: [
+                {
+                  inventory_item_id: args.p_inventory_item_id,
+                  row_color: current.rowColor,
+                  revision: current.revision,
+                  is_retry: false,
+                },
+              ],
+              error: null,
+            };
+          }
+          if (name === 'pos_inventory_start_period') {
+            app.__stockInlineRpcCalls.push({
+              name,
+              args: app.snapshot(args),
+            });
+            app.__stockActivePeriod = {
+              id: args.p_client_period_id,
+              name: args.p_name,
+              status: 'open',
+              openedAt: '2026-11-12T00:00:00.000Z',
+            };
+            return {
+              data: [
+                {
+                  period_id: app.__stockActivePeriod.id,
+                  period_name: app.__stockActivePeriod.name,
+                  status: 'open',
+                },
+              ],
+              error: null,
+            };
+          }
           if (name === 'pos_inventory_sync_spreadsheet_sources') {
             return { data: [], error: null };
           }
@@ -383,12 +449,16 @@ async function seedPopulatedStocks(page: Page) {
             return { data: [], error: null };
           }
           if (name === 'pos_inventory_get_spreadsheet') {
+            const activePeriod =
+              app.__stockActivePeriod === undefined
+                ? app.stockState.activePeriod
+                : app.__stockActivePeriod;
             return {
               data: app.stockState.items.map((item: any) => ({
-                active_period_id: 'period-mobile',
-                active_period_name: 'Mobile popup',
-                active_period_status: 'open',
-                active_period_opened_at: '2026-11-01T00:00:00.000Z',
+                active_period_id: activePeriod?.id || null,
+                active_period_name: activePeriod?.name || null,
+                active_period_status: activePeriod?.status || null,
+                active_period_opened_at: activePeriod?.openedAt || null,
                 inventory_item_id: item.id,
                 source_type: item.sourceType || 'ingredient',
                 source_costing_id: item.sourceId,
@@ -437,7 +507,7 @@ test('populated Stocks spreadsheet remains event-driven and mobile safe', async 
   page,
 }) => {
   if ((page.viewportSize()?.width || 0) > 700) {
-    await page.setViewportSize({ width: 1366, height: 900 });
+    await page.setViewportSize({ width: 1536, height: 900 });
   }
   const mobileLayout = (page.viewportSize()?.width || 0) <= 700;
   await expect(page.locator('section#stocks')).toHaveClass(/active/);
@@ -497,12 +567,30 @@ test('populated Stocks spreadsheet remains event-driven and mobile safe', async 
     ]),
   );
   await expect(page.locator('.stock-history-row')).toHaveCount(4);
+  const historyCard = page.locator('.stock-history-card');
+  await expect(historyCard).not.toHaveAttribute('open', '');
+  await expect(page.locator('.stock-history-row').first()).toBeHidden();
+  await page.locator('.stock-history-toggle').click();
+  await expect(page.locator('.stock-history-row').first()).toBeVisible();
+  const historyLabels = await page.evaluate(() => {
+    const stocks = (window as any).MatchaLunaApp.domains.stocks;
+    return [
+      stocks.stockTransactionLabel('sale_usage', {}),
+      stocks.stockTransactionLabel('sale_reversal', {}),
+      stocks.stockTransactionLabel('period_cell_adjustment', {}),
+    ];
+  });
+  expect(historyLabels).toEqual([
+    'Used by POS sale',
+    'POS sale reversed',
+    'Spreadsheet adjustment',
+  ]);
 
   const summaryLow = page.locator(
-    '.stock-summary [data-act="setStockStatus"][data-status="low"]',
+    '.stock-filter-bar [data-act="setStockStatus"][data-status="low"]',
   );
   const summaryAll = page.locator(
-    '.stock-summary [data-act="setStockStatus"][data-status="all"]',
+    '.stock-filter-bar [data-act="setStockStatus"][data-status="all"]',
   );
   await expect(summaryLow).toHaveAttribute('aria-pressed', 'false');
   await expect(summaryAll).toHaveAttribute('aria-pressed', 'true');
@@ -603,24 +691,35 @@ test('populated Stocks spreadsheet remains event-driven and mobile safe', async 
   });
 
   const matchaCategory = page.locator(
-    '[data-stock-item="inventory-matcha"] [data-field="categoryId"]',
+    '[data-stock-item="inventory-matcha"] [data-stock-cell-field="categoryName"]',
   );
   const matchaUnit = page.locator(
     '[data-stock-item="inventory-matcha"] [data-stock-cell-field="preferredUnit"]',
   );
-  await expect(matchaCategory).toHaveValue('powders');
-  await matchaCategory.selectOption('milk');
-  await expect(matchaCategory).toHaveValue('milk');
-  await expect
-    .poll(() =>
-      page.evaluate(() =>
-        (window as any).state.ingredients.find(
-          (ingredient: any) => ingredient.id === 'matcha',
-        ).categoryId,
-      ),
-    )
-    .toBe('milk');
-  await page.locator('#stockSearch').fill('Milk and Shelf Stable Beverages');
+  await expect(matchaCategory).toHaveValue('Tea Powders');
+  await matchaCategory.fill('Premium Matcha Powder');
+  await matchaCategory.press('Enter');
+  await expect(matchaCategory).toHaveValue('Premium Matcha Powder');
+  await expect.poll(() =>
+    page.evaluate(() =>
+      (window as any).stockState.items.find(
+        (item: any) => item.id === 'inventory-matcha',
+      ).categoryName,
+    ),
+  ).toBe('Premium Matcha Powder');
+  const categoryRequest = await page.evaluate(() =>
+    (window as any).__stockInlineRpcCalls[2],
+  );
+  expect(categoryRequest).toEqual({
+    name: 'pos_inventory_update_item_category',
+    args: {
+      p_business_id: 'business-mobile',
+      p_inventory_item_id: 'inventory-matcha',
+      p_category: 'Premium Matcha Powder',
+      p_expected_revision: 6,
+    },
+  });
+  await page.locator('#stockSearch').fill('Premium Matcha Powder');
   await expect(
     page.locator('[data-stock-item="inventory-matcha"]'),
   ).toBeVisible();
@@ -629,9 +728,9 @@ test('populated Stocks spreadsheet remains event-driven and mobile safe', async 
   await matchaUnit.selectOption('g');
   await expect.poll(() =>
     page.evaluate(() => (window as any).__stockInlineRpcCalls.length),
-  ).toBe(3);
+  ).toBe(4);
   const unitRequest = await page.evaluate(() =>
-    (window as any).__stockInlineRpcCalls[2],
+    (window as any).__stockInlineRpcCalls[3],
   );
   expect(unitRequest).toEqual({
     name: 'pos_inventory_update_item_details_v2',
@@ -642,7 +741,7 @@ test('populated Stocks spreadsheet remains event-driven and mobile safe', async 
       p_last_stocked_on: null,
       p_notes: null,
       p_preferred_unit: 'g',
-      p_expected_revision: 6,
+      p_expected_revision: 7,
     },
   });
   await expect(page.locator('#stockModal')).toBeHidden();
@@ -734,16 +833,91 @@ test('populated Stocks spreadsheet remains event-driven and mobile safe', async 
       ),
     ).toBe(true);
     await expect(stockTable.locator('thead')).toBeVisible();
-    await expect(stockTable).toHaveCSS('min-width', '1780px');
+    await expect(stockTable).toHaveCSS('min-width', '1400px');
   } else {
     await expect(stockTable.locator('thead')).toBeVisible();
     expect(
       stocksLayout.viewportWidth - stocksLayout.workspaceWidth,
     ).toBeLessThanOrEqual(26);
-    expect(stocksLayout.inventoryScrollWidth).toBeGreaterThan(
+    expect(stocksLayout.inventoryScrollWidth).toBeLessThanOrEqual(
       stocksLayout.inventoryClientWidth + 1,
     );
   }
+});
+
+test('manual category and palette work before a period and quick start recovers a lost response', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1536, height: 900 });
+  await page.evaluate(() => {
+    const app = window as typeof window & Record<string, any>;
+    app.stockState.activePeriod = null;
+    app.__stockActivePeriod = null;
+    app.stockState.items.forEach((item: any) => {
+      item.periodId = '';
+    });
+    const originalRpc = app.cloud.client.rpc.bind(app.cloud.client);
+    let droppedStartResponse = false;
+    app.cloud.client.rpc = async (name: string, args: any) => {
+      const response = await originalRpc(name, args);
+      if (name === 'pos_inventory_start_period' && !droppedStartResponse) {
+        droppedStartResponse = true;
+        throw new Error('Connection dropped after commit');
+      }
+      return response;
+    };
+    app.renderStocks();
+  });
+
+  const row = page.locator('[data-stock-item="inventory-matcha"]');
+  const category = row.locator('[data-stock-cell-field="categoryName"]');
+  const opening = row.locator('[data-stock-sheet-field="openingStock"]');
+  const palette = row.locator('[data-act="openStockColor"]');
+  await expect(category).toBeEnabled();
+  await expect(palette).toBeEnabled();
+  await expect(opening).toBeDisabled();
+
+  await category.fill('Popup essentials');
+  await category.press('Enter');
+  await expect(category).toHaveValue('Popup essentials');
+  await page.locator('#stockSearch').fill('Popup essentials');
+  await expect(row).toBeVisible();
+  await page.locator('#stockSearch').fill('');
+
+  await palette.click();
+  await expect(page.locator('#stockModal')).toBeVisible();
+  await page.locator('[data-act="chooseStockRowColor"]').first().click();
+  await page.locator('[data-act="saveStockRowColor"]').click();
+  await expect(page.locator('#stockModal')).toBeHidden();
+  await expect.poll(() =>
+    page.evaluate(() =>
+      (window as any).__stockInlineRpcCalls.some(
+        (call: any) => call.name === 'pos_inventory_update_item_row_color',
+      ),
+    ),
+  ).toBe(true);
+
+  await page.locator('[data-act="startInventoryPeriodNow"]').click();
+  await expect.poll(() =>
+    page.evaluate(() => (window as any).stockState.activePeriod?.id || ''),
+  ).not.toBe('');
+  await expect(row.locator('[data-stock-sheet-field="openingStock"]')).toBeEnabled();
+  const startState = await page.evaluate(() => {
+    const app = window as typeof window & Record<string, any>;
+    const calls = app.__stockInlineRpcCalls.filter(
+      (call: any) => call.name === 'pos_inventory_start_period',
+    );
+    return {
+      calls,
+      activePeriodId: app.stockState.activePeriod?.id || '',
+      pendingId: app.stockState.pendingPeriodStartId || '',
+    };
+  });
+  expect(startState.calls).toHaveLength(1);
+  expect(startState.calls[0].args.p_client_period_id).toBe(
+    startState.activePeriodId,
+  );
+  expect(startState.pendingId).toBe('');
 });
 
 test('owner can drag stock rows without changing quantities or movement history', async ({
@@ -947,7 +1121,7 @@ test('keyboard row arranging persists source order and respects filters and role
 
   await page
     .locator(
-      '.stock-summary [data-act="setStockStatus"][data-status="low"]',
+      '.stock-filter-bar [data-act="setStockStatus"][data-status="low"]',
     )
     .click();
   const filteredHandle = page.locator('.stock-drag-handle');

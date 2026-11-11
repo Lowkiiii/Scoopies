@@ -450,7 +450,7 @@ test('typed Events preserves delegated behavior and live browser bindings', asyn
   });
 });
 
-test('typed Events retains the legacy dispatcher order plus 8 inventory actions', () => {
+test('typed Events retains the legacy dispatcher order plus 9 inventory actions', () => {
   const classicSource = readFileSync(
     resolve(process.cwd(), 'assets/js/events.js'),
     'utf8',
@@ -465,6 +465,7 @@ test('typed Events retains the legacy dispatcher order plus 8 inventory actions'
   const typedActions = actionNames(typedSource);
   const inventoryActions = [
     'openInventoryPeriodStart',
+    'startInventoryPeriodNow',
     'openInventoryPeriodClose',
     'submitInventoryPeriodStart',
     'submitInventoryPeriodClose',
@@ -477,7 +478,7 @@ test('typed Events retains the legacy dispatcher order plus 8 inventory actions'
 
   expect(classicActions).toHaveLength(112);
   expect(insertionIndex).toBeGreaterThan(0);
-  expect(typedActions).toHaveLength(120);
+  expect(typedActions).toHaveLength(121);
   expect(typedActions).toEqual([
     ...classicActions.slice(0, insertionIndex),
     ...inventoryActions,

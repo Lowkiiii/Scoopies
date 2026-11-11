@@ -848,6 +848,8 @@ test('typed Stocks view matches the retained classic view fingerprint', async ({
     const {
       summaryHtml: typedSummaryHtml,
       filterBarHtml: typedFilterBarHtml,
+      historyHtml: typedHistoryHtml,
+      renderBranches: typedRenderBranches,
       cardsHtml: _typedCardsHtml,
       resultsSnapshot: typedResultsSnapshot,
       renderedStocksHtml: _typedRenderedStocksHtml,
@@ -855,7 +857,9 @@ test('typed Stocks view matches the retained classic view fingerprint', async ({
     } = typed;
     const {
       summaryHtml: classicSummaryHtml,
-      filterBarHtml: classicFilterBarHtml,
+      filterBarHtml: _classicFilterBarHtml,
+      historyHtml: _classicHistoryHtml,
+      renderBranches: _classicRenderBranches,
       cardsHtml: _classicCardsHtml,
       resultsSnapshot: classicResultsSnapshot,
       renderedStocksHtml: _classicRenderedStocksHtml,
@@ -863,16 +867,22 @@ test('typed Stocks view matches the retained classic view fingerprint', async ({
     } = classic;
     expect(typedUnchanged).toEqual(classicUnchanged);
     expect(withoutAriaPressed(typedSummaryHtml)).toBe(classicSummaryHtml);
-    expect(withoutAriaPressed(typedFilterBarHtml)).toBe(classicFilterBarHtml);
+    expect(typedFilterBarHtml).toContain('All (5)');
+    expect(typedFilterBarHtml).toContain('Low (1)');
+    expect(typedFilterBarHtml).toContain('Out (1)');
+    expect(typedFilterBarHtml).toContain('Not counted (2)');
+    expect(typedHistoryHtml).toContain('stock-history-card');
+    expect(typedHistoryHtml).toContain('Movement history (2)');
+    expect(typedRenderBranches[3]).toContain('stock-head-title');
+    expect(typedRenderBranches[4]).toContain('stock-head-title');
     expect({
       count: typedResultsSnapshot.count,
       itemIds: typedResultsSnapshot.itemIds,
-      activeStatuses: typedResultsSnapshot.activeStatuses,
     }).toEqual({
       count: classicResultsSnapshot.count,
       itemIds: classicResultsSnapshot.itemIds,
-      activeStatuses: classicResultsSnapshot.activeStatuses,
     });
+    expect(typedResultsSnapshot.activeStatuses).toEqual(['all']);
     expect(typedResultsSnapshot.text).toContain(
       'Inventory period spreadsheet',
     );
@@ -956,7 +966,7 @@ test('typed Stocks view matches the retained classic view fingerprint', async ({
   );
   await expect(
     page.locator(
-      '.stock-summary [data-act="setStockStatus"][data-status="all"]',
+      '.stock-filter-bar [data-act="setStockStatus"][data-status="all"]',
     ),
   ).toHaveAttribute('aria-pressed', 'true');
   await expect(
@@ -973,10 +983,12 @@ test('typed Stocks view matches the retained classic view fingerprint', async ({
     'class',
     /mixture/,
   );
-  await expect(removedRow).toContainText('Removed');
+  await expect(
+    removedRow.locator('[data-stock-cell-field="categoryName"]'),
+  ).toHaveValue('Cream & foam');
   await expect(
     removedRow.locator('[data-stock-field="status"]'),
-  ).toHaveText('Out');
+  ).toHaveText('Out of stock');
   await expect(
     removedRow.locator('[data-stock-sheet-field="openingStock"]'),
   ).toHaveValue('100');
@@ -1008,7 +1020,10 @@ test('typed Stocks view matches the retained classic view fingerprint', async ({
       '.stock-row [data-stock-cell-field="preferredUnit"]',
     ),
   ).toHaveCount(4);
-  await expect(page.locator('.stock-row [data-stock-cell-field]')).toHaveCount(4);
+  await expect(
+    page.locator('.stock-row [data-stock-cell-field="categoryName"]'),
+  ).toHaveCount(4);
+  await expect(page.locator('.stock-row [data-stock-cell-field]')).toHaveCount(8);
   await expect(page.locator('.stock-row .stock-color-swatch')).toHaveCount(4);
   await expect(
     page.locator('.stock-row [data-act="openStockModal"]:not([data-mode])'),

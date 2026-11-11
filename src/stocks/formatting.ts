@@ -112,18 +112,7 @@ export function stockFilteredItems(): LegacyValue[] {
   return stockItems
     .filter(function (item: LegacyValue) {
       const status = readStocksBinding('stockStatus', stockStatus)(item);
-      const source = readStocksBinding(
-        'stockSourceForItem',
-        stockSourceForItem,
-      )(item);
-      const categoryName = source
-        ? item.sourceType === 'packaging'
-          ? 'Packaging'
-          : runtimeValue('categoryNameIn')(
-              runtimeValue('state'),
-              source.categoryId,
-            )
-        : item.categoryName;
+      const categoryName = String(item.categoryName || 'Uncategorized');
       if (
         runtimeValue('stockState').status !== 'all' &&
         status.key !== runtimeValue('stockState').status
