@@ -88,6 +88,16 @@ export function stockFilteredItems(): LegacyValue[] {
   return stockItems
     .filter(function (item: LegacyValue) {
       const status = readStocksBinding('stockStatus', stockStatus)(item);
+      const source = readStocksBinding(
+        'stockSourceForItem',
+        stockSourceForItem,
+      )(item);
+      const categoryName = source
+        ? runtimeValue('categoryNameIn')(
+            runtimeValue('state'),
+            source.categoryId,
+          )
+        : item.categoryName;
       if (
         runtimeValue('stockState').status !== 'all' &&
         status.key !== runtimeValue('stockState').status
@@ -104,8 +114,7 @@ export function stockFilteredItems(): LegacyValue[] {
         query &&
         [
           item.name,
-          item.categoryName,
-          item.brand,
+          categoryName,
           item.purchasedFrom,
           item.notes,
           item.kind === 'mixture' ? 'prepared in-house' : '',

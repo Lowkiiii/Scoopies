@@ -29,7 +29,7 @@ export function refreshModalBodyClass(): void {
 export function focusSoon(selector: LegacyValue): void {
   runtimeFunction('setTimeout')(() => {
     const element = runtimeValue<Document>('document').querySelector(selector);
-    if (element) (element as HTMLElement).focus();
+    if (element) (element as HTMLElement).focus({ preventScroll: true });
   }, 0);
 }
 

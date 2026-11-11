@@ -514,7 +514,7 @@ test('authenticated data-heavy Stocks view stays usable at a mobile width', asyn
   await expect(stockTable).toBeVisible();
   await expect(stockTable.getByRole('columnheader')).toHaveText([
     'Item name',
-    'Brand',
+    'Category',
     'Purchased from',
     'Date purchased',
     'On hand',
@@ -522,7 +522,7 @@ test('authenticated data-heavy Stocks view stays usable at a mobile width', asyn
     'Low-stock alert',
     'Status',
     'Notes',
-    'Last updated',
+    'Last movement',
   ]);
   await expect(stockTable.getByRole('row')).toHaveCount(9);
   await expect(stockTable.getByRole('rowheader')).toHaveCount(8);
@@ -588,7 +588,7 @@ test('authenticated data-heavy Stocks view stays usable at a mobile width', asyn
     );
   expect(firstRowLabels).toEqual([
     'item',
-    'brand',
+    'category',
     'purchased-from',
     'stocked-on',
     'on-hand',

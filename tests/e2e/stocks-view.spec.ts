@@ -165,12 +165,14 @@ async function collectStocksViewFingerprint() {
       name: 'Oat <Milk>',
       kind: 'purchased',
       unit: 'l',
+      categoryId: 'milk-category',
     },
     {
       id: 'powder-source',
       name: 'Matcha',
       kind: 'purchased',
       unit: 'g',
+      categoryId: 'powder-category',
     },
   ];
   const items = [
@@ -287,7 +289,13 @@ async function collectStocksViewFingerprint() {
     },
   ];
 
-  app.state = { ingredients };
+  app.state = {
+    ingredients,
+    ingredientCategories: [
+      { id: 'milk-category', name: 'Milk and cream' },
+      { id: 'powder-category', name: 'Tea powder' },
+    ],
+  };
   app.session = { user: { id: 'view-user' } };
   app.posContext = {
     loaded: true,
@@ -868,7 +876,7 @@ test('typed Stocks view matches the retained classic view fingerprint', async ({
   await expect(stockTable).toBeVisible();
   await expect(stockTable.getByRole('columnheader')).toHaveText([
     'Item name',
-    'Brand',
+    'Category',
     'Purchased from',
     'Date purchased',
     'On hand',
@@ -876,7 +884,7 @@ test('typed Stocks view matches the retained classic view fingerprint', async ({
     'Low-stock alert',
     'Status',
     'Notes',
-    'Last updated',
+    'Last movement',
   ]);
   expect(
     await page.locator('.stock-row[data-stock-item]').evaluateAll((rows) =>
@@ -943,7 +951,7 @@ test('typed Stocks view matches the retained classic view fingerprint', async ({
     ),
   ).toHaveCount(4);
   await expect(page.locator('.stock-row [data-stock-cell-field]')).toHaveCount(
-    19,
+    15,
   );
   await expect(
     page.locator('.stock-row [data-act="openStockModal"]:not([data-mode])'),

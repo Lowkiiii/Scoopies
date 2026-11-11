@@ -96,6 +96,9 @@ preserving its established browser contract:
 - [`docs/INVENTORY_PHASE_2A.md`](docs/INVENTORY_PHASE_2A.md) defines the
   compact per-item spreadsheet, descriptive details, compatible unit
   selection, database contract, verification gates, and safe rollback.
+- [`docs/INVENTORY_PHASE_2B.md`](docs/INVENTORY_PHASE_2B.md) defines canonical
+  costing-owned inventory categories, cached-client compatibility, the V2
+  details RPC, verification gates, and lossless rollback.
 
 The retained JavaScript fallback files intentionally remain ordered classic
 scripts for cached/pre-module clients. Do not independently add `async`,
@@ -272,6 +275,12 @@ Inventory artifacts:
 - [Inventory Phase 2A timezone rollback](supabase/rollback/202611050011_inventory_phase_2a_timezone_safe_dates.rollback.sql)
 - [Inventory Phase 2A timezone schema checks](supabase/tests/inventory_phase_2a_timezone_schema_checks.sql)
 - [Inventory Phase 2A timezone behavior checks](supabase/tests/inventory_phase_2a_timezone_behavior_checks.sql)
+- [Inventory Phase 2B guide](docs/INVENTORY_PHASE_2B.md)
+- [Inventory Phase 2B migration](supabase/migrations/202611110012_inventory_phase_2b_category.sql)
+- [Inventory Phase 2B rollback](supabase/rollback/202611110012_inventory_phase_2b_category.rollback.sql)
+- [Inventory Phase 2B schema checks](supabase/tests/inventory_phase_2b_category_schema_checks.sql)
+- [Inventory Phase 2B behavior checks](supabase/tests/inventory_phase_2b_category_behavior_checks.sql)
+- [Inventory Phase 2B rollback round-trip checks](supabase/tests/inventory_phase_2b_rollback_roundtrip_checks.sql)
 
 Never commit a Supabase service-role key or database password. The web app uses
 only the public project URL and publishable key; authorization is enforced by
