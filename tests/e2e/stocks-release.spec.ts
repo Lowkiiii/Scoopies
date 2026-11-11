@@ -540,7 +540,7 @@ test('authenticated data-heavy Stocks view stays usable at a mobile width', asyn
   await expect(page.locator('.stock-row .stock-inline-input')).toHaveCount(16);
   await expect(
     page.locator('.stock-row [data-act="openStockModal"]:not([data-mode])'),
-  ).toHaveCount(8);
+  ).toHaveCount(0);
   await expect(
     page.locator('.stock-row [data-act="openStockModal"][data-mode="details"]'),
   ).toHaveCount(0);

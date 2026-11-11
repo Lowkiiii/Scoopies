@@ -24,6 +24,15 @@ costing` when an owner or manager explicitly includes inactive items.
 This avoids two sources of truth. A free-text Stocks category could disagree
 with the category used by Ingredients, combined costs, and search.
 
+## Spreadsheet-only daily workflow
+
+The active Stocks table keeps daily operation intentionally simple for a
+home-based and pop-up business. Owners and managers edit category, supplier,
+date, on-hand amount, unit, low-stock alert, and notes directly in each row.
+The separate row movement menu is not shown. Existing append-only movement
+history and database functions remain intact for auditability and a future
+inventory phase; this UI simplification does not delete or rewrite stock data.
+
 ## Legacy brand preservation
 
 Schema 10 introduced a free-text physical `brand` column. Phase 2B renames it

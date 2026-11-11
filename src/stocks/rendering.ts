@@ -383,21 +383,6 @@ export function stockItemCardsHtml(): string {
           '">' +
           (item.kind === 'mixture' ? 'Mix' : 'Item') +
           '</span>' +
-          (canManage
-            ? '<button class="stock-row-menu" type="button" data-act="openStockModal" data-id="' +
-              runtimeValue('escapeHtml')(item.id) +
-              '" aria-label="Record a stock movement for ' +
-              runtimeValue('escapeHtml')(item.name) +
-              '" title="' +
-              runtimeValue('escapeHtml')(
-                inlineLocked
-                  ? lockReason
-                  : 'Record received stock, waste, or a correction',
-              ) +
-              '"' +
-              (inlineLocked ? ' disabled' : '') +
-              '>&#8942;</button>'
-            : '') +
           '</div>' +
           (!source
             ? '<span class="stock-source-warning">Removed from costing</span>'
@@ -670,7 +655,7 @@ export function renderStocks(): void {
   const note =
     '<div class="note stock-phase-note"><strong>Spreadsheet-style inventory.</strong> Type directly in a cell, then press Enter, Tab, or tap away to save; press Escape to undo the current edit.' +
     reorderHelp +
-    ' On hand is the exact physical amount counted, and a blank low-stock alert disables it. Use the three-dot item menu only for received stock, waste, or corrections. POS sales do not subtract stock yet.</div>';
+    ' On hand is the exact physical amount available, and a blank low-stock alert disables it. All day-to-day stock updates happen directly in this table. POS sales do not subtract stock yet.</div>';
   const toolbar =
     '<div class="card">' +
     readStocksBinding('stockSummaryHtml', stockSummaryHtml)() +

@@ -867,7 +867,7 @@ test('rapid spreadsheet edits serialize and movement waits for the active save',
 
   const row = page.locator('[data-stock-item="inventory-matcha"]');
   const supplier = row.locator('[data-stock-cell-field="purchasedFrom"]');
-  const movementMenu = row.locator('.stock-row-menu');
+  await expect(row.locator('.stock-row-menu')).toHaveCount(0);
 
   await supplier.fill('First pending supplier');
   await supplier.press('Enter');
@@ -877,7 +877,12 @@ test('rapid spreadsheet edits serialize and movement waits for the active save',
 
   await supplier.fill('Final rapid supplier');
   await supplier.press('Enter');
-  await movementMenu.click();
+  const movementOpened = await page.evaluate(() => {
+    const app = window as typeof window & Record<string, any>;
+    const stocks = app.MatchaLunaApp.domains.stocks as Record<string, any>;
+    return stocks.openStockModal('inventory-matcha');
+  });
+  expect(movementOpened).toBe(false);
   await expect(page.locator('#stockModal')).toBeHidden();
 
   await page.evaluate(() => (window as any).__releaseFirstStockCellRpc());

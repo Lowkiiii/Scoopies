@@ -955,8 +955,8 @@ test('typed Stocks view matches the retained classic view fingerprint', async ({
   );
   await expect(
     page.locator('.stock-row [data-act="openStockModal"]:not([data-mode])'),
-  ).toHaveCount(4);
-  await expect(page.locator('.stock-row .stock-row-menu')).toHaveCount(4);
+  ).toHaveCount(0);
+  await expect(page.locator('.stock-row .stock-row-menu')).toHaveCount(0);
   await expect(page.locator('#stockRoot')).toContainText(
     'Inventory notice <safe>',
   );
@@ -1021,12 +1021,6 @@ test('typed Stocks view matches the retained classic view fingerprint', async ({
   ).toBe(true);
   await expect(
     page.locator('.stock-row .stock-inline-input').first(),
-  ).toHaveAttribute('title', 'Recover the pending stock update first');
-  await expect(
-    page.locator('.stock-row .stock-row-menu').first(),
-  ).toBeDisabled();
-  await expect(
-    page.locator('.stock-row .stock-row-menu').first(),
   ).toHaveAttribute('title', 'Recover the pending stock update first');
   expect(
     await page.evaluate(() => {

@@ -384,9 +384,6 @@
   .stock-kind-marker{flex:0 0 auto;border:1px solid var(--line);border-radius:999px;padding:1px 5px;background:var(--cream);
     color:var(--muted);font-size:9px;font-weight:750;text-transform:uppercase}
   .stock-kind-marker.mixture{background:#eef5ff;color:#315b8a;border-color:#cfdef0}
-  .stock-row-menu{display:inline-flex;align-items:center;justify-content:center;flex:0 0 30px;width:30px;height:30px;margin-left:auto;padding:0;border:1px solid transparent;border-radius:5px;background:transparent;color:var(--brown);font-size:18px;font-weight:800;line-height:1;cursor:pointer}
-  .stock-row-menu:hover{border-color:var(--line);background:var(--pink-soft)}
-  .stock-row-menu:disabled{cursor:not-allowed;color:var(--muted);background:var(--cream)}
   .stock-source-warning{display:block;margin-top:2px;color:var(--bad);font-size:10px;font-weight:700}
   .stock-status-cell .stock-badge{white-space:normal;text-align:center;line-height:1.25}
   .stock-table .stock-on-hand{margin:0;color:var(--brown);font-size:17px;font-weight:850;line-height:1.25;
@@ -579,7 +576,6 @@
     .stock-table .stock-inline-input,.stock-table .stock-cell-control{min-height:44px}
     .stock-table .stock-unit-cell select{min-height:44px}
     .stock-drag-handle{flex-basis:44px;width:44px;height:44px}
-    .stock-row-menu{flex-basis:44px;width:44px;height:44px}
   }
   @media(forced-colors:active){
     .stock-row-drop-before>th,.stock-row-drop-before>td{border-top:3px solid Highlight}
