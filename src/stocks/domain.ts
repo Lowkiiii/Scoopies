@@ -327,14 +327,19 @@ export function stockNormalizeItem(row: LegacyValue): LegacyValue {
     lastMovementAt: row.last_movement_at || null,
     lastMovementType: String(row.last_movement_type || ''),
     categoryName: String(
-      (sourceType === 'packaging' ? 'Packaging' : row.category_name) ||
-        row.categoryName ||
-        (source
-          ? runtimeValue('categoryNameIn')(
-              runtimeValue('state'),
-              source.categoryId,
-            )
-          : 'Removed from costing'),
+      Object.prototype.hasOwnProperty.call(row, 'category_name')
+        ? row.category_name || ''
+        : Object.prototype.hasOwnProperty.call(row, 'inventory_category')
+          ? row.inventory_category || ''
+          : row.categoryName ||
+            (sourceType === 'packaging'
+              ? 'Packaging'
+              : source
+                ? runtimeValue('categoryNameIn')(
+                    runtimeValue('state'),
+                    source.categoryId,
+                  )
+                : 'Removed from costing'),
     ),
     periodId: String(row.active_period_id || row.period_id || row.periodId || ''),
     openingStock,

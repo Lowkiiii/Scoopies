@@ -99,6 +99,12 @@ preserving its established browser contract:
 - [`docs/INVENTORY_PHASE_2B.md`](docs/INVENTORY_PHASE_2B.md) defines canonical
   costing-owned inventory categories, cached-client compatibility, the V2
   details RPC, verification gates, and lossless rollback.
+- [`docs/INVENTORY_PERIOD_SPREADSHEET.md`](docs/INVENTORY_PERIOD_SPREADSHEET.md)
+  defines the period-aware 14-column inventory sheet, automatic POS usage,
+  prepared-mixture expansion, verification gates, and safe release order.
+- Schema 14 adds inventory-owned free-text categories and period-independent
+  row colors, while the compact Stocks view keeps all 14 columns visible on a
+  1536-pixel desktop and collapses movement history by default.
 
 The retained JavaScript fallback files intentionally remain ordered classic
 scripts for cached/pre-module clients. Do not independently add `async`,
@@ -281,6 +287,17 @@ Inventory artifacts:
 - [Inventory Phase 2B schema checks](supabase/tests/inventory_phase_2b_category_schema_checks.sql)
 - [Inventory Phase 2B behavior checks](supabase/tests/inventory_phase_2b_category_behavior_checks.sql)
 - [Inventory Phase 2B rollback round-trip checks](supabase/tests/inventory_phase_2b_rollback_roundtrip_checks.sql)
+- [Inventory period spreadsheet guide](docs/INVENTORY_PERIOD_SPREADSHEET.md)
+- [Inventory period spreadsheet migration](supabase/migrations/202611110013_inventory_period_spreadsheet.sql)
+- [Inventory period spreadsheet rollback](supabase/rollback/202611110013_inventory_period_spreadsheet.rollback.sql)
+- [Inventory period spreadsheet schema checks](supabase/tests/inventory_period_spreadsheet_schema_checks.sql)
+- [Inventory period spreadsheet behavior checks](supabase/tests/inventory_period_spreadsheet_behavior_checks.sql)
+- [Inventory period spreadsheet rollback round-trip checks](supabase/tests/inventory_period_spreadsheet_rollback_roundtrip_checks.sql)
+- [Inventory manual-category migration](supabase/migrations/202611120014_inventory_manual_categories.sql)
+- [Inventory manual-category rollback](supabase/rollback/202611120014_inventory_manual_categories.rollback.sql)
+- [Inventory manual-category schema checks](supabase/tests/inventory_manual_categories_schema_checks.sql)
+- [Inventory manual-category behavior checks](supabase/tests/inventory_manual_categories_behavior_checks.sql)
+- [Inventory manual-category rollback round-trip checks](supabase/tests/inventory_manual_categories_rollback_roundtrip_checks.sql)
 
 Never commit a Supabase service-role key or database password. The web app uses
 only the public project URL and publishable key; authorization is enforced by

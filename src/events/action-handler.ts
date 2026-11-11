@@ -5,6 +5,7 @@ import {
   openInventoryPeriodStart,
   openStockColorPicker,
   saveStockRowColor,
+  startInventoryPeriodNow,
   submitInventoryPeriodClose,
   submitInventoryPeriodStart,
 } from '../stocks/spreadsheet';
@@ -51,6 +52,9 @@ export function handleActionClick(event: LegacyValue): void {
       return;
     case 'openInventoryPeriodStart':
       openInventoryPeriodStart();
+      return;
+    case 'startInventoryPeriodNow':
+      startInventoryPeriodNow().catch(function () {});
       return;
     case 'openInventoryPeriodClose':
       openInventoryPeriodClose();

@@ -17,6 +17,21 @@ import { stockRecoverSourceDeletes } from './source-lifecycle';
 import { stockScopedSourceDeletes } from './storage';
 import type { LegacyValue } from './types';
 
+function stockNoticeWithUniqueMessage(
+  current: LegacyValue,
+  message: LegacyValue,
+): string {
+  const next = String(message || '').trim();
+  const existing = String(current || '').trim();
+  if (!next) return existing;
+  const withoutDuplicate = existing
+    .split(next)
+    .join(' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return [withoutDuplicate, next].filter(Boolean).join(' ');
+}
+
 export async function loadStocks(options?: LegacyValue): Promise<boolean> {
   options = options || {};
   if (
@@ -247,10 +262,10 @@ export async function loadStocks(options?: LegacyValue): Promise<boolean> {
       return false;
     }
     if (syncWarning) {
-      runtimeValue('stockState').notice =
-        (runtimeValue('stockState').notice
-          ? runtimeValue('stockState').notice + ' '
-          : '') + syncWarning;
+      runtimeValue('stockState').notice = stockNoticeWithUniqueMessage(
+        runtimeValue('stockState').notice,
+        syncWarning,
+      );
     }
     return true;
   } catch (caughtError) {

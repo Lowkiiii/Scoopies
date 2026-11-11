@@ -149,6 +149,7 @@ export function stockSpreadsheetLocked(): boolean {
     !runtimeValue<LegacyValue>('posContext').businessId ||
     state.loading ||
     state.refreshing ||
+    state.startingPeriod ||
     state.sourceConflict ||
     stockInlineLocked() ||
     runtimeValue<LegacyValue>('stockModal').submitting
@@ -451,11 +452,7 @@ function openSpecialStockModal(mode: string): void {
 
 export function openStockColorPicker(itemId: LegacyValue): boolean {
   const item = spreadsheetItem(itemId);
-  if (
-    !item ||
-    stockSpreadsheetLocked() ||
-    !runtimeValue<LegacyValue>('stockState').activePeriod
-  ) return false;
+  if (!item || stockSpreadsheetLocked()) return false;
   openSpecialStockModal('row-color');
   runtimeValue<LegacyValue>('stockModal').itemId = item.id;
   runtimeValue<LegacyValue>('stockModal').color = item.rowColor || '';
@@ -502,7 +499,17 @@ export async function saveStockRowColor(clear = false): Promise<boolean> {
   modal.error = '';
   renderStockSpreadsheetModal();
   try {
-    const row = await commitSpreadsheetValue(item, 'row_color', color);
+    const row = runtimeValue<LegacyValue>('rpcRows')(
+      await runtimeValue<LegacyValue>('cloud').client.rpc(
+        'pos_inventory_update_item_row_color',
+        {
+          p_business_id: String(runtimeValue<LegacyValue>('posContext').businessId),
+          p_inventory_item_id: item.id,
+          p_row_color: color || null,
+          p_expected_revision: Number(item.revision || 0),
+        },
+      ),
+    )[0];
     if (!row) throw new Error('Missing authoritative inventory response');
     applySpreadsheetRow(item, row);
     runtimeValue<LegacyValue>('closeStockModal')(true);
@@ -533,6 +540,68 @@ export function openInventoryPeriodStart(): boolean {
   renderStockSpreadsheetModal();
   runtimeValue<LegacyValue>('focusSoon')('#stockPeriodName');
   return true;
+}
+
+export async function startInventoryPeriodNow(): Promise<boolean> {
+  const state = runtimeValue<LegacyValue>('stockState');
+  if (
+    stockSpreadsheetLocked() ||
+    state.activePeriod ||
+    state.startingPeriod
+  ) {
+    return false;
+  }
+  state.startingPeriod = true;
+  runtimeValue<LegacyValue>('renderStocks')();
+  if (!state.pendingPeriodStartId) {
+    const now = new Date();
+    state.pendingPeriodStartId = runtimeValue<LegacyValue>('posUuid')();
+    state.pendingPeriodStartName =
+      'Inventory ' +
+      now.toLocaleDateString('en-PH', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      });
+  }
+  const name = String(state.pendingPeriodStartName || 'Current inventory');
+  try {
+    const rows = runtimeValue<LegacyValue>('rpcRows')(
+      await runtimeValue<LegacyValue>('cloud').client.rpc(
+        'pos_inventory_start_period',
+        {
+          p_business_id: String(runtimeValue<LegacyValue>('posContext').businessId),
+          p_client_period_id: state.pendingPeriodStartId,
+          p_name: name,
+          p_carry_forward: true,
+        },
+      ),
+    );
+    if (!rows.length) throw new Error('Missing inventory period response');
+    await loadStocks({ background: true });
+    if (!state.activePeriod) {
+      throw new Error('The inventory start could not be confirmed. Try again.');
+    }
+    state.pendingPeriodStartId = '';
+    state.pendingPeriodStartName = '';
+    state.notice = 'Inventory started. Stock quantity cells are ready to edit.';
+    return true;
+  } catch (error) {
+    const message = stockErrorText(error);
+    await loadStocks({ background: true });
+    if (state.activePeriod) {
+      state.pendingPeriodStartId = '';
+      state.pendingPeriodStartName = '';
+      state.notice =
+        'Inventory started. Stock quantity cells are ready to edit.';
+      return true;
+    }
+    state.notice = message;
+    return false;
+  } finally {
+    state.startingPeriod = false;
+    runtimeValue<LegacyValue>('renderStocks')();
+  }
 }
 
 export function openInventoryPeriodClose(): boolean {

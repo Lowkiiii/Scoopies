@@ -9,6 +9,7 @@ import { stockErrorText, stockMutationDeterministic } from './mutations';
 import type { LegacyValue } from './types';
 
 export type StockCellField =
+  | 'categoryName'
   | 'purchasedFrom'
   | 'lastStockedOn'
   | 'notes'
@@ -25,6 +26,7 @@ export interface StockCellFieldState {
 }
 
 const STOCK_CELL_FIELDS: StockCellField[] = [
+  'categoryName',
   'purchasedFrom',
   'lastStockedOn',
   'notes',
@@ -152,6 +154,9 @@ function stockCellValidation(
   rawValue: LegacyValue,
 ): { valid: boolean; value: string; error: string } {
   const value = String(rawValue == null ? '' : rawValue).trim();
+  if (field === 'categoryName' && value.length > 120) {
+    return { valid: false, value, error: 'Keep Category under 120 characters.' };
+  }
   if (field === 'purchasedFrom') {
     if (item.kind === 'mixture') {
       return {
@@ -259,14 +264,48 @@ function stockCellApplyRow(item: LegacyValue, row: LegacyValue): void {
   if (Object.prototype.hasOwnProperty.call(row, 'brand')) {
     item.brand = String(row.brand || '');
   }
-  item.purchasedFrom = String(row.purchased_from || row.purchasedFrom || '');
-  item.lastStockedOn = row.last_stocked_on || row.lastStockedOn || null;
-  item.notes = String(row.notes || '');
-  item.preferredUnit = String(
-    row.preferred_unit || row.preferredUnit || item.baseUnit,
+  if (
+    Object.prototype.hasOwnProperty.call(row, 'category_name') ||
+    Object.prototype.hasOwnProperty.call(row, 'inventory_category') ||
+    Object.prototype.hasOwnProperty.call(row, 'categoryName')
+  ) {
+    item.categoryName = String(
+      row.category_name || row.inventory_category || row.categoryName || '',
+    );
+  }
+  if (
+    Object.prototype.hasOwnProperty.call(row, 'purchased_from') ||
+    Object.prototype.hasOwnProperty.call(row, 'purchasedFrom')
+  ) {
+    item.purchasedFrom = String(row.purchased_from || row.purchasedFrom || '');
+  }
+  if (
+    Object.prototype.hasOwnProperty.call(row, 'last_stocked_on') ||
+    Object.prototype.hasOwnProperty.call(row, 'lastStockedOn')
+  ) {
+    item.lastStockedOn = row.last_stocked_on || row.lastStockedOn || null;
+  }
+  if (Object.prototype.hasOwnProperty.call(row, 'notes')) {
+    item.notes = String(row.notes || '');
+  }
+  if (
+    Object.prototype.hasOwnProperty.call(row, 'preferred_unit') ||
+    Object.prototype.hasOwnProperty.call(row, 'preferredUnit')
+  ) {
+    item.preferredUnit = String(
+      row.preferred_unit || row.preferredUnit || item.baseUnit,
+    );
+  }
+  if (Object.prototype.hasOwnProperty.call(row, 'active')) {
+    item.active = row.active !== false;
+  }
+  item.revision = Number(
+    row.item_revision_after ||
+      row.item_revision ||
+      row.revision ||
+      item.revision ||
+      0,
   );
-  item.active = row.active !== false;
-  item.revision = Number(row.revision || item.revision || 0);
 }
 
 async function stockCellCommitNow(
@@ -304,6 +343,7 @@ async function stockCellCommitNow(
   }
 
   const values: Record<StockCellField, string> = {
+    categoryName: String(item.categoryName || ''),
     purchasedFrom: String(item.purchasedFrom || ''),
     lastStockedOn: String(item.lastStockedOn || ''),
     notes: String(item.notes || ''),
@@ -320,38 +360,51 @@ async function stockCellCommitNow(
   runtimeValue('stockModal').submitting = true;
   stockCellUpdateElement(item.id, field, entry);
   try {
-    const v2Args = {
-      p_business_id: businessId,
-      p_inventory_item_id: item.id,
-      p_purchased_from: values.purchasedFrom || null,
-      p_last_stocked_on: values.lastStockedOn || null,
-      p_notes: values.notes || null,
-      p_preferred_unit: values.preferredUnit,
-      p_expected_revision: item.revision,
-    };
-    let response = await runtimeValue('cloud').client.rpc(
-      'pos_inventory_update_item_details_v2',
-      v2Args,
-    );
-    if (
-      response &&
-      response.error &&
-      (String(response.error.code || '') === 'PGRST202' ||
-        /function.*not found|schema cache/i.test(String(response.error.message || '')))
-    ) {
+    let response: LegacyValue;
+    if (field === 'categoryName') {
       response = await runtimeValue('cloud').client.rpc(
-        'pos_inventory_update_item_details',
+        'pos_inventory_update_item_category',
         {
           p_business_id: businessId,
           p_inventory_item_id: item.id,
-          p_brand: item.brand || null,
-          p_purchased_from: values.purchasedFrom || null,
-          p_last_stocked_on: values.lastStockedOn || null,
-          p_notes: values.notes || null,
-          p_preferred_unit: values.preferredUnit,
+          p_category: validation.value || null,
           p_expected_revision: item.revision,
         },
       );
+    } else {
+      const v2Args = {
+        p_business_id: businessId,
+        p_inventory_item_id: item.id,
+        p_purchased_from: values.purchasedFrom || null,
+        p_last_stocked_on: values.lastStockedOn || null,
+        p_notes: values.notes || null,
+        p_preferred_unit: values.preferredUnit,
+        p_expected_revision: item.revision,
+      };
+      response = await runtimeValue('cloud').client.rpc(
+        'pos_inventory_update_item_details_v2',
+        v2Args,
+      );
+      if (
+        response &&
+        response.error &&
+        (String(response.error.code || '') === 'PGRST202' ||
+          /function.*not found|schema cache/i.test(String(response.error.message || '')))
+      ) {
+        response = await runtimeValue('cloud').client.rpc(
+          'pos_inventory_update_item_details',
+          {
+            p_business_id: businessId,
+            p_inventory_item_id: item.id,
+            p_brand: item.brand || null,
+            p_purchased_from: values.purchasedFrom || null,
+            p_last_stocked_on: values.lastStockedOn || null,
+            p_notes: values.notes || null,
+            p_preferred_unit: values.preferredUnit,
+            p_expected_revision: item.revision,
+          },
+        );
+      }
     }
     const rows = runtimeValue('rpcRows')(response);
     if (
