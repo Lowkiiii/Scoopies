@@ -11,6 +11,7 @@ import {
   type StockCellField,
 } from './cell-edit';
 import { stockInlineFieldState, stockInlineLocked } from './inline-edit';
+import { stockReorderReason } from './reorder';
 import { stockStoredPending } from './storage';
 import type { LegacyValue } from './types';
 
@@ -281,12 +282,13 @@ export function stockItemCardsHtml(): string {
         : inlineLocked
           ? 'Wait for the current stock value to finish saving'
           : '';
+  const reorderReason = stockReorderReason(false);
   return (
     '<div class="stock-inventory"><table class="stock-table"><caption class="stock-table-caption">Physical ingredient and prepared mixture inventory</caption><thead><tr>' +
     '<th scope="col" data-stock-field="item">Item name</th><th scope="col" data-stock-field="brand">Brand</th><th scope="col" data-stock-field="purchased-from">Purchased from</th><th scope="col" data-stock-field="stocked-on">Date purchased</th><th scope="col" data-stock-field="on-hand">On hand</th><th scope="col" data-stock-field="unit">Unit</th><th scope="col" data-stock-field="threshold">Low-stock alert</th><th scope="col" data-stock-field="status">Status</th><th scope="col" data-stock-field="notes">Notes</th><th scope="col" data-stock-field="updated">Last updated</th>' +
     '</tr></thead><tbody>' +
     items
-      .map(function (item: LegacyValue) {
+      .map(function (item: LegacyValue, itemIndex: number) {
         const status = readStocksBinding('stockStatus', stockStatus)(item);
         const source = readStocksBinding(
           'stockSourceForItem',
@@ -309,7 +311,30 @@ export function stockItemCardsHtml(): string {
         return (
           '<tr class="stock-row stock-card" data-stock-item="' +
           runtimeValue('escapeHtml')(item.id) +
-          '"><th scope="row" class="stock-item-cell" data-stock-field="item" data-label="Item name"><div class="stock-item-line"><span class="stock-item-name">' +
+          '" data-stock-order-id="' +
+          runtimeValue('escapeHtml')(item.sourceId || item.id) +
+          '"><th scope="row" class="stock-item-cell" data-stock-field="item" data-label="Item name"><div class="stock-item-line">' +
+          (canManage
+            ? '<button class="stock-drag-handle" type="button" data-stock-drag-handle data-id="' +
+              runtimeValue('escapeHtml')(item.id) +
+              '" data-stock-order-id="' +
+              runtimeValue('escapeHtml')(item.sourceId || item.id) +
+              '" aria-label="Move ' +
+              runtimeValue('escapeHtml')(item.name) +
+              ', position ' +
+              (itemIndex + 1) +
+              ' of ' +
+              items.length +
+              '" aria-describedby="stockReorderInstructions" aria-keyshortcuts="ArrowUp ArrowDown Home End" title="' +
+              runtimeValue('escapeHtml')(
+                reorderReason ||
+                  'Drag to arrange this row. Keyboard: Arrow Up or Down, Home, or End.',
+              ) +
+              '"' +
+              (reorderReason ? ' disabled' : '') +
+              '>&#8942;&#8942;</button>'
+            : '') +
+          '<span class="stock-item-name">' +
           runtimeValue('escapeHtml')(item.name) +
           '</span><span class="stock-kind-marker' +
           (item.kind === 'mixture' ? ' mixture' : '') +
@@ -585,8 +610,13 @@ export function renderStocks(): void {
       '</div><button class="btn secondary" data-act="refreshStocks" style="margin-top:10px">Retry Stocks</button></div>';
     return;
   }
+  const reorderHelp = readOnly
+    ? ''
+    : ' Drag the grip beside an item to arrange rows; the order saves to the cloud. Clear search and filters before arranging.';
   const note =
-    '<div class="note stock-phase-note"><strong>Spreadsheet-style inventory.</strong> Type directly in a cell, then press Enter, Tab, or tap away to save; press Escape to undo the current edit. On hand is the exact physical amount counted, and a blank low-stock alert disables it. Use the three-dot item menu only for received stock, waste, or corrections. POS sales do not subtract stock yet.</div>';
+    '<div class="note stock-phase-note"><strong>Spreadsheet-style inventory.</strong> Type directly in a cell, then press Enter, Tab, or tap away to save; press Escape to undo the current edit.' +
+    reorderHelp +
+    ' On hand is the exact physical amount counted, and a blank low-stock alert disables it. Use the three-dot item menu only for received stock, waste, or corrections. POS sales do not subtract stock yet.</div>';
   const toolbar =
     '<div class="card">' +
     readStocksBinding('stockSummaryHtml', stockSummaryHtml)() +
@@ -600,11 +630,15 @@ export function renderStocks(): void {
     (runtimeValue('stockState').kind === 'mixture' ? ' selected' : '') +
     '>Prepared mixtures</option></select></div></div>' +
     readStocksBinding('stockFilterBarHtml', stockFilterBarHtml)() +
-    '<div id="stockVisibleCount" class="search-status" role="status" aria-live="polite" aria-atomic="true">' +
+    '<div class="stock-list-meta"><div id="stockVisibleCount" class="search-status" role="status" aria-live="polite" aria-atomic="true">' +
     readStocksBinding('stockFilteredItems', stockFilteredItems)().length +
     ' of ' +
     runtimeValue('stockState').items.length +
-    ' items</div><div id="stockResults">' +
+    ' items</div>' +
+    (readOnly
+      ? ''
+      : '<div id="stockReorderInstructions" class="stock-reorder-instructions">Drag the grip to arrange rows. Keyboard: Arrow Up or Down, Home, or End.</div>') +
+    '<div id="stockOrderStatus" class="stock-order-status" role="status" aria-live="polite" aria-atomic="true"></div></div><div id="stockResults">' +
     readStocksBinding('stockItemCardsHtml', stockItemCardsHtml)() +
     '</div></div>';
   const connectionWarning = runtimeValue('stockState').error

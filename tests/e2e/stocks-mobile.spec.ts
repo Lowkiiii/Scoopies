@@ -575,6 +575,16 @@ test('populated Stocks spreadsheet remains event-driven and mobile safe', async 
         const rect = control.getBoundingClientRect();
         return rect.width >= 44 && rect.height >= 44;
       }),
+      dragHandles: Array.from(
+        document.querySelectorAll('.stock-drag-handle'),
+      ).map((control) => {
+        const rect = control.getBoundingClientRect();
+        return {
+          width: rect.width,
+          height: rect.height,
+          touchAction: getComputedStyle(control).touchAction,
+        };
+      }),
     };
   });
   expect(stocksLayout.pageWidth).toBeLessThanOrEqual(
@@ -584,6 +594,12 @@ test('populated Stocks spreadsheet remains event-driven and mobile safe', async 
   expect(stocksLayout.headerVisible).toBe(true);
   if (mobileLayout) {
     expect(stocksLayout.editableControlsHaveTouchSize).toBe(true);
+    expect(
+      stocksLayout.dragHandles.every(
+        ({ width, height, touchAction }) =>
+          width >= 44 && height >= 44 && touchAction === 'none',
+      ),
+    ).toBe(true);
     expect(stocksLayout.inventoryScrollWidth).toBeGreaterThan(
       stocksLayout.inventoryClientWidth + 1,
     );
@@ -614,6 +630,192 @@ test('populated Stocks spreadsheet remains event-driven and mobile safe', async 
       stocksLayout.inventoryClientWidth + 1,
     );
   }
+});
+
+test('owner can drag stock rows without changing quantities or movement history', async ({
+  page,
+}) => {
+  const before = await page.evaluate(() => {
+    const app = window as typeof window & Record<string, any>;
+    app.__stockOrderSaveCalls = 0;
+    app.save = () => { app.__stockOrderSaveCalls += 1; };
+    return {
+      items: app.snapshot(app.stockState.items),
+      transactions: app.snapshot(app.stockState.transactions),
+    };
+  });
+
+  const source = page.locator(
+    '[data-stock-item="inventory-matcha"] .stock-drag-handle',
+  );
+  const target = page.locator('[data-stock-item="inventory-vanilla"]');
+  await expect(source).toHaveAttribute(
+    'aria-label',
+    /Move Organic Ceremonial Matcha Powder/,
+  );
+  await source.scrollIntoViewIfNeeded();
+  const sourceBox = await source.boundingBox();
+  const targetBox = await target.boundingBox();
+  expect(sourceBox).not.toBeNull();
+  expect(targetBox).not.toBeNull();
+  await page.mouse.move(
+    sourceBox!.x + sourceBox!.width / 2,
+    sourceBox!.y + sourceBox!.height / 2,
+  );
+  await page.mouse.down();
+  await page.mouse.move(
+    targetBox!.x + Math.min(24, targetBox!.width / 2),
+    targetBox!.y + 4,
+    { steps: 8 },
+  );
+  expect(
+    await page.evaluate(() => {
+      const app = window as typeof window & Record<string, any>;
+      return app.appIsEditing();
+    }),
+  ).toBe(true);
+  await page.mouse.up();
+
+  await expect(page.locator('.stock-row[data-stock-item]').nth(2)).toHaveAttribute(
+    'data-stock-item',
+    'inventory-matcha',
+  );
+  const after = await page.evaluate(() => {
+    const app = window as typeof window & Record<string, any>;
+    return {
+      order: app.state.stockOrder,
+      saveCalls: app.__stockOrderSaveCalls,
+      rpcCalls: app.__stockInlineRpcCalls,
+      items: app.stockState.items,
+      transactions: app.stockState.transactions,
+      dragging: document.body.classList.contains('stock-row-reordering'),
+      indicators: document.querySelectorAll(
+        '.stock-row-dragging,.stock-row-drop-before,.stock-row-drop-after',
+      ).length,
+    };
+  });
+  expect(after.order).toEqual([
+    'sea-salt-cream',
+    'oat-milk',
+    'matcha',
+    'vanilla',
+  ]);
+  expect(after.saveCalls).toBe(1);
+  expect(after.rpcCalls).toEqual([]);
+  expect(after.items).toEqual(before.items);
+  expect(after.transactions).toEqual(before.transactions);
+  expect(after.dragging).toBe(false);
+  expect(after.indicators).toBe(0);
+});
+
+test('keyboard row arranging persists source order and respects filters and roles', async ({
+  page,
+}) => {
+  await page.evaluate(() => {
+    const app = window as typeof window & Record<string, any>;
+    app.__stockOrderSaveCalls = 0;
+    app.save = () => { app.__stockOrderSaveCalls += 1; };
+  });
+  const matchaHandle = page.locator(
+    '[data-stock-item="inventory-matcha"] .stock-drag-handle',
+  );
+  await matchaHandle.focus();
+  await matchaHandle.press('Home');
+  await expect(page.locator('.stock-row[data-stock-item]').first()).toHaveAttribute(
+    'data-stock-item',
+    'inventory-matcha',
+  );
+  await expect(page.locator('#stockOrderStatus')).toContainText(
+    'moved',
+    { ignoreCase: true },
+  );
+  await expect(
+    page.locator(
+      '[data-stock-item="inventory-matcha"] .stock-drag-handle',
+    ),
+  ).toBeFocused();
+  const persisted = await page.evaluate(() => {
+    const app = window as typeof window & Record<string, any>;
+    return {
+      order: app.state.stockOrder,
+      normalized: app.normalizeState(app.snapshot(app.state)).stockOrder,
+      saveCalls: app.__stockOrderSaveCalls,
+    };
+  });
+  expect(persisted.order).toEqual([
+    'matcha',
+    'sea-salt-cream',
+    'oat-milk',
+    'vanilla',
+  ]);
+  expect(persisted.normalized).toEqual(persisted.order);
+  expect(persisted.saveCalls).toBe(1);
+
+  const rebuiltOrder = await page.evaluate(() => {
+    const app = window as typeof window & Record<string, any>;
+    app.stockState.items = app.stockState.items.map((item: any) => ({
+      ...item,
+      id: 'rebuilt-' + item.id,
+    }));
+    app.renderStocks();
+    return Array.from(
+      document.querySelectorAll<HTMLElement>('[data-stock-order-id]'),
+      (element) => element.dataset.stockOrderId,
+    ).filter((id, index, ids) => id && ids.indexOf(id) === index);
+  });
+  expect(rebuiltOrder).toEqual([
+    'matcha',
+    'sea-salt-cream',
+    'oat-milk',
+    'vanilla',
+  ]);
+
+  await page
+    .locator(
+      '.stock-summary [data-act="setStockStatus"][data-status="low"]',
+    )
+    .click();
+  const filteredHandle = page.locator('.stock-drag-handle');
+  await expect(filteredHandle).toHaveCount(1);
+  await expect(filteredHandle).toBeDisabled();
+  await expect(filteredHandle).toHaveAttribute(
+    'title',
+    'Clear the search and filters before arranging rows',
+  );
+
+  await page.evaluate(() => {
+    const app = window as typeof window & Record<string, any>;
+    app.posContext.role = 'cashier';
+    app.stockState.status = 'all';
+    app.renderStocks();
+  });
+  await expect(page.locator('.stock-drag-handle')).toHaveCount(0);
+});
+
+test('manual order ignores blank duplicate and stale saved identifiers', async ({
+  page,
+}) => {
+  const order = await page.evaluate(() => {
+    const app = window as typeof window & Record<string, any>;
+    app.state.stockOrder = [
+      'vanilla',
+      '',
+      'vanilla',
+      'removed-source',
+      'oat-milk',
+    ];
+    app.renderStocks();
+    return Array.from(
+      document.querySelectorAll<HTMLElement>('.stock-row[data-stock-order-id]'),
+      (row) => row.dataset.stockOrderId,
+    );
+  });
+  expect(order).toEqual([
+    'vanilla',
+    'oat-milk',
+    'sea-salt-cream',
+    'matcha',
+  ]);
 });
 
 test('rapid spreadsheet edits serialize and movement waits for the active save', async ({
