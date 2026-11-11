@@ -102,13 +102,13 @@ async function expectStickyGrid(page: Page) {
   const initial = await inventory.evaluate((element) => {
     const scroller = element as HTMLElement;
     const header = scroller.querySelector(
-      '.stock-table thead th[data-stock-field="item"]',
+      '.stock-table thead th[data-stock-field="category"]',
     ) as HTMLElement;
     const movingHeader = scroller.querySelector(
       '.stock-table thead th:nth-child(4)',
     ) as HTMLElement;
     const firstColumn = scroller.querySelector(
-      '.stock-table tbody th[data-stock-field="item"]',
+      '.stock-table tbody td[data-stock-field="category"]',
     ) as HTMLElement;
     const style = getComputedStyle(scroller);
     return {
@@ -149,13 +149,13 @@ async function expectStickyGrid(page: Page) {
   const scrolled = await inventory.evaluate((element) => {
     const scroller = element as HTMLElement;
     const header = scroller.querySelector(
-      '.stock-table thead th[data-stock-field="item"]',
+      '.stock-table thead th[data-stock-field="category"]',
     ) as HTMLElement;
     const movingHeader = scroller.querySelector(
       '.stock-table thead th:nth-child(4)',
     ) as HTMLElement;
     const visibleFirstColumn = scroller.querySelectorAll(
-      '.stock-table tbody th[data-stock-field="item"]',
+      '.stock-table tbody td[data-stock-field="category"]',
     )[8] as HTMLElement;
     return {
       inventoryTop: scroller.getBoundingClientRect().top,

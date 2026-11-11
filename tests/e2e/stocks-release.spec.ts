@@ -513,8 +513,8 @@ test('authenticated data-heavy Stocks view stays usable at a mobile width', asyn
   });
   await expect(stockTable).toBeVisible();
   await expect(stockTable.getByRole('columnheader')).toHaveText([
-    'Item name',
     'Category',
+    'Item name',
     'Purchased from',
     'Date purchased',
     'On hand',
@@ -587,8 +587,8 @@ test('authenticated data-heavy Stocks view stays usable at a mobile width', asyn
       cells.map((cell) => (cell as HTMLElement).dataset.stockField),
     );
   expect(firstRowLabels).toEqual([
-    'item',
     'category',
+    'item',
     'purchased-from',
     'stocked-on',
     'on-hand',

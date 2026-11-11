@@ -332,8 +332,8 @@ test('populated Stocks spreadsheet remains event-driven and mobile safe', async 
   });
   await expect(stockTable).toBeVisible();
   await expect(stockTable.getByRole('columnheader')).toHaveText([
-    'Item name',
     'Category',
+    'Item name',
     'Purchased from',
     'Date purchased',
     'On hand',
@@ -357,8 +357,8 @@ test('populated Stocks spreadsheet remains event-driven and mobile safe', async 
     ),
   ).toEqual(
     Array.from({ length: 4 }, () => [
-      'item',
       'category',
+      'item',
       'purchased-from',
       'stocked-on',
       'on-hand',

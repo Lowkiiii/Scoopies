@@ -355,7 +355,7 @@
   .stock-table [data-stock-field='status']{width:95px}
   .stock-table [data-stock-field='notes']{width:130px}
   .stock-table [data-stock-field='updated']{width:110px}
-  .stock-table thead [data-stock-field='item']{left:0;z-index:5}
+  .stock-table thead [data-stock-field='category']{left:0;z-index:5}
   .stock-row{transition:background-color .12s ease,box-shadow .12s ease}
   .stock-row:hover{background:var(--pink-soft)}
   .stock-row:focus-within{background:var(--pink-soft);box-shadow:inset 3px 0 0 var(--focus)}
@@ -363,9 +363,9 @@
     color:var(--ink-soft);font-size:12px;line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .stock-row>th:last-child,.stock-row>td:last-child{border-right:0}
   .stock-table tbody .stock-row:last-child>th,.stock-table tbody .stock-row:last-child>td{border-bottom:0}
-  .stock-table tbody th[data-stock-field='item']{position:sticky;left:0;z-index:2;background:var(--card);text-align:left;
-    text-transform:none;letter-spacing:normal;color:var(--ink);box-shadow:1px 0 0 var(--line)}
-  .stock-row:hover th[data-stock-field='item'],.stock-row:focus-within th[data-stock-field='item']{background:var(--pink-soft)}
+  .stock-table tbody td[data-stock-field='category']{position:sticky;left:0;z-index:2;background:var(--card);box-shadow:1px 0 0 var(--line)}
+  .stock-row:hover td[data-stock-field='category'],.stock-row:focus-within td[data-stock-field='category']{background:var(--pink-soft)}
+  .stock-table tbody th[data-stock-field='item']{text-align:left;text-transform:none;letter-spacing:normal;color:var(--ink)}
   .stock-item-line{display:flex;align-items:center;gap:6px;min-width:0}
   .stock-drag-handle{display:inline-flex;align-items:center;justify-content:center;flex:0 0 30px;width:30px;height:30px;padding:0;border:1px solid transparent;border-radius:5px;background:transparent;color:var(--navy);font-size:17px;font-weight:900;line-height:1;letter-spacing:-5px;cursor:grab;touch-action:none;user-select:none}
   .stock-drag-handle:hover:not(:disabled){border-color:var(--line);background:var(--pink-soft)}

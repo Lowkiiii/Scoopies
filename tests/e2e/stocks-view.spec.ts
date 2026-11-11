@@ -875,8 +875,8 @@ test('typed Stocks view matches the retained classic view fingerprint', async ({
   });
   await expect(stockTable).toBeVisible();
   await expect(stockTable.getByRole('columnheader')).toHaveText([
-    'Item name',
     'Category',
+    'Item name',
     'Purchased from',
     'Date purchased',
     'On hand',
