@@ -2,6 +2,7 @@ import { readStocksBinding, runtimeValue } from './bindings';
 import {
   stockFilteredItems,
   stockFormatQuantity,
+  stockRowTint,
 } from './formatting';
 import {
   stockCellFieldState,
@@ -409,7 +410,7 @@ export function stockItemCardsHtml(): string {
         ? String(item.rowColor).toUpperCase()
         : '';
       const rowStyle = color
-        ? ' style="--stock-row-tint:' + color + '24;--stock-row-accent:' + color + '"'
+        ? ' style="--stock-row-tint:' + stockRowTint(color) + ';--stock-row-accent:' + color + '"'
         : '';
       const orderId = item.sourceType === 'packaging'
         ? 'packaging:' + String(item.sourceId || item.id)

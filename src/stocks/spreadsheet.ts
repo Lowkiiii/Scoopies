@@ -4,6 +4,7 @@ import {
   writeRuntimeBinding,
 } from './bindings';
 import { ensureActiveInventoryPeriod, loadStocks } from './loading';
+import { stockRowTint } from './formatting';
 import { stockErrorText } from './mutations';
 import { stockInlineLocked, stockQueueInlineMutation } from './inline-edit';
 import type { LegacyValue } from './types';
@@ -479,7 +480,7 @@ export function updateStockColorDraft(value: LegacyValue): boolean {
   if (preview) {
     preview.style.setProperty(
       '--stock-row-tint',
-      /^#[0-9A-F]{6}$/.test(color) ? color + '24' : 'transparent',
+      stockRowTint(color),
     );
   }
   return true;
@@ -671,7 +672,9 @@ export function renderStockSpreadsheetModal(): boolean {
       '"' + (modal.submitting ? ' disabled' : '') + '></div><div><label class="fld" for="stockColorHex">Hex color</label><input id="stockColorHex" data-stock-color-input maxlength="7" value="' +
       runtimeValue<LegacyValue>('escapeHtml')(color) +
       '" placeholder="#FFD0DB" autocomplete="off"' + (modal.submitting ? ' disabled' : '') + '></div></div><div id="stockColorPreview" class="stock-color-preview" style="--stock-row-tint:' +
-      (/^#[0-9A-F]{6}$/.test(color) ? color + '24' : 'transparent') +
+      stockRowTint(color) +
+      ';--stock-row-accent:' +
+      (/^#[0-9A-F]{6}$/.test(color) ? color : 'transparent') +
       '"><strong>Preview</strong><span>' + runtimeValue<LegacyValue>('escapeHtml')(item.name) + '</span></div><div id="stockModalError" class="modal-error" aria-live="assertive">' +
       runtimeValue<LegacyValue>('escapeHtml')(modal.error) +
       '</div><div class="modal-actions"><button class="btn secondary" data-act="clearStockRowColor"' + (modal.submitting ? ' disabled' : '') + '>Clear color</button><button class="btn secondary" data-act="closeStockModal"' + (modal.submitting ? ' disabled' : '') + '>Cancel</button><button class="btn" data-act="saveStockRowColor"' + (modal.submitting ? ' disabled' : '') + '>' + (modal.submitting ? 'Saving...' : 'Save color') + '</button></div>';
