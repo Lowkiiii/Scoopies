@@ -1,6 +1,15 @@
 import { readStocksBinding, runtimeValue } from './bindings';
 import type { LegacyValue } from './types';
 
+const STOCK_ROW_TINT_ALPHA = '59';
+
+export function stockRowTint(color: LegacyValue): string {
+  const normalized = String(color || '').trim().toUpperCase();
+  return /^#[0-9A-F]{6}$/.test(normalized)
+    ? normalized + STOCK_ROW_TINT_ALPHA
+    : 'transparent';
+}
+
 export function stockNumber(value: LegacyValue): number {
   const parsed = Number(value);
   return isFinite(parsed) ? parsed : 0;

@@ -987,6 +987,13 @@ test('manager opening Stocks auto-starts inventory and recovers a lost response'
   await page.locator('[data-act="chooseStockRowColor"]').first().click();
   await page.locator('[data-act="saveStockRowColor"]').click();
   await expect(page.locator('#stockModal')).toBeHidden();
+  await expect(row).toHaveAttribute(
+    'style',
+    /--stock-row-tint:#FFD0DB59;--stock-row-accent:#FFD0DB/,
+  );
+  await expect(
+    row.locator('[data-stock-field="category"]'),
+  ).toHaveCSS('background-image', /rgb\(255, 208, 219\)/);
   await expect.poll(() =>
     page.evaluate(() =>
       (window as any).__stockInlineRpcCalls.some(
