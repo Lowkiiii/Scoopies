@@ -16,6 +16,34 @@ insert into inventory15_context (business_id)
 select public.pos_bootstrap_business('Inventory 15 Test', 'I15', 'Asia/Manila');
 
 reset role;
+-- Earlier rollback roundtrips intentionally leave zero-balance compatibility
+-- fixtures behind. Archive/remove only those known CI fixtures so this
+-- behavior transaction can own the single global costing document.
+update public.pos_inventory_items as item
+set active = false, revision = item.revision + 1
+where item.source_costing_id in (
+    'inventory-2b-roundtrip-source',
+    'i14-backfill-category',
+    'i14-backfill-uncategorized',
+    'i14-backfill-removed',
+    'i14-backfill-cup'
+  )
+  and item.active and public._pos_inventory_balance(item.business_id, item.id) = 0;
+update public.scoopies_state
+set data = jsonb_set(data, '{ingredients}', (
+      select coalesce(jsonb_agg(source.value order by source.ordinality), '[]'::jsonb)
+      from jsonb_array_elements(coalesce(data -> 'ingredients', '[]'::jsonb))
+        with ordinality as source(value, ordinality)
+      where btrim(coalesce(source.value ->> 'id', '')) not in (
+        'inventory-2b-roundtrip-source',
+        'i14-backfill-category',
+        'i14-backfill-uncategorized',
+        'i14-backfill-removed'
+      )
+    ), true),
+    updated_at = clock_timestamp()
+where id = 'main';
+
 with inserted as (
   insert into public.pos_inventory_items (
     business_id, source_costing_ingredient_id, source_type,

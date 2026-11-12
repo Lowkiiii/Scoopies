@@ -18,11 +18,35 @@ insert into public.pos_business_members (
   'owner', 'Roundtrip Owner'
 );
 
+update public.pos_inventory_items as item
+set active = false, revision = item.revision + 1
+where item.source_costing_id in (
+    'inventory-2b-roundtrip-source',
+    'i14-backfill-category',
+    'i14-backfill-uncategorized',
+    'i14-backfill-removed',
+    'i14-backfill-cup'
+  )
+  and item.active and public._pos_inventory_balance(item.business_id, item.id) = 0;
+
 update public.scoopies_state
 set data = jsonb_set(
       data,
       '{ingredients}',
-      coalesce(data -> 'ingredients', '[]'::jsonb) || jsonb_build_array(
+      -- Prior rollback checks leave compatibility sources attached to their
+      -- own fixture businesses. Exclude only those known disposable sources
+      -- before exercising schema-14 synchronization for this business.
+      coalesce((
+        select jsonb_agg(source.value order by source.ordinality)
+        from jsonb_array_elements(coalesce(data -> 'ingredients', '[]'::jsonb))
+          with ordinality as source(value, ordinality)
+        where btrim(coalesce(source.value ->> 'id', '')) not in (
+          'inventory-2b-roundtrip-source',
+          'i14-backfill-category',
+          'i14-backfill-uncategorized',
+          'i14-backfill-removed'
+        )
+      ), '[]'::jsonb) || jsonb_build_array(
         jsonb_build_object(
           'id', 'i15-roundtrip-old', 'kind', 'purchased',
           'name', 'Rollback Seeded Source', 'purchaseQty', 2,
