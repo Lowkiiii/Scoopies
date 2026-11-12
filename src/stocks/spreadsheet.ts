@@ -3,7 +3,7 @@ import {
   runtimeValue,
   writeRuntimeBinding,
 } from './bindings';
-import { loadStocks } from './loading';
+import { ensureActiveInventoryPeriod, loadStocks } from './loading';
 import { stockErrorText } from './mutations';
 import { stockInlineLocked, stockQueueInlineMutation } from './inline-edit';
 import type { LegacyValue } from './types';
@@ -543,65 +543,8 @@ export function openInventoryPeriodStart(): boolean {
 }
 
 export async function startInventoryPeriodNow(): Promise<boolean> {
-  const state = runtimeValue<LegacyValue>('stockState');
-  if (
-    stockSpreadsheetLocked() ||
-    state.activePeriod ||
-    state.startingPeriod
-  ) {
-    return false;
-  }
-  state.startingPeriod = true;
-  runtimeValue<LegacyValue>('renderStocks')();
-  if (!state.pendingPeriodStartId) {
-    const now = new Date();
-    state.pendingPeriodStartId = runtimeValue<LegacyValue>('posUuid')();
-    state.pendingPeriodStartName =
-      'Inventory ' +
-      now.toLocaleDateString('en-PH', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-      });
-  }
-  const name = String(state.pendingPeriodStartName || 'Current inventory');
-  try {
-    const rows = runtimeValue<LegacyValue>('rpcRows')(
-      await runtimeValue<LegacyValue>('cloud').client.rpc(
-        'pos_inventory_start_period',
-        {
-          p_business_id: String(runtimeValue<LegacyValue>('posContext').businessId),
-          p_client_period_id: state.pendingPeriodStartId,
-          p_name: name,
-          p_carry_forward: true,
-        },
-      ),
-    );
-    if (!rows.length) throw new Error('Missing inventory period response');
-    await loadStocks({ background: true });
-    if (!state.activePeriod) {
-      throw new Error('The inventory start could not be confirmed. Try again.');
-    }
-    state.pendingPeriodStartId = '';
-    state.pendingPeriodStartName = '';
-    state.notice = 'Inventory started. Stock quantity cells are ready to edit.';
-    return true;
-  } catch (error) {
-    const message = stockErrorText(error);
-    await loadStocks({ background: true });
-    if (state.activePeriod) {
-      state.pendingPeriodStartId = '';
-      state.pendingPeriodStartName = '';
-      state.notice =
-        'Inventory started. Stock quantity cells are ready to edit.';
-      return true;
-    }
-    state.notice = message;
-    return false;
-  } finally {
-    state.startingPeriod = false;
-    runtimeValue<LegacyValue>('renderStocks')();
-  }
+  if (stockSpreadsheetLocked()) return false;
+  return ensureActiveInventoryPeriod({ announce: true });
 }
 
 export function openInventoryPeriodClose(): boolean {

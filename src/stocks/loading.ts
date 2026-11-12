@@ -309,6 +309,87 @@ export async function loadStocks(options?: LegacyValue): Promise<boolean> {
   }
 }
 
+export async function ensureActiveInventoryPeriod(
+  options?: LegacyValue,
+): Promise<boolean> {
+  const state = runtimeValue<LegacyValue>('stockState');
+  const announce = !options || options.announce !== false;
+  if (state.activePeriod) return true;
+  if (
+    !runtimeValue<LegacyValue>('stockCanManage')() ||
+    !runtimeValue<LegacyValue>('cloud').client ||
+    !runtimeValue<LegacyValue>('session') ||
+    !runtimeValue<LegacyValue>('session').user ||
+    !runtimeValue<LegacyValue>('posContext').businessId ||
+    state.loading ||
+    state.refreshing ||
+    state.startingPeriod ||
+    state.sourceConflict ||
+    runtimeValue<LegacyValue>('stockModal').submitting
+  ) {
+    return false;
+  }
+
+  state.startingPeriod = true;
+  runtimeValue<LegacyValue>('renderStocks')();
+  if (!state.pendingPeriodStartId) {
+    const now = new Date();
+    state.pendingPeriodStartId = runtimeValue<LegacyValue>('posUuid')();
+    state.pendingPeriodStartName =
+      'Inventory ' +
+      now.toLocaleDateString('en-PH', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      });
+  }
+
+  const name = String(state.pendingPeriodStartName || 'Current inventory');
+  try {
+    const rows = runtimeValue<LegacyValue>('rpcRows')(
+      await runtimeValue<LegacyValue>('cloud').client.rpc(
+        'pos_inventory_start_period',
+        {
+          p_business_id: String(
+            runtimeValue<LegacyValue>('posContext').businessId,
+          ),
+          p_client_period_id: state.pendingPeriodStartId,
+          p_name: name,
+          p_carry_forward: true,
+        },
+      ),
+    );
+    if (!rows.length) throw new Error('Missing inventory period response');
+    await loadStocks({ background: true });
+    if (!state.activePeriod) {
+      throw new Error('The editable inventory could not be prepared. Try again.');
+    }
+    state.pendingPeriodStartId = '';
+    state.pendingPeriodStartName = '';
+    if (announce) {
+      state.notice = 'Inventory is ready. Edit the white cells directly.';
+    }
+    return true;
+  } catch (error) {
+    const message = stockErrorText(error);
+    await loadStocks({ background: true });
+    if (state.activePeriod) {
+      state.pendingPeriodStartId = '';
+      state.pendingPeriodStartName = '';
+      if (announce) {
+        state.notice = 'Inventory is ready. Edit the white cells directly.';
+      }
+      return true;
+    }
+    state.notice =
+      'Stock editing could not be prepared automatically. ' + message;
+    return false;
+  } finally {
+    state.startingPeriod = false;
+    runtimeValue<LegacyValue>('renderStocks')();
+  }
+}
+
 export async function openStocks(refresh: LegacyValue): Promise<boolean> {
   if (!runtimeValue('session')) {
     runtimeValue('renderStocks')();
@@ -323,12 +404,26 @@ export async function openStocks(refresh: LegacyValue): Promise<boolean> {
   }
   if (runtimeValue('stockState').loaded && !refresh) {
     runtimeValue('renderStocks')();
+    if (
+      !runtimeValue<LegacyValue>('stockState').activePeriod &&
+      runtimeValue<LegacyValue>('stockState').items.length
+    ) {
+      await ensureActiveInventoryPeriod({ announce: false });
+    }
     return true;
   }
-  return readStocksBinding('loadStocks', loadStocks)({
+  const loaded = await readStocksBinding('loadStocks', loadStocks)({
     background: !!(
       runtimeValue('stockState').loaded &&
       runtimeValue('stockState').items.length
     ),
   });
+  if (
+    loaded &&
+    !runtimeValue<LegacyValue>('stockState').activePeriod &&
+    runtimeValue<LegacyValue>('stockState').items.length
+  ) {
+    await ensureActiveInventoryPeriod({ announce: false });
+  }
+  return loaded;
 }

@@ -338,6 +338,16 @@ function stockSpreadsheetMoney(centavos: LegacyValue): string {
     : runtimeValue('peso')(Number(centavos) / 100);
 }
 
+function stockDragGripIcon(): string {
+  return (
+    '<svg class="stock-control-icon stock-grip-icon" viewBox="0 0 12 18" aria-hidden="true" focusable="false">' +
+    '<circle cx="3" cy="3" r="1.25"></circle><circle cx="9" cy="3" r="1.25"></circle>' +
+    '<circle cx="3" cy="9" r="1.25"></circle><circle cx="9" cy="9" r="1.25"></circle>' +
+    '<circle cx="3" cy="15" r="1.25"></circle><circle cx="9" cy="15" r="1.25"></circle>' +
+    '</svg>'
+  );
+}
+
 function stockSpreadsheetStatus(item: LegacyValue): LegacyValue {
   const serverStatus = String(item.stockStatus || '').toUpperCase();
   if (!item.periodId || serverStatus === 'NOT COUNTED' || item.openingStock == null) {
@@ -418,11 +428,11 @@ export function stockItemCardsHtml(): string {
         '</div></td>' +
         '<th scope="row" data-stock-field="item"><div class="stock-item-line">' +
         (canManage
-          ? '<button class="stock-drag-handle" type="button" data-stock-drag-handle data-id="' + runtimeValue('escapeHtml')(item.id) + '" data-stock-order-id="' + runtimeValue('escapeHtml')(orderId) + '" aria-label="Move ' + runtimeValue('escapeHtml')(item.name) + ', position ' + (itemIndex + 1) + ' of ' + items.length + '" aria-describedby="stockReorderInstructions" aria-keyshortcuts="ArrowUp ArrowDown Home End" title="' + runtimeValue('escapeHtml')(reorderReason || 'Drag to arrange this row') + '"' + (reorderReason ? ' disabled' : '') + '>&#8942;&#8942;</button>'
+          ? '<button class="stock-drag-handle" type="button" data-stock-drag-handle data-id="' + runtimeValue('escapeHtml')(item.id) + '" data-stock-order-id="' + runtimeValue('escapeHtml')(orderId) + '" aria-label="Move ' + runtimeValue('escapeHtml')(item.name) + ', position ' + (itemIndex + 1) + ' of ' + items.length + '" aria-describedby="stockReorderInstructions" aria-keyshortcuts="ArrowUp ArrowDown Home End" title="' + runtimeValue('escapeHtml')(reorderReason || 'Drag to arrange this row') + '"' + (reorderReason ? ' disabled' : '') + '>' + stockDragGripIcon() + '</button>'
           : '') +
         '<span class="stock-item-name">' + runtimeValue('escapeHtml')(item.name) + '</span><span class="stock-kind-marker' + (item.kind === 'mixture' ? ' mixture' : '') + '">' + (item.kind === 'mixture' ? 'Mix' : item.sourceType === 'packaging' ? 'Pack' : 'Item') + '</span>' +
         (canManage
-          ? '<button class="stock-color-swatch" type="button" data-act="openStockColor" data-id="' + runtimeValue('escapeHtml')(item.id) + '" aria-label="Choose row color for ' + runtimeValue('escapeHtml')(item.name) + '" title="Choose row color" style="--stock-color:' + (color || '#FFFFFF') + '"><span aria-hidden="true">&#127912;</span></button>'
+          ? '<button class="stock-color-swatch" type="button" data-act="openStockColor" data-id="' + runtimeValue('escapeHtml')(item.id) + '" aria-label="Choose row color for ' + runtimeValue('escapeHtml')(item.name) + '" title="Choose row color" style="--stock-color:' + (color || '#FFFFFF') + '"><span class="stock-color-dot" aria-hidden="true"></span></button>'
           : '') +
         '</div></th>' +
         '<td class="stock-unit-cell" data-stock-field="unit">' +

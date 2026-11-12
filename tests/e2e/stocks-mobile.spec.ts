@@ -757,6 +757,47 @@ test('populated Stocks spreadsheet remains event-driven and mobile safe', async 
     ),
   ).toHaveValue('70');
 
+  for (const formulaField of [
+    'used',
+    'remaining',
+    'unit-cost',
+    'remaining-value',
+    'status',
+  ]) {
+    await expect(
+      page.locator(
+        `.stock-row [data-stock-field="${formulaField}"] .stock-sheet-input`,
+      ),
+    ).toHaveCount(0);
+  }
+  await expect(
+    page.locator('.stock-row .stock-drag-handle .stock-grip-icon'),
+  ).toHaveCount(4);
+  await expect(
+    page.locator('.stock-row .stock-grip-icon circle'),
+  ).toHaveCount(24);
+  await expect(
+    page.locator('.stock-row .stock-color-swatch .stock-color-dot'),
+  ).toHaveCount(4);
+  expect(
+    await page.locator('.stock-row .stock-drag-handle').evaluateAll((controls) =>
+      controls.every(
+        (control) =>
+          !(control.textContent || '').trim() &&
+          /^Move\s/.test(control.getAttribute('aria-label') || ''),
+      ),
+    ),
+  ).toBe(true);
+  expect(
+    await page.locator('.stock-row .stock-color-swatch').evaluateAll((controls) =>
+      controls.every(
+        (control) =>
+          !(control.textContent || '').trim() &&
+          /^Choose row color for\s/.test(control.getAttribute('aria-label') || ''),
+      ),
+    ),
+  ).toBe(true);
+
   const stocksLayout = await page.evaluate(() => {
     const root = document.documentElement;
     const workspace = document.querySelector('.wrap') as HTMLElement;
@@ -798,6 +839,33 @@ test('populated Stocks spreadsheet remains event-driven and mobile safe', async 
           touchAction: getComputedStyle(control).touchAction,
         };
       }),
+      colorControls: Array.from(
+        document.querySelectorAll('.stock-color-swatch'),
+      ).map((control) => {
+        const rect = control.getBoundingClientRect();
+        return { width: rect.width, height: rect.height };
+      }),
+      iconSlots: Array.from(
+        document.querySelectorAll<HTMLElement>('.stock-row[data-stock-item]'),
+      ).map((row) => {
+        const rowRect = row.getBoundingClientRect();
+        const dragRect = row
+          .querySelector<HTMLElement>('.stock-drag-handle')!
+          .getBoundingClientRect();
+        const colorRect = row
+          .querySelector<HTMLElement>('.stock-color-swatch')!
+          .getBoundingClientRect();
+        return {
+          dragCenterX: dragRect.left + dragRect.width / 2,
+          colorCenterX: colorRect.left + colorRect.width / 2,
+          dragCenterOffsetY:
+            dragRect.top + dragRect.height / 2 -
+            (rowRect.top + rowRect.height / 2),
+          colorCenterOffsetY:
+            colorRect.top + colorRect.height / 2 -
+            (rowRect.top + rowRect.height / 2),
+        };
+      }),
     };
   });
   expect(stocksLayout.pageWidth).toBeLessThanOrEqual(
@@ -805,12 +873,33 @@ test('populated Stocks spreadsheet remains event-driven and mobile safe', async 
   );
   expect(stocksLayout.inventoryContained).toBe(true);
   expect(stocksLayout.headerVisible).toBe(true);
+  const dragCenters = stocksLayout.iconSlots.map(({ dragCenterX }) => dragCenterX);
+  const colorCenters = stocksLayout.iconSlots.map(
+    ({ colorCenterX }) => colorCenterX,
+  );
+  expect(Math.max(...dragCenters) - Math.min(...dragCenters)).toBeLessThanOrEqual(
+    1,
+  );
+  expect(
+    Math.max(...colorCenters) - Math.min(...colorCenters),
+  ).toBeLessThanOrEqual(1);
+  expect(
+    stocksLayout.iconSlots.every(
+      ({ dragCenterOffsetY, colorCenterOffsetY }) =>
+        Math.abs(dragCenterOffsetY) <= 1 && Math.abs(colorCenterOffsetY) <= 1,
+    ),
+  ).toBe(true);
   if (mobileLayout) {
     expect(stocksLayout.editableControlsHaveTouchSize).toBe(true);
     expect(
       stocksLayout.dragHandles.every(
         ({ width, height, touchAction }) =>
           width >= 44 && height >= 44 && touchAction === 'none',
+      ),
+    ).toBe(true);
+    expect(
+      stocksLayout.colorControls.every(
+        ({ width, height }) => width >= 44 && height >= 44,
       ),
     ).toBe(true);
     expect(stocksLayout.inventoryScrollWidth).toBeGreaterThan(
@@ -845,12 +934,13 @@ test('populated Stocks spreadsheet remains event-driven and mobile safe', async 
   }
 });
 
-test('manual category and palette work before a period and quick start recovers a lost response', async ({
+test('manager opening Stocks auto-starts inventory and recovers a lost response', async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1536, height: 900 });
-  await page.evaluate(() => {
+  await page.evaluate(async () => {
     const app = window as typeof window & Record<string, any>;
+    app.posContext.role = 'manager';
     app.stockState.activePeriod = null;
     app.__stockActivePeriod = null;
     app.stockState.items.forEach((item: any) => {
@@ -866,7 +956,8 @@ test('manual category and palette work before a period and quick start recovers 
       }
       return response;
     };
-    app.renderStocks();
+    const stocks = app.MatchaLunaApp.domains.stocks as Record<string, any>;
+    await stocks.openStocks(false);
   });
 
   const row = page.locator('[data-stock-item="inventory-matcha"]');
@@ -875,7 +966,14 @@ test('manual category and palette work before a period and quick start recovers 
   const palette = row.locator('[data-act="openStockColor"]');
   await expect(category).toBeEnabled();
   await expect(palette).toBeEnabled();
-  await expect(opening).toBeDisabled();
+
+  await expect.poll(() =>
+    page.evaluate(() => (window as any).stockState.activePeriod?.id || ''),
+  ).not.toBe('');
+  await expect(opening).toBeEnabled();
+  await expect(
+    page.locator('[data-act="startInventoryPeriodNow"]'),
+  ).toHaveCount(0);
 
   await category.fill('Popup essentials');
   await category.press('Enter');
@@ -897,11 +995,6 @@ test('manual category and palette work before a period and quick start recovers 
     ),
   ).toBe(true);
 
-  await page.locator('[data-act="startInventoryPeriodNow"]').click();
-  await expect.poll(() =>
-    page.evaluate(() => (window as any).stockState.activePeriod?.id || ''),
-  ).not.toBe('');
-  await expect(row.locator('[data-stock-sheet-field="openingStock"]')).toBeEnabled();
   const startState = await page.evaluate(() => {
     const app = window as typeof window & Record<string, any>;
     const calls = app.__stockInlineRpcCalls.filter(
