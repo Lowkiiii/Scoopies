@@ -124,6 +124,12 @@ jobs:
           run_sql supabase/tests/inventory_manual_categories_schema_checks.sql
           run_sql supabase/tests/inventory_manual_categories_behavior_checks.sql
 
+          run_sql supabase/migrations/202611130015_inventory_manual_purchase_facts.sql
+          run_sql supabase/tests/inventory_manual_purchase_facts_schema_checks.sql
+          run_sql supabase/tests/inventory_manual_purchase_facts_behavior_checks.sql
+          run_sql supabase/tests/inventory_manual_purchase_facts_rollback_roundtrip_checks.sql
+          run_sql supabase/tests/inventory_manual_purchase_facts_schema_checks.sql
+
   browser-tests:
     name: Browser tests
     runs-on: ubuntu-latest

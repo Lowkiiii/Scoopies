@@ -298,6 +298,11 @@ Inventory artifacts:
 - [Inventory manual-category schema checks](supabase/tests/inventory_manual_categories_schema_checks.sql)
 - [Inventory manual-category behavior checks](supabase/tests/inventory_manual_categories_behavior_checks.sql)
 - [Inventory manual-category rollback round-trip checks](supabase/tests/inventory_manual_categories_rollback_roundtrip_checks.sql)
+- [Inventory manual purchase-facts migration](supabase/migrations/202611130015_inventory_manual_purchase_facts.sql)
+- [Inventory manual purchase-facts rollback](supabase/rollback/202611130015_inventory_manual_purchase_facts.rollback.sql)
+- [Inventory manual purchase-facts schema checks](supabase/tests/inventory_manual_purchase_facts_schema_checks.sql)
+- [Inventory manual purchase-facts behavior checks](supabase/tests/inventory_manual_purchase_facts_behavior_checks.sql)
+- [Inventory manual purchase-facts rollback round-trip checks](supabase/tests/inventory_manual_purchase_facts_rollback_roundtrip_checks.sql)
 
 Never commit a Supabase service-role key or database password. The web app uses
 only the public project URL and publishable key; authorization is enforced by
