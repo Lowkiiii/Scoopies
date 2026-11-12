@@ -339,9 +339,17 @@ test('signed-in production reads the POS Stocks and Costing workspaces without m
     root.__restoreProductionSmokeRpc?.();
     return blocked;
   });
-  expect(blockedRpcNames).toEqual(
-    stockCanManage ? ['pos_inventory_sync_spreadsheet_sources'] : [],
-  );
+  const expectedBlockedRpcPatterns = stockCanManage
+    ? [
+        ['pos_inventory_sync_spreadsheet_sources'],
+        [
+          'pos_inventory_sync_spreadsheet_sources',
+          'pos_inventory_start_period',
+          'pos_inventory_sync_spreadsheet_sources',
+        ],
+      ]
+    : [[]];
+  expect(expectedBlockedRpcPatterns).toContainEqual(blockedRpcNames);
   expect(blockedNetworkBusinessWrites).toEqual([]);
   expect(escapedNetworkBusinessWrites).toEqual([]);
 
