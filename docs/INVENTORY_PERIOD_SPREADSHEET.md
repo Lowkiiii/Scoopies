@@ -18,7 +18,7 @@ The spreadsheet always uses these columns in this order.
 
 | # | Column | Editable? | Meaning |
 |---:|---|---|---|
-| 1 | Category | Yes, for ingredients | Select the shared ingredient category directly in Stocks or on the Ingredients page; both views use the same category. Packaging remains in the fixed `Packaging` category. |
+| 1 | Category | Yes | A free-text operational label owned by Stocks. It does not rewrite or follow the category on the Ingredients page. |
 | 2 | Item | No | The ingredient, prepared mixture, or packaging name from costing. Renaming the source updates the current inventory label without rewriting old ledger history. |
 | 3 | Unit | Yes, compatible units only | The unit used to enter and display this row. Weight may switch between `g` and `kg`; volume may switch between `ml` and `L`; pieces remain `piece`. Changing this does not change the physical amount. |
 | 4 | Opening Stock | Yes, while a period is open | The physical amount available at the beginning of the period. Enter `0` when the item was counted and none was available; blank means it has not been counted. |
@@ -33,10 +33,11 @@ The spreadsheet always uses these columns in this order.
 | 13 | Remaining Value (₱) | No | Remaining Stock multiplied by Cost per Unit. It is an inventory estimate, not cash collected or net profit. |
 | 14 | Status | No | The calculated stock state: Not counted, Out of stock, Low stock, or In stock. |
 
-When an inventory row is first created, Purchase Quantity and Purchase Price
-may be seeded from the matching Ingredients or Packaging entry. After that,
-the values entered in Stocks are authoritative for inventory valuation and are
-not overwritten by a later refresh.
+Purchase Quantity and Purchase Price are owned by Stocks. A newly synchronized
+ingredient, mixture, or packaging row starts with both fields blank even when
+Costing has a quantity and price. Enter the latest physical purchase facts in
+Stocks; refreshing from Costing never overwrites them. Values already stored on
+older inventory rows are preserved by this change.
 
 Direct spreadsheet edits are available to an owner or manager. A cashier can
 view stock but cannot change inventory facts. Every accepted edit is recorded
@@ -277,8 +278,7 @@ database rollback.
 
 ### Before a popup
 
-- [ ] Check ingredient purchase quantities, units, prices, mixture yields, and
-      recipe quantities in Costing.
+- [ ] Check ingredient units, mixture yields, and recipe quantities in Costing.
 - [ ] Check cups, lids, straws, and other automatic packaging lines.
 - [ ] Publish the intended product versions to POS.
 - [ ] Start and clearly name the inventory period.

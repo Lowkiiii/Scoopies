@@ -934,6 +934,83 @@ test('populated Stocks spreadsheet remains event-driven and mobile safe', async 
   }
 });
 
+test('new stock rows keep purchase facts blank and allow direct entry', async ({
+  page,
+}) => {
+  const row = page.locator('[data-stock-item="inventory-vanilla"]');
+  const opening = row.locator(
+    '[data-stock-sheet-field="openingStock"]',
+  );
+  const purchaseQuantity = row.locator(
+    '[data-stock-sheet-field="purchaseQuantity"]',
+  );
+  const purchasePrice = row.locator(
+    '[data-stock-sheet-field="purchasePrice"]',
+  );
+
+  await expect(opening).toHaveValue('');
+  await expect(purchaseQuantity).toHaveValue('');
+  await expect(purchasePrice).toHaveValue('');
+  await expect(purchaseQuantity).toBeEnabled();
+  await expect(purchasePrice).toBeEnabled();
+
+  await purchaseQuantity.fill('750');
+  await purchaseQuantity.press('Enter');
+  await expect.poll(() =>
+    page.evaluate(() => (window as any).__stockInlineRpcCalls.length),
+  ).toBe(1);
+  await expect(purchaseQuantity).toHaveValue('750');
+
+  await purchasePrice.fill('575');
+  await purchasePrice.press('Enter');
+  await expect.poll(() =>
+    page.evaluate(() => (window as any).__stockInlineRpcCalls.length),
+  ).toBe(2);
+  await expect(purchasePrice).toHaveValue('575.00');
+
+  const saved = await page.evaluate(() => {
+    const app = window as typeof window & Record<string, any>;
+    const item = app.stockState.items.find(
+      (candidate: any) => candidate.id === 'inventory-vanilla',
+    );
+    return {
+      calls: app.__stockInlineRpcCalls,
+      purchaseQuantity: item.purchaseQuantity,
+      purchasePriceCentavos: item.purchasePriceCentavos,
+    };
+  });
+  expect(saved.calls).toEqual([
+    {
+      name: 'pos_inventory_set_spreadsheet_cell',
+      args: {
+        p_business_id: 'business-mobile',
+        p_inventory_item_id: 'inventory-vanilla',
+        p_period_id: 'period-mobile',
+        p_column: 'purchase_quantity',
+        p_value: '750',
+        p_expected_item_revision: 1,
+        p_expected_period_item_revision: 0,
+        p_client_mutation_id: expect.any(String),
+      },
+    },
+    {
+      name: 'pos_inventory_set_spreadsheet_cell',
+      args: {
+        p_business_id: 'business-mobile',
+        p_inventory_item_id: 'inventory-vanilla',
+        p_period_id: 'period-mobile',
+        p_column: 'purchase_price',
+        p_value: '575',
+        p_expected_item_revision: 2,
+        p_expected_period_item_revision: 1,
+        p_client_mutation_id: expect.any(String),
+      },
+    },
+  ]);
+  expect(saved.purchaseQuantity).toBe(750);
+  expect(saved.purchasePriceCentavos).toBe(57500);
+});
+
 test('manager opening Stocks auto-starts inventory and recovers a lost response', async ({
   page,
 }) => {
