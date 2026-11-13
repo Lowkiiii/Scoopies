@@ -92,6 +92,14 @@
     font-weight:700;background:#eef5ff;color:#315b8a;border:1px solid #cfdef0}
   .type-badge.purchased{background:var(--cream);color:var(--brown2);border-color:var(--line)}
   .ingredient-name-text{font-weight:650;min-width:160px}
+  .ingredient-table-scroll{position:relative;max-height:min(68vh,680px);overflow:auto;overscroll-behavior:contain;scrollbar-gutter:stable}
+  #ingTable{min-width:1040px}
+  #ingTable tr:first-child>th{position:sticky;top:0;z-index:3;background:var(--card);box-shadow:0 1px 0 var(--line)}
+  @media(min-width:1101px){
+    .ingredient-table-scroll{max-height:none;overflow:visible;overscroll-behavior:auto;scrollbar-gutter:auto}
+    #ingTable{min-width:0}
+    #ingTable tr:first-child>th{top:51px;z-index:4}
+  }
   .mixture-meta{font-size:12px;color:var(--muted);margin-top:3px}
   .search-status{font-size:12px;color:var(--muted);margin:2px 0 8px;min-height:18px}
   .modal-backdrop{position:fixed;inset:0;z-index:100;background:rgba(0,40,92,.64);display:flex;

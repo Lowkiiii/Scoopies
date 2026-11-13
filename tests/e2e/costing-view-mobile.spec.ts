@@ -310,6 +310,116 @@ async function openSeededCostingApp(page: Page) {
   });
 }
 
+test('ingredient labels stay pinned and blank purchase prices are not calculated', async ({
+  page,
+}) => {
+  await openSeededCostingApp(page);
+  await page.evaluate(() => {
+    const app = window as typeof window & Record<string, any>;
+    app.state.ingredients = [
+      {
+        id: 'water',
+        name: 'Water',
+        kind: 'purchased',
+        categoryId: 'milks',
+        purchaseQty: 1,
+        amountPerItem: 20,
+        unit: 'l',
+        price: '',
+      },
+      ...Array.from({ length: 34 }, (_, index) => ({
+        id: `scroll-ingredient-${index + 1}`,
+        name: `Scrollable ingredient ${String(index + 1).padStart(2, '0')}`,
+        kind: 'purchased',
+        categoryId: '',
+        purchaseQty: 1,
+        amountPerItem: 100,
+        unit: 'g',
+        price: 100,
+      })),
+    ];
+    app.ingredientUi = { search: '', category: 'all' };
+    app.renderIngredients();
+  });
+
+  const scroller = page.locator('.ingredient-table-scroll');
+  const header = page.locator('#ingTable tr').first();
+  const waterCost = page.locator(
+    '#ingTable tr[data-id="water"] td.calc',
+  );
+  await expect(scroller).toBeVisible();
+  await expect(header).toBeVisible();
+  await expect(waterCost).toHaveText('\u2014 / ml');
+
+  await page.evaluate(() => {
+    const app = window as typeof window & Record<string, any>;
+    app.state.ingredients[0].price = 200;
+    app.renderIngredients();
+  });
+  await expect(waterCost).toHaveText('\u20B10.01 / ml');
+
+  const initial = await scroller.evaluate((element) => {
+    const region = element as HTMLElement;
+    const firstHeader = region.querySelector('#ingTable tr:first-child > th') as HTMLElement;
+    const style = getComputedStyle(region);
+    return {
+      usesPageScroll: window.innerWidth >= 1_101,
+      overflowX: style.overflowX,
+      overflowY: style.overflowY,
+      scrollHeight: region.scrollHeight,
+      clientHeight: region.clientHeight,
+      regionTop: region.getBoundingClientRect().top,
+      headerTop: firstHeader.getBoundingClientRect().top,
+      headerPosition: getComputedStyle(firstHeader).position,
+      headerDocumentTop:
+        firstHeader.getBoundingClientRect().top + window.scrollY,
+    };
+  });
+  expect(initial.headerPosition).toBe('sticky');
+  if (initial.usesPageScroll) {
+    expect(initial.overflowX).toBe('visible');
+    expect(initial.overflowY).toBe('visible');
+    await page.evaluate((headerDocumentTop) => {
+      window.scrollTo(0, headerDocumentTop + 260);
+    }, initial.headerDocumentTop);
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
+    const pinned = await page.evaluate(() => {
+      const nav = document.querySelector('nav') as HTMLElement;
+      const firstHeader = document.querySelector(
+        '#ingTable tr:first-child > th',
+      ) as HTMLElement;
+      return {
+        navBottom: nav.getBoundingClientRect().bottom,
+        headerTop: firstHeader.getBoundingClientRect().top,
+      };
+    });
+    expect(Math.abs(pinned.headerTop - pinned.navBottom)).toBeLessThanOrEqual(2);
+  } else {
+    expect(initial.overflowX).toBe('auto');
+    expect(initial.overflowY).toBe('auto');
+    expect(initial.scrollHeight).toBeGreaterThan(initial.clientHeight + 1);
+    await scroller.evaluate((element) => {
+      (element as HTMLElement).scrollTop = 260;
+    });
+    await expect
+      .poll(() =>
+        scroller.evaluate((element) => (element as HTMLElement).scrollTop),
+      )
+      .toBe(260);
+    const pinned = await scroller.evaluate((element) => {
+      const region = element as HTMLElement;
+      const firstHeader = region.querySelector(
+        '#ingTable tr:first-child > th',
+      ) as HTMLElement;
+      return {
+        regionTop: region.getBoundingClientRect().top,
+        headerTop: firstHeader.getBoundingClientRect().top,
+      };
+    });
+    expect(Math.abs(pinned.headerTop - pinned.regionTop)).toBeLessThanOrEqual(2);
+  }
+});
+
 test('populated costing tabs remain contained, reachable, and read-only', async ({
   page,
 }) => {
