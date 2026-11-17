@@ -55,7 +55,9 @@ import {
   setPosDrinkImageZoom,
 } from './image-editor';
 import {
+  cancelArchivePosDrink,
   cancelRemovePosDrinkImage,
+  confirmArchivePosDrink,
   confirmRemovePosDrinkImage,
   openManageDrinksModal,
   posCanManageMedia,
@@ -65,6 +67,7 @@ import {
   posPatchProductImage,
   posPublicImageUrl,
   posReloadMediaRows,
+  requestArchivePosDrink,
   requestRemovePosDrinkImage,
   uploadPosDrinkImage,
 } from './media';
@@ -174,4 +177,7 @@ export const CATALOG_API = {
   requestRemovePosDrinkImage,
   cancelRemovePosDrinkImage,
   confirmRemovePosDrinkImage,
+  requestArchivePosDrink,
+  cancelArchivePosDrink,
+  confirmArchivePosDrink,
 };

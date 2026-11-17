@@ -470,6 +470,95 @@ export function cancelRemovePosDrinkImage(): boolean {
   return true;
 }
 
+export function requestArchivePosDrink(productId: LegacyValue): boolean {
+  if (
+    !catalogFunction('posCanManageMedia')() ||
+    runtimeValue<LegacyValue>('posOpsModal').submitting ||
+    !catalogFunction('posMediaRow')(productId)
+  ) {
+    return false;
+  }
+  runtimeValue<LegacyValue>('posOpsModal').mediaArchiveProductId = stringValue(
+    productId,
+  );
+  runtimeValue<LegacyValue>('posOpsModal').error = '';
+  runtimeValue<LegacyValue>('posOpsModal').notice = '';
+  runtimeFunction('renderPosOpsModal')();
+  runtimeFunction('focusSoon')('#posCancelArchiveDrink');
+  return true;
+}
+
+export function cancelArchivePosDrink(): boolean {
+  if (runtimeValue<LegacyValue>('posOpsModal').submitting) return false;
+  runtimeValue<LegacyValue>('posOpsModal').mediaArchiveProductId = '';
+  runtimeValue<LegacyValue>('posOpsModal').error = '';
+  runtimeFunction('renderPosOpsModal')();
+  return true;
+}
+
+export async function confirmArchivePosDrink(): Promise<boolean> {
+  if (
+    !catalogFunction('posCanManageMedia')() ||
+    runtimeValue<LegacyValue>('posOpsModal').submitting ||
+    !runtimeValue<LegacyValue>('posOpsModal').mediaArchiveProductId
+  ) {
+    return false;
+  }
+  const productId = stringValue(
+    runtimeValue<LegacyValue>('posOpsModal').mediaArchiveProductId,
+  );
+  if (!catalogFunction('posMediaRow')(productId)) return false;
+  const generation = runtimeValue<LegacyValue>('posMediaGeneration');
+  const userId = stringValue(
+    runtimeValue<LegacyValue>('session').user.id || '',
+  );
+  const businessId = stringValue(
+    runtimeValue<LegacyValue>('posContext').businessId || '',
+  );
+  runtimeValue<LegacyValue>('posOpsModal').submitting = true;
+  runtimeValue<LegacyValue>('posOpsModal').mediaProductId = productId;
+  runtimeValue<LegacyValue>('posOpsModal').error = '';
+  runtimeFunction('renderPosOpsModal')();
+  try {
+    const rows = catalogFunction('rpcRows')(
+      await runtimeValue<LegacyValue>('cloud').client.rpc(
+        'pos_archive_product',
+        { p_business_id: businessId, p_product_id: productId },
+      ),
+    );
+    if (!rows[0]) {
+      throw new (runtimeValue<LegacyValue>('Error'))('Missing archive response');
+    }
+    if (!catalogFunction('posMediaRequestCurrent')(generation, userId, businessId)) {
+      return false;
+    }
+    await runtimeFunction('loadPosPublicationStatus')();
+    await runtimeFunction('refreshPosCatalogOnly')();
+    if (!catalogFunction('posMediaRequestCurrent')(generation, userId, businessId)) {
+      return false;
+    }
+    await catalogFunction('posReloadMediaRows')(generation, userId, businessId);
+    runtimeValue<LegacyValue>('posOpsModal').submitting = false;
+    runtimeValue<LegacyValue>('posOpsModal').mediaProductId = '';
+    runtimeValue<LegacyValue>('posOpsModal').mediaArchiveProductId = '';
+    runtimeValue<LegacyValue>('posOpsModal').notice =
+      'Drink archived. Its sales history remains, and the current Pricing item can be published again.';
+    runtimeFunction('renderProducts')();
+    runtimeFunction('renderPosOpsModal')();
+    runtimeFunction('renderPos')();
+    return true;
+  } catch (error) {
+    if (!catalogFunction('posMediaRequestCurrent')(generation, userId, businessId)) {
+      return false;
+    }
+    runtimeValue<LegacyValue>('posOpsModal').submitting = false;
+    runtimeValue<LegacyValue>('posOpsModal').mediaProductId = '';
+    runtimeValue<LegacyValue>('posOpsModal').error = runtimeFunction('posFriendlyError')(error);
+    runtimeFunction('renderPosOpsModal')();
+    return false;
+  }
+}
+
 export async function confirmRemovePosDrinkImage(): Promise<boolean> {
   if (
     !catalogFunction('posCanManageMedia')() ||

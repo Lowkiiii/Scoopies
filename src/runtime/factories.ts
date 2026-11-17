@@ -27,6 +27,7 @@ export interface PosOpsModalState {
   mediaLoaded: boolean;
   mediaProductId: string;
   mediaRemoveProductId: string;
+  mediaArchiveProductId: string;
   mediaEditor: unknown | null;
 }
 
@@ -133,6 +134,7 @@ export function freshPosOpsModal(): PosOpsModalState {
     mediaLoaded: false,
     mediaProductId: '',
     mediaRemoveProductId: '',
+    mediaArchiveProductId: '',
     mediaEditor: null,
   };
 }

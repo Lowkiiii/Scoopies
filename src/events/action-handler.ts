@@ -201,6 +201,15 @@ export function handleActionClick(event: LegacyValue): void {
     case 'confirmRemovePosDrinkImage':
       runtimeValue('confirmRemovePosDrinkImage')().catch(function () {});
       return;
+    case 'requestArchivePosDrink':
+      runtimeValue('requestArchivePosDrink')(id);
+      return;
+    case 'cancelArchivePosDrink':
+      runtimeValue('cancelArchivePosDrink')();
+      return;
+    case 'confirmArchivePosDrink':
+      runtimeValue('confirmArchivePosDrink')().catch(function () {});
+      return;
     case 'setPosCategory':
       runtimeValue('posCheckout').category = id || 'all';
       runtimeValue('renderPos')();

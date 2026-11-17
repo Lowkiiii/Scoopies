@@ -130,6 +130,9 @@ jobs:
           run_sql supabase/tests/inventory_manual_purchase_facts_rollback_roundtrip_checks.sql
           run_sql supabase/tests/inventory_manual_purchase_facts_schema_checks.sql
 
+          run_sql supabase/migrations/202611170016_pos_archive_drinks_for_republish.sql
+          run_sql supabase/tests/pos_archive_drinks_for_republish_schema_checks.sql
+
   browser-tests:
     name: Browser tests
     runs-on: ubuntu-latest
