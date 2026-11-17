@@ -3294,7 +3294,7 @@ document.getElementById('app').addEventListener('load', async () => {
     assert(!(await app.openManageDrinksModal()), 'cashier opened drink photo management through code');
     assert(mediaCalls.length === 1, 'cashier authorization guard reached the media RPC');
   });
-  test('drink photo crop geometry covers 4:3 and clamps zoom and pan without blank edges', () => {
+  test('drink photo crop geometry fits the whole photo first and clamps zoom and pan', () => {
     const portrait = app.posDrinkImageCropGeometry(600, 1200, 1, 99999, -99999, 1200, 900);
     assert(portrait && portrait.scale === 2, 'portrait crop did not use the minimum cover scale');
     assert(portrait.zoom === 1 && portrait.maxX === 0 && portrait.maxY === 750, 'portrait cover bounds were calculated incorrectly');
@@ -3305,8 +3305,8 @@ document.getElementById('app').addEventListener('load', async () => {
     assert(zoomed.panX === 600 && zoomed.panY === 1950, 'zoomed pan did not clamp at the positive bounds');
 
     const landscape = app.posDrinkImageCropGeometry(1600, 900, 0.1, -99999, 99999, 1200, 900);
-    assert(landscape.zoom === 1 && landscape.scale === 1, 'crop geometry did not clamp zoom to its supported minimum');
-    assert(landscape.panX === -200 && landscape.panY === 0, 'landscape crop exposed a blank edge');
+    assert(landscape.minZoom === .75 && landscape.zoom === .75 && landscape.scale === .75, 'crop geometry did not clamp zoom to the whole-photo minimum');
+    assert(landscape.panX === 0 && landscape.panY === 0, 'whole-photo view did not clamp pan to its drawable bounds');
     const maximum = app.posDrinkImageCropGeometry(1200, 900, 99, 0, 0, 1200, 900);
     assert(maximum.zoom === 4, 'crop geometry did not clamp zoom to its supported maximum');
     assert(app.posDrinkImageCropGeometry(0, 900, 1, 0, 0, 1200, 900) === null, 'invalid source dimensions produced crop geometry');
