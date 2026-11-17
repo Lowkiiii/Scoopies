@@ -228,8 +228,8 @@ test('typed Operations preserves API, POS composition, registration, descriptors
   });
   expect(response.status()).toBe(200);
   expect(served).toBe(source);
-  expect(gitBlob).toBe('137e50dded3843060c10c9484dcef05da9bcd596');
-  expect(sha256).toBe('E173658E29CCA6E127BA703D4A274BD2C91E464E6A9D8482567D922F01FCD088');
+  expect(gitBlob).toBe('2bb51d2f18e3f670bce0a78c0cef604201b0cdb2');
+  expect(sha256).toBe('0C3A22775F6CA8C413CCAE640024C30838BD863FAB53F8EB5B43D5FC1D8117EE');
   expect(operationsSlot).toBeGreaterThan(workspaceSlot);
   expect(publicationSlot).toBeGreaterThan(operationsSlot);
 });

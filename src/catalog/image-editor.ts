@@ -148,11 +148,24 @@ export function posDrinkImageCropGeometry(
     return null;
   }
   const MathValue = runtimeMath();
-  zoom = MathValue.min(4, MathValue.max(1, numberValue(zoom) || 1));
-  const scale = MathValue.max(
+  const coverScale = MathValue.max(
     targetWidth / sourceWidth,
     targetHeight / sourceHeight,
-  ) * zoom;
+  );
+  const containScale = MathValue.min(
+    targetWidth / sourceWidth,
+    targetHeight / sourceHeight,
+  );
+  // The editor used to force a cover crop at 100%, which made transparent
+  // product photos look unavoidably zoomed in. Allow the image to fit in the
+  // card first; the pink canvas then becomes the intentional backdrop.
+  const minZoom = containScale / coverScale;
+  const requestedZoom = numberValue(zoom);
+  zoom = MathValue.min(
+    4,
+    MathValue.max(minZoom, requestedZoom > 0 ? requestedZoom : minZoom),
+  );
+  const scale = coverScale * zoom;
   const maxX = MathValue.max(
     0,
     (sourceWidth * scale - targetWidth) / 2,
@@ -172,6 +185,7 @@ export function posDrinkImageCropGeometry(
   return {
     scale,
     zoom,
+    minZoom,
     panX,
     panY,
     maxX,
@@ -334,7 +348,7 @@ export async function openPosDrinkImageEditor(
     source: null,
     sourceWidth: 0,
     sourceHeight: 0,
-    zoom: 1,
+    zoom: 0,
     panX: 0,
     panY: 0,
     drag: null,
@@ -437,6 +451,7 @@ export function drawPosDrinkImageEditor(): boolean {
   const output = document.getElementById('posPhotoZoomValue');
   const percentage = runtimeMath().round(editor.zoom * 100);
   if (slider) {
+    slider.min = stringValue(geometry.minZoom);
     slider.value = stringValue(editor.zoom);
     slider.setAttribute('aria-valuetext', percentage + ' percent');
   }
@@ -456,7 +471,10 @@ export function setPosDrinkImageZoom(value: LegacyValue): boolean {
     return false;
   }
   const MathValue = runtimeMath();
-  editor.zoom = MathValue.min(4, MathValue.max(1, numberValue(value) || 1));
+  editor.zoom = MathValue.min(
+    4,
+    MathValue.max(0.01, numberValue(value) || 0.01),
+  );
   editor.dirty = true;
   catalogFunction('posClampDrinkImageEditor')(editor);
   return catalogFunction('drawPosDrinkImageEditor')();
@@ -499,7 +517,7 @@ export function resetPosDrinkImageEditor(): boolean {
   ) {
     return false;
   }
-  editor.zoom = 1;
+  editor.zoom = 0;
   editor.panX = 0;
   editor.panY = 0;
   editor.dirty = false;

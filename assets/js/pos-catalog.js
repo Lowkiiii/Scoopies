@@ -398,11 +398,12 @@ async function posDecodeDrinkImageFile(file){
 function posDrinkImageCropGeometry(sourceWidth,sourceHeight,zoom,panX,panY,targetWidth,targetHeight){
   sourceWidth=Number(sourceWidth)||0;sourceHeight=Number(sourceHeight)||0;targetWidth=Number(targetWidth)||1200;targetHeight=Number(targetHeight)||900;
   if(!(sourceWidth>0&&sourceHeight>0&&targetWidth>0&&targetHeight>0))return null;
-  zoom=Math.min(4,Math.max(1,Number(zoom)||1));
-  var scale=Math.max(targetWidth/sourceWidth,targetHeight/sourceHeight)*zoom;
+  var coverScale=Math.max(targetWidth/sourceWidth,targetHeight/sourceHeight),containScale=Math.min(targetWidth/sourceWidth,targetHeight/sourceHeight),minZoom=containScale/coverScale,requestedZoom=Number(zoom);
+  zoom=Math.min(4,Math.max(minZoom,requestedZoom>0?requestedZoom:minZoom));
+  var scale=coverScale*zoom;
   var maxX=Math.max(0,(sourceWidth*scale-targetWidth)/2),maxY=Math.max(0,(sourceHeight*scale-targetHeight)/2);
   panX=Math.min(maxX,Math.max(-maxX,Number(panX)||0));panY=Math.min(maxY,Math.max(-maxY,Number(panY)||0));
-  return {scale:scale,zoom:zoom,panX:panX,panY:panY,maxX:maxX,maxY:maxY,targetWidth:targetWidth,targetHeight:targetHeight};
+  return {scale:scale,zoom:zoom,minZoom:minZoom,panX:panX,panY:panY,maxX:maxX,maxY:maxY,targetWidth:targetWidth,targetHeight:targetHeight};
 }
 function posDrawDrinkImageCrop(canvas,source,sourceWidth,sourceHeight,zoom,panX,panY){
   if(!canvas||!source)return null;
@@ -444,7 +445,7 @@ async function openPosDrinkImageEditor(productId,file){
   var token=++posMediaSelectionGeneration,generation=posMediaGeneration,userId=String(session.user.id||''),businessId=String(posContext.businessId||'');
   posOpsModal.mediaRemoveProductId='';posOpsModal.error='';posOpsModal.notice='';
   posOpsModal.mediaEditor={token:token,productId:String(productId),productName:String(media.product_name||'Drink'),file:file,fileName:String(file.name||'Photo'),
-    source:null,sourceWidth:0,sourceHeight:0,zoom:1,panX:0,panY:0,drag:null,loading:true,dirty:false};
+    source:null,sourceWidth:0,sourceHeight:0,zoom:0,panX:0,panY:0,drag:null,loading:true,dirty:false};
   renderPosOpsModal();
   try{
     var decoded=await posDecodeDrinkImageFile(file);
@@ -469,12 +470,12 @@ function drawPosDrinkImageEditor(){
   var geometry=posClampDrinkImageEditor(editor);if(!geometry)return false;
   posDrawDrinkImageCrop(canvas,editor.source,editor.sourceWidth,editor.sourceHeight,editor.zoom,editor.panX,editor.panY);
   var slider=document.getElementById('posPhotoZoom'),output=document.getElementById('posPhotoZoomValue'),percentage=Math.round(editor.zoom*100);
-  if(slider){slider.value=String(editor.zoom);slider.setAttribute('aria-valuetext',percentage+' percent');}if(output)output.textContent=percentage+'%';
+  if(slider){slider.min=String(geometry.minZoom);slider.value=String(editor.zoom);slider.setAttribute('aria-valuetext',percentage+' percent');}if(output)output.textContent=percentage+'%';
   var frame=document.getElementById('posPhotoEditorFrame');if(frame)frame.classList.toggle('is-dragging',!!editor.drag);return true;
 }
 function setPosDrinkImageZoom(value){
   var editor=posCurrentDrinkImageEditor();if(!editor||editor.loading||posOpsModal.submitting)return false;
-  editor.zoom=Math.min(4,Math.max(1,Number(value)||1));editor.dirty=true;posClampDrinkImageEditor(editor);return drawPosDrinkImageEditor();
+  editor.zoom=Math.min(4,Math.max(.01,Number(value)||.01));editor.dirty=true;posClampDrinkImageEditor(editor);return drawPosDrinkImageEditor();
 }
 function adjustPosDrinkImageZoom(delta){var editor=posCurrentDrinkImageEditor();return editor?setPosDrinkImageZoom(editor.zoom+(Number(delta)||0)):false;}
 function nudgePosDrinkImageEditor(dx,dy){
@@ -483,7 +484,7 @@ function nudgePosDrinkImageEditor(dx,dy){
 }
 function resetPosDrinkImageEditor(){
   var editor=posCurrentDrinkImageEditor();if(!editor||editor.loading||posOpsModal.submitting)return false;
-  editor.zoom=1;editor.panX=0;editor.panY=0;editor.dirty=false;return drawPosDrinkImageEditor();
+  editor.zoom=0;editor.panX=0;editor.panY=0;editor.dirty=false;return drawPosDrinkImageEditor();
 }
 function cancelPosDrinkImageEditor(){
   var editor=posCurrentDrinkImageEditor();if(!editor||posOpsModal.submitting)return false;

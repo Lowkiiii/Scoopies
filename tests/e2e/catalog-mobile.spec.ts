@@ -378,7 +378,7 @@ test('read-only media and local image crop controls stay write-free, reachable, 
   await expect(canvas).toBeVisible();
   await expectContained(page, modal.locator('.modal'));
   await modal.locator('[data-act="adjustPosDrinkImageZoom"][data-delta="0.1"]').click();
-  await expect(modal.locator('#posPhotoZoomValue')).toHaveText('110%');
+  await expect(modal.locator('#posPhotoZoomValue')).toHaveText('85%');
   const beforeDrag = await page.evaluate(() => {
     const editor = (window as typeof window & Record<string, any>)
       .posOpsModal.mediaEditor;
@@ -435,7 +435,7 @@ test('read-only media and local image crop controls stay write-free, reachable, 
     afterKeyboard.maxY,
   );
   await modal.locator('[data-act="resetPosDrinkImageEditor"]').click();
-  await expect(modal.locator('#posPhotoZoomValue')).toHaveText('100%');
+  await expect(modal.locator('#posPhotoZoomValue')).toHaveText('75%');
   await modal.locator('.modal-actions [data-act="cancelPosDrinkImageEditor"]').click();
   await expect(modal.locator('#posOpsModalTitle')).toHaveText('Drink photos');
   await expect(modal.locator('.pos-media-row')).toHaveCount(2);

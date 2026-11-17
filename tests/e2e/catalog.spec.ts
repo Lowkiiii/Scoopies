@@ -292,8 +292,8 @@ test('typed Catalog boundary preserves API, registration, live descriptors, runt
   });
   expect(response.status()).toBe(200);
   expect(served).toBe(source);
-  expect(gitBlob).toBe('34e2b5bfb1fd53637cb65fee9fd07358ff751230');
-  expect(sha256).toBe('35DE3699B50201D64F4F574C45E8D296917C63A8EE70E1C95103D25BE08B8DFC');
+  expect(gitBlob).toBe('2a9c786779c7ce4b2a4e2811fceece3bb86dbee0');
+  expect(sha256).toBe('0D9EB3B2539E3DB20B47A3CBAF65726FF713B80C14035862CE7BBC16BFD097F6');
   expect(catalogSlot).toBeGreaterThan(costingSlot);
   expect(stocksSlot).toBeGreaterThan(catalogSlot);
 });
