@@ -18,8 +18,9 @@ export function renderPosOpsModal(): void {
   if (!ops.open) return;
   const panel = modalElement.querySelector('.modal');
   const cartConfirm = ops.type === 'cartConfirm';
+  const archiveConfirm = ops.type === 'manageDrinks' && !!ops.mediaArchiveProductId;
   if (panel) {
-    panel.classList.toggle('small', ops.type === 'openShift' || ops.type === 'voidSale' || ops.type === 'productOptions' || cartConfirm);
+    panel.classList.toggle('small', ops.type === 'openShift' || ops.type === 'voidSale' || ops.type === 'productOptions' || cartConfirm || archiveConfirm);
     if (cartConfirm) panel.setAttribute('aria-describedby', 'posCartConfirmDescription');
     else panel.removeAttribute('aria-describedby');
   }
@@ -67,7 +68,7 @@ export function renderPosOpsModal(): void {
         (ops.notice ? '<div class="publish-note" role="status">' + runtimeFunction('escapeHtml')(ops.notice) + '</div>' : '') + '<div class="pos-error" aria-live="assertive">' + runtimeFunction('escapeHtml')(ops.error) + '</div><div class="modal-actions"><button class="btn secondary" data-act="cancelPosDrinkImageEditor"' + (ops.submitting ? ' disabled' : '') + '>Cancel</button><button class="btn" data-act="savePosDrinkImageEditor"' + editorDisabled + '>' + (ops.submitting ? 'Saving\u2026' : 'Save photo') + '</button></div>';
       if (!photoEditor.loading) runtimeFunction('drawPosDrinkImageEditor')();
     } else if (archiveMedia) {
-      content.innerHTML = '<div class="modal-head"><div><h2 id="posOpsModalTitle">Archive drink?</h2><p class="hint">' + runtimeFunction('escapeHtml')(archiveMedia.product_name || 'Drink') + '</p></div>' + close + '</div><div class="pos-media-remove-confirm">' + runtimeFunction('posDrinkImageHtml')(archiveMedia, 'large') + '<p>This removes the drink from the POS and Drink photos list. Sales history stays intact. You can publish the current Pricing item again later.</p></div>' +
+      content.innerHTML = '<div class="modal-head"><div><h2 id="posOpsModalTitle">Archive drink?</h2><p class="hint">' + runtimeFunction('escapeHtml')(archiveMedia.product_name || 'Drink') + '</p></div>' + close + '</div><div class="pos-media-remove-confirm"><p>This removes the drink from the POS and Drink photos list. Sales history stays intact. You can publish the current Pricing item again later.</p></div>' +
         '<div class="pos-error">' + runtimeFunction('escapeHtml')(ops.error) + '</div><div class="modal-actions"><button id="posCancelArchiveDrink" class="btn secondary" data-act="cancelArchivePosDrink"' + frozen + '>Keep drink</button><button class="btn danger" data-act="confirmArchivePosDrink"' + frozen + '>' + (ops.submitting ? 'Archiving\u2026' : 'Archive drink') + '</button></div>';
     } else if (removeMedia) {
       content.innerHTML = '<div class="modal-head"><div><h2 id="posOpsModalTitle">Remove drink photo?</h2><p class="hint">' + runtimeFunction('escapeHtml')(removeMedia.product_name || 'Drink') + '</p></div>' + close + '</div><div class="pos-media-remove-confirm">' + runtimeFunction('posDrinkImageHtml')(removeMedia, 'large') + '<p>The drink stays published. Only its menu photo will be removed.</p></div>' +

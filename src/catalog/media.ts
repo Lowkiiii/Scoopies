@@ -532,12 +532,14 @@ export async function confirmArchivePosDrink(): Promise<boolean> {
     if (!catalogFunction('posMediaRequestCurrent')(generation, userId, businessId)) {
       return false;
     }
-    await runtimeFunction('loadPosPublicationStatus')();
-    await runtimeFunction('refreshPosCatalogOnly')();
+    await runtimeValue<LegacyValue>('Promise').all([
+      runtimeFunction('loadPosPublicationStatus')(),
+      runtimeFunction('refreshPosCatalogOnly')(),
+      catalogFunction('posReloadMediaRows')(generation, userId, businessId),
+    ]);
     if (!catalogFunction('posMediaRequestCurrent')(generation, userId, businessId)) {
       return false;
     }
-    await catalogFunction('posReloadMediaRows')(generation, userId, businessId);
     runtimeValue<LegacyValue>('posOpsModal').submitting = false;
     runtimeValue<LegacyValue>('posOpsModal').mediaProductId = '';
     runtimeValue<LegacyValue>('posOpsModal').mediaArchiveProductId = '';
