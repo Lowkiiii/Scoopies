@@ -1569,11 +1569,13 @@ test('the operations modal renderer preserves all branch markup and late-bound d
   const typed = await collectModalRendering(typedPage);
   const classic = await collectModalRendering(classicPage);
   await classicPage.close();
-  const { mediaRows: typedMediaRows, ...typedSnapshots } = typed.snapshots;
-  const { mediaRows: classicMediaRows, ...classicSnapshots } = classic.snapshots;
+  const { mediaRows: typedMediaRows, mediaRowsBusy: typedMediaRowsBusy, ...typedSnapshots } = typed.snapshots;
+  const { mediaRows: classicMediaRows, mediaRowsBusy: classicMediaRowsBusy, ...classicSnapshots } = classic.snapshots;
   expect({ snapshots: typedSnapshots, trace: typed.trace }).toEqual({ snapshots: classicSnapshots, trace: classic.trace });
   expect(typedMediaRows.html).toContain('requestArchivePosDrink');
   expect(classicMediaRows.html).not.toContain('requestArchivePosDrink');
+  expect(typedMediaRowsBusy.html).toContain('requestArchivePosDrink');
+  expect(classicMediaRowsBusy.html).not.toContain('requestArchivePosDrink');
   expect(Object.keys(typed.snapshots)).toEqual([
     'closed', 'productUnavailable', 'productNoOptions', 'productSelected',
     'productInvalidSelection', 'mediaEditorLoading', 'mediaEditorReady',
