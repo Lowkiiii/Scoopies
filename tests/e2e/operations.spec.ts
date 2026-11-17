@@ -193,13 +193,13 @@ test('typed Operations preserves API, POS composition, registration, descriptors
 
   expect(contract).toMatchObject({
     version: 1,
-    contractLength: 175,
+    contractLength: 178,
     domainOrder: [
       'core', 'runtime', 'state', 'costing', 'catalog', 'stocks', 'workspace', 'pos',
       'publication', 'modals', 'support', 'events', 'bootstrap', 'legacy',
     ],
     domainSizes: {
-      core: 15, runtime: 4, state: 141, costing: 37, catalog: 81, stocks: 63,
+      core: 15, runtime: 4, state: 141, costing: 37, catalog: 84, stocks: 63,
       workspace: 18, pos: 79, publication: 10, modals: 46,
       support: 3, events: 1, bootstrap: 1,
     },
@@ -1569,7 +1569,11 @@ test('the operations modal renderer preserves all branch markup and late-bound d
   const typed = await collectModalRendering(typedPage);
   const classic = await collectModalRendering(classicPage);
   await classicPage.close();
-  expect(typed).toEqual(classic);
+  const { mediaRows: typedMediaRows, ...typedSnapshots } = typed.snapshots;
+  const { mediaRows: classicMediaRows, ...classicSnapshots } = classic.snapshots;
+  expect({ snapshots: typedSnapshots, trace: typed.trace }).toEqual({ snapshots: classicSnapshots, trace: classic.trace });
+  expect(typedMediaRows.html).toContain('requestArchivePosDrink');
+  expect(classicMediaRows.html).not.toContain('requestArchivePosDrink');
   expect(Object.keys(typed.snapshots)).toEqual([
     'closed', 'productUnavailable', 'productNoOptions', 'productSelected',
     'productInvalidSelection', 'mediaEditorLoading', 'mediaEditorReady',

@@ -718,7 +718,7 @@ test('typed Support registers at the exact boundary and preserves fallback paths
     contract.domainOrder.indexOf('events'),
   );
   expect(contract.contractVersion).toBe(1);
-  expect(contract.contractLength).toBe(175);
+  expect(contract.contractLength).toBe(178);
   expect(contract.protectedSupportNames).toEqual([]);
   expect(contract.namespaceDescriptors).toEqual(
     supportNames.map(() => ({

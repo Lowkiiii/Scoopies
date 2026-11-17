@@ -2,7 +2,7 @@ function freshPosOpsModal(){
   return {open:false,type:'',submitting:false,error:'',notice:'',step:'edit',mode:'live',openingCash:'0.00',
     countedCash:'',verifiedGcash:'',verifiedGotyme:'',notes:'',sale:null,reason:'',result:null,uncertain:false,rpcArgs:null,
     cartAction:'',cartProductId:'',cartProductName:'',cartQuantity:0,
-    productId:'',selectedMatchaOptionId:'',mediaRows:[],mediaLoading:false,mediaLoaded:false,mediaProductId:'',mediaRemoveProductId:'',mediaEditor:null};
+    productId:'',selectedMatchaOptionId:'',mediaRows:[],mediaLoading:false,mediaLoaded:false,mediaProductId:'',mediaRemoveProductId:'',mediaArchiveProductId:'',mediaEditor:null};
 }
 function freshPosSalesHistory(){
   return {rows:[],summary:null,mode:'live',view:'receipts',loading:false,loaded:false,error:'',summaryError:'',hasMore:true,

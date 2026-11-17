@@ -191,7 +191,7 @@ test('the transition asset keeps pre-module cached HTML usable', async ({ page }
     const path = `/Scoopies/assets/js/${fileName}`;
     expect(transitionAssetResponses.get(path), `${path} must remain available for cached HTML`).toEqual([200]);
   });
-  expect(facade).toEqual({ contractCount: 175, finalized: true });
+  expect(facade).toEqual({ contractCount: 178, finalized: true });
   expect(pageErrors).toEqual([]);
   expect(consoleErrors).toEqual([]);
 });

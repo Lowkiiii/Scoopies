@@ -274,7 +274,7 @@ test('typed Start preserves its exact private boundary, finalization slot, empty
   });
   expect(fresh).toMatchObject({
     contractVersion: 1,
-    contractCount: 175,
+    contractCount: 178,
     domains: phase4lDomainOrder,
     hasStartDomain: false,
     hasStartGlobal: false,
@@ -289,7 +289,7 @@ test('typed Start preserves its exact private boundary, finalization slot, empty
   const transition = await runTransitionProbe(context);
   expect(transition.result).toEqual({
     probe: { calls: 1, finalized: true },
-    contractCount: 175,
+    contractCount: 178,
     finalized: true,
     scripts: transitionRuntimeFiles,
   });

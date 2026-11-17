@@ -297,7 +297,7 @@ test('typed Bootstrap preserves its exact API, registration slot, runtime, cache
     domainOrder: phase4lDomainOrder,
     protectedBoot: false,
     contractVersion: 1,
-    contractCount: 175,
+    contractCount: 178,
     finalized: true,
     domainDescriptor: {
       configurable: true,
@@ -325,7 +325,7 @@ test('typed Bootstrap preserves its exact API, registration slot, runtime, cache
   expect(cached.result).toEqual({
     probe: { bootCalls: 1, finalizedAtBoot: true, typedBootstrap: false },
     finalized: true,
-    contractCount: 175,
+    contractCount: 178,
     scripts: transitionRuntimeFiles,
   });
   expect(cached.runtimeRequests).toEqual(

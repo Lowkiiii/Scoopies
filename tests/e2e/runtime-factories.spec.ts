@@ -62,6 +62,7 @@ const expectedValues = {
     mediaLoaded: false,
     mediaProductId: '',
     mediaRemoveProductId: '',
+    mediaArchiveProductId: '',
     mediaEditor: null,
   },
   freshPosSalesHistory: {

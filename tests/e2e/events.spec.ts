@@ -450,7 +450,7 @@ test('typed Events preserves delegated behavior and live browser bindings', asyn
   });
 });
 
-test('typed Events retains the legacy dispatcher order plus 9 inventory actions', () => {
+test('typed Events retains the legacy dispatcher order plus inventory and drink-archive actions', () => {
   const classicSource = readFileSync(
     resolve(process.cwd(), 'assets/js/events.js'),
     'utf8',
@@ -475,13 +475,21 @@ test('typed Events retains the legacy dispatcher order plus 9 inventory actions'
     'clearStockRowColor',
   ];
   const insertionIndex = classicActions.indexOf('openStockModal');
+  const archiveActions = [
+    'requestArchivePosDrink',
+    'cancelArchivePosDrink',
+    'confirmArchivePosDrink',
+  ];
+  const mediaInsertionIndex = classicActions.indexOf('setPosCategory');
 
   expect(classicActions).toHaveLength(112);
   expect(insertionIndex).toBeGreaterThan(0);
-  expect(typedActions).toHaveLength(121);
+  expect(typedActions).toHaveLength(124);
   expect(typedActions).toEqual([
     ...classicActions.slice(0, insertionIndex),
     ...inventoryActions,
-    ...classicActions.slice(insertionIndex),
+    ...classicActions.slice(insertionIndex, mediaInsertionIndex),
+    ...archiveActions,
+    ...classicActions.slice(mediaInsertionIndex),
   ]);
 });
