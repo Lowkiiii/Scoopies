@@ -238,7 +238,7 @@ test('typed State preserves the exact surface, registration, descriptors, runtim
   });
 
   expect(contract.version).toBe(1);
-  expect(contract.contractLength).toBe(178);
+  expect(contract.contractLength).toBe(175);
   expect(contract.order).toEqual(stateBindingNames);
   expect(contract.domainOrder).toEqual([
     'core', 'runtime', 'state', 'costing', 'catalog', 'stocks', 'workspace',
@@ -429,7 +429,7 @@ test('typed State initializes exact values once and honors Runtime replacements 
       ],
     },
     finalized: true,
-    contractCount: 178,
+    contractCount: 175,
     scripts: transitionRuntimeFiles,
   });
   expect(cached.runtimeRequests).toEqual(

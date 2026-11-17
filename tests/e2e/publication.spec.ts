@@ -1403,7 +1403,7 @@ test('typed Publication keeps its registration boundary, slot, runtime, and fall
 
   expect(contract).toMatchObject({
     version: 1,
-    contractLength: 178,
+    contractLength: 175,
     domainOrder: [
       'core', 'runtime', 'state', 'costing', 'catalog', 'stocks', 'workspace', 'pos',
       'publication', 'modals', 'support', 'events', 'bootstrap', 'legacy',

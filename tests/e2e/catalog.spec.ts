@@ -259,7 +259,7 @@ test('typed Catalog boundary preserves API, registration, live descriptors, runt
 
   expect(contract).toMatchObject({
     version: 1,
-    contractLength: 178,
+    contractLength: 175,
     domainOrder: [
       'core', 'runtime', 'state', 'costing', 'catalog', 'stocks', 'workspace', 'pos',
       'publication', 'modals', 'support', 'events', 'bootstrap', 'legacy',

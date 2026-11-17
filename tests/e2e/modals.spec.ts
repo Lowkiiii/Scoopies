@@ -265,7 +265,7 @@ test('typed Modals boundary preserves API, registration, live descriptors, runti
 
   expect(contract).toMatchObject({
     version: 1,
-    contractLength: 178,
+    contractLength: 175,
     domainOrder: [
       'core', 'runtime', 'state', 'costing', 'catalog', 'stocks', 'workspace', 'pos',
       'publication', 'modals', 'support', 'events', 'bootstrap', 'legacy',

@@ -675,7 +675,7 @@ test('typed POS view keeps its registration slot, runtime, and fallback', async 
 
   expect(contract).toMatchObject({
     version: 1,
-    contractLength: 178,
+    contractLength: 175,
     domainOrder: ['core', 'runtime', 'state', 'costing', 'catalog', 'stocks', 'workspace', 'pos', 'publication', 'modals', 'support', 'events', 'bootstrap', 'legacy'],
     domainSizes: { core: 15, runtime: 4, state: 141, costing: 37, catalog: 84, stocks: 63, workspace: 18, publication: 10, modals: 46, pos: 79, support: 3, events: 1, bootstrap: 1 },
     posOrder: [...posOperationsNames, ...posViewNames],

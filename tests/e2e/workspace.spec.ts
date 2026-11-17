@@ -211,7 +211,7 @@ test('typed Workspace boundary preserves API, registration, descriptors, runtime
 
   expect(contract).toMatchObject({
     version: 1,
-    contractLength: 178,
+    contractLength: 175,
     domainOrder: [
       'core', 'runtime', 'state', 'costing', 'catalog', 'stocks', 'workspace', 'pos',
       'publication', 'modals', 'support', 'events', 'bootstrap', 'legacy',

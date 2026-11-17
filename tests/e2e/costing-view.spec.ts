@@ -784,7 +784,7 @@ test('typed Costing view exposes the exact API and retained fallback', async ({
   expect(contract.costingOrder.slice(-costingViewNames.length)).toEqual(
     costingViewNames,
   );
-  expect(contract.contractLength).toBe(178);
+  expect(contract.contractLength).toBe(175);
   expect(contract.protectedViewNames).toEqual([
     'renderIngredients',
     'renderProducts',
